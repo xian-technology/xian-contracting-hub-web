@@ -10,6 +10,7 @@ from contracting_hub.utils.meta import (
     BROWSE_ROUTE,
     HOME_ROUTE,
     LOGIN_ROUTE,
+    PROFILE_SETTINGS_ROUTE,
     REGISTER_ROUTE,
 )
 
@@ -136,21 +137,21 @@ def _guest_session_navigation() -> rx.Component:
     )
 
 
-def _authenticated_session_navigation() -> rx.Component:
+def _authenticated_session_navigation(auth_state: type[AuthState]) -> rx.Component:
     """Render header account context for authenticated viewers."""
     return rx.flex(
         rx.box(
             rx.vstack(
                 rx.text(
-                    AuthState.current_identity_label,
+                    auth_state.current_identity_label,
                     font_size="0.92rem",
                     font_weight="600",
                     color="var(--hub-color-text)",
                 ),
                 rx.cond(
-                    AuthState.has_current_identity_secondary,
+                    auth_state.has_current_identity_secondary,
                     rx.text(
-                        AuthState.current_identity_secondary,
+                        auth_state.current_identity_secondary,
                         font_size="0.82rem",
                         color="var(--hub-color-text-muted)",
                     ),
@@ -163,11 +164,16 @@ def _authenticated_session_navigation() -> rx.Component:
             border_radius="var(--hub-radius-md)",
             background="rgba(255, 250, 242, 0.88)",
         ),
+        rx.link(
+            rx.button("Profile settings", size="2", variant="soft"),
+            href=PROFILE_SETTINGS_ROUTE,
+            text_decoration="none",
+        ),
         rx.button(
             "Log out",
             size="2",
             variant="soft",
-            on_click=AuthState.logout_current_user,
+            on_click=auth_state.logout_current_user,
         ),
         direction=rx.breakpoints(initial="column", md="row"),
         align=rx.breakpoints(initial="start", md="center"),
@@ -177,12 +183,12 @@ def _authenticated_session_navigation() -> rx.Component:
     )
 
 
-def _session_navigation() -> rx.Component:
+def _session_navigation(auth_state: type[AuthState]) -> rx.Component:
     """Render session-aware navigation controls inside the shell header."""
     return rx.box(
         rx.cond(
-            AuthState.is_authenticated,
-            _authenticated_session_navigation(),
+            auth_state.is_authenticated,
+            _authenticated_session_navigation(auth_state),
             _guest_session_navigation(),
         ),
         width=rx.breakpoints(initial="100%", md="auto"),
@@ -259,7 +265,7 @@ def _page_intro(
     )
 
 
-def _shell_header() -> rx.Component:
+def _shell_header(auth_state: type[AuthState]) -> rx.Component:
     """Render the persistent application header."""
     return rx.box(
         _shell_frame(
@@ -268,7 +274,7 @@ def _shell_header() -> rx.Component:
                 rx.vstack(
                     rx.flex(
                         _shell_navigation(),
-                        _session_navigation(),
+                        _session_navigation(auth_state),
                         direction=rx.breakpoints(initial="column", lg="row"),
                         align=rx.breakpoints(initial="start", lg="center"),
                         justify="end",
@@ -328,6 +334,7 @@ def app_shell(
     page_title: str | None = None,
     page_intro: str | None = None,
     page_kicker: str | None = None,
+    auth_state: type[AuthState] = AuthState,
 ) -> rx.Component:
     """Wrap page content in the shared responsive shell."""
     content_children: list[rx.Component] = []
@@ -349,7 +356,7 @@ def app_shell(
             pointer_events="none",
         ),
         rx.flex(
-            _shell_header(),
+            _shell_header(auth_state),
             rx.box(
                 _shell_frame(
                     rx.vstack(

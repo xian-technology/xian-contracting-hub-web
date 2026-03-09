@@ -7,6 +7,7 @@ HOME_ROUTE = "/"
 BROWSE_ROUTE = "/browse"
 LOGIN_ROUTE = "/login"
 REGISTER_ROUTE = "/register"
+PROFILE_SETTINGS_ROUTE = "/settings/profile"
 CONTRACT_DETAIL_ROUTE = "/contracts/[slug]"
 HOME_BADGE_TEXT = "Xian Ecosystem"
 HOME_TAGLINE = "Curated smart contracts, version history, and deployment workflows."
@@ -36,6 +37,7 @@ __all__ = [
     "HOME_BADGE_TEXT",
     "HOME_ROUTE",
     "LOGIN_ROUTE",
+    "PROFILE_SETTINGS_ROUTE",
     "REGISTER_ROUTE",
     "HOME_TAGLINE",
     "build_contract_detail_path",

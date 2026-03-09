@@ -26,6 +26,7 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
     detail_module = importlib.import_module("contracting_hub.pages.contract_detail")
     login_module = importlib.import_module("contracting_hub.pages.login")
     register_module = importlib.import_module("contracting_hub.pages.register")
+    profile_settings_module = importlib.import_module("contracting_hub.pages.profile_settings")
     meta_module = importlib.import_module("contracting_hub.utils.meta")
     return (
         (home_module.ROUTE, home_module.index, meta_module.APP_NAME, home_module.ON_LOAD),
@@ -52,6 +53,12 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
             register_module.index,
             f"Create account | {meta_module.APP_NAME}",
             register_module.ON_LOAD,
+        ),
+        (
+            profile_settings_module.ROUTE,
+            profile_settings_module.index,
+            f"Profile settings | {meta_module.APP_NAME}",
+            profile_settings_module.ON_LOAD,
         ),
     )
 

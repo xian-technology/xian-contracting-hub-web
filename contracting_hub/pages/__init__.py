@@ -8,6 +8,8 @@ from contracting_hub.pages.home import ROUTE as HOME_ROUTE
 from contracting_hub.pages.home import index
 from contracting_hub.pages.login import ROUTE as LOGIN_ROUTE
 from contracting_hub.pages.login import index as login_index
+from contracting_hub.pages.profile_settings import ROUTE as PROFILE_SETTINGS_ROUTE
+from contracting_hub.pages.profile_settings import index as profile_settings_index
 from contracting_hub.pages.register import ROUTE as REGISTER_ROUTE
 from contracting_hub.pages.register import index as register_index
 
@@ -16,10 +18,12 @@ __all__ = [
     "CONTRACT_DETAIL_ROUTE",
     "HOME_ROUTE",
     "LOGIN_ROUTE",
+    "PROFILE_SETTINGS_ROUTE",
     "REGISTER_ROUTE",
     "browse_index",
     "contract_detail_index",
     "index",
     "login_index",
+    "profile_settings_index",
     "register_index",
 ]
