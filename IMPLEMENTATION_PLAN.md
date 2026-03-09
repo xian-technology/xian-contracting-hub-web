@@ -15,7 +15,7 @@
 - [x] 2.2 — Create and verify the initial migrations for the full schema, including indexes and uniqueness constraints.
 - [x] 2.3 — Seed the initial category taxonomy and any required admin bootstrap data for local development.
 - [x] 2.4 — Implement repository methods for contract listing, contract detail loading, published-version lookup, and relation traversal.
-- [ ] 2.5 — Implement metadata validation rules for contract names, slugs, semantic versions, publish states, and relation types.
+- [x] 2.5 — Implement metadata validation rules for contract names, slugs, semantic versions, publish states, and relation types.
 - [ ] 2.6 — Implement immutable version storage with changelog persistence and previous-version linkage.
 - [ ] 2.7 — Implement diff generation helpers for version-to-version comparisons and expose a service-level API for diff retrieval.
 - [ ] 2.8 — Integrate `xian-linter` into a lint service that validates source code before publish and stores structured lint results per version.
