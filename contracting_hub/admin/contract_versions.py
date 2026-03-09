@@ -192,6 +192,14 @@ def _overview_card() -> rx.Component:
                         text_decoration="none",
                     ),
                     rx.cond(
+                        AdminContractVersionManagerState.has_relation_manager,
+                        rx.link(
+                            rx.button("Manage relations", size="3", variant="soft"),
+                            href=AdminContractVersionManagerState.relations_href,
+                            text_decoration="none",
+                        ),
+                    ),
+                    rx.cond(
                         AdminContractVersionManagerState.has_public_detail,
                         rx.link(
                             rx.button("View public detail", size="3"),

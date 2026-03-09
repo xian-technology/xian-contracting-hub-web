@@ -25,6 +25,7 @@ from contracting_hub.states.auth import AUTH_SESSION_COOKIE_NAME
 from contracting_hub.utils.meta import (
     HOME_ROUTE,
     build_admin_contract_edit_path,
+    build_admin_contract_relations_path,
     build_admin_contract_versions_path,
 )
 
@@ -71,6 +72,7 @@ class AdminContractEditorState(rx.State):
     latest_public_version_label: str = "No public version yet"
     public_detail_href: str = ""
     versions_href: str = ""
+    relations_href: str = ""
     contract_slug_value: str = ""
     contract_name_value: str = ""
     display_name_value: str = ""
@@ -174,6 +176,11 @@ class AdminContractEditorState(rx.State):
     def has_version_manager(self) -> bool:
         """Return whether the current editor should link to version management."""
         return bool(self.versions_href)
+
+    @rx.var
+    def has_relation_manager(self) -> bool:
+        """Return whether the current editor should link to relation management."""
+        return bool(self.relations_href)
 
     @rx.var
     def has_categories(self) -> bool:
@@ -406,6 +413,9 @@ class AdminContractEditorState(rx.State):
         self.public_detail_href = snapshot.public_detail_href or ""
         self.versions_href = (
             build_admin_contract_versions_path(snapshot.slug) if snapshot.contract_id else ""
+        )
+        self.relations_href = (
+            build_admin_contract_relations_path(snapshot.slug) if snapshot.contract_id else ""
         )
         self.contract_slug_value = snapshot.slug
         self.contract_name_value = snapshot.contract_name

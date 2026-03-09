@@ -25,6 +25,7 @@ from contracting_hub.services.contract_versions import ContractVersionServiceErr
 from contracting_hub.states.auth import AUTH_SESSION_COOKIE_NAME
 from contracting_hub.utils.meta import (
     HOME_ROUTE,
+    build_admin_contract_relations_path,
 )
 
 _SETTINGS = get_settings()
@@ -78,6 +79,7 @@ class AdminContractVersionManagerState(rx.State):
     latest_saved_version_label: str = "No versions yet"
     public_detail_href: str = ""
     metadata_edit_href: str = ""
+    relations_href: str = ""
     version_rows: list[AdminContractVersionRowPayload] = []
     semantic_version_value: str = ""
     source_code_value: str = ""
@@ -159,6 +161,11 @@ class AdminContractVersionManagerState(rx.State):
     def has_public_detail(self) -> bool:
         """Return whether the contract currently has a public detail page."""
         return bool(self.public_detail_href)
+
+    @rx.var
+    def has_relation_manager(self) -> bool:
+        """Return whether the current contract has relation-management routing."""
+        return bool(self.relations_href)
 
     @rx.var
     def has_version_history(self) -> bool:
@@ -458,6 +465,9 @@ class AdminContractVersionManagerState(rx.State):
         self.latest_saved_version_label = snapshot.latest_saved_version or "No versions yet"
         self.public_detail_href = snapshot.public_detail_href or ""
         self.metadata_edit_href = snapshot.edit_href
+        self.relations_href = (
+            build_admin_contract_relations_path(snapshot.slug) if snapshot.contract_id else ""
+        )
         self.version_rows = [_serialize_version_row(row) for row in snapshot.version_history]
 
     def _apply_preview(self, preview: AdminContractVersionPreview) -> None:
