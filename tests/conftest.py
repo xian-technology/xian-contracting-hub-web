@@ -48,8 +48,24 @@ def app_module(project_root: Path) -> dict[str, object]:
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    original_positions = {item.nodeid: index for index, item in enumerate(items)}
     for item in items:
         test_path = Path(str(item.fspath))
         for directory_name, marker_name in TEST_MARKERS_BY_DIRECTORY.items():
             if directory_name in test_path.parts:
                 item.add_marker(getattr(pytest.mark, marker_name))
+                break
+
+    items.sort(
+        key=lambda item: (
+            _collection_priority(Path(str(item.fspath))),
+            original_positions[item.nodeid],
+        )
+    )
+
+
+def _collection_priority(test_path: Path) -> int:
+    for priority, directory_name in enumerate(TEST_MARKERS_BY_DIRECTORY):
+        if directory_name in test_path.parts:
+            return priority
+    return len(TEST_MARKERS_BY_DIRECTORY)
