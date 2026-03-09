@@ -11,7 +11,7 @@
 - [x] 1.8 — Add smoke tests for app startup, configuration loading, database initialization, and rendering the shared layout shell.
 
 ## Phase 2: Core Contract Domain and Data Layer
-- [ ] 2.1 — Implement database models for users, profiles, contracts, contract versions, categories, category links, relations, stars, ratings, playground targets, deployment history, and admin audit logs.
+- [x] 2.1 — Implement database models for users, profiles, contracts, contract versions, categories, category links, relations, stars, ratings, playground targets, deployment history, and admin audit logs.
 - [ ] 2.2 — Create and verify the initial migrations for the full schema, including indexes and uniqueness constraints.
 - [ ] 2.3 — Seed the initial category taxonomy and any required admin bootstrap data for local development.
 - [ ] 2.4 — Implement repository methods for contract listing, contract detail loading, published-version lookup, and relation traversal.

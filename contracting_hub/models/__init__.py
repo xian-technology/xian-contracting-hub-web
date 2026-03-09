@@ -1,5 +1,51 @@
 """Database models and shared table bases."""
 
 from contracting_hub.models.base import AppModel, TimestampedModel, utc_now
+from contracting_hub.models.schema import (
+    AdminAuditLog,
+    Category,
+    Contract,
+    ContractCategoryLink,
+    ContractNetwork,
+    ContractRelation,
+    ContractRelationType,
+    ContractVersion,
+    DeploymentHistory,
+    DeploymentStatus,
+    DeploymentTransport,
+    LintStatus,
+    PlaygroundTarget,
+    Profile,
+    PublicationStatus,
+    Rating,
+    Star,
+    User,
+    UserRole,
+    UserStatus,
+)
 
-__all__ = ["AppModel", "TimestampedModel", "utc_now"]
+__all__ = [
+    "AdminAuditLog",
+    "AppModel",
+    "Category",
+    "Contract",
+    "ContractCategoryLink",
+    "ContractNetwork",
+    "ContractRelation",
+    "ContractRelationType",
+    "ContractVersion",
+    "DeploymentHistory",
+    "DeploymentStatus",
+    "DeploymentTransport",
+    "LintStatus",
+    "PlaygroundTarget",
+    "Profile",
+    "PublicationStatus",
+    "Rating",
+    "Star",
+    "TimestampedModel",
+    "User",
+    "UserRole",
+    "UserStatus",
+    "utc_now",
+]
