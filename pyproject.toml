@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=69.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contracting-hub"
+version = "0.1.0"
+description = "Curated smart-contract repository for the Xian ecosystem."
+readme = { file = "specs/overview.md", content-type = "text/markdown" }
+requires-python = "==3.11.11"
+dependencies = [
+    "reflex==0.8.27",
+    "sqlmodel==0.0.33",
+    "alembic==1.18.4",
+    "xian-contracting==1.0.2",
+    "xian-linter==0.2.5",
+    "xian-py==0.4.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.15.1",
+    "pytest==9.0.2",
+    "pytest-cov==7.0.0",
+    "pytest-timeout==2.4.0",
+    "playwright==1.58.0",
+    "pytest-playwright==0.7.2",
+]
+
+[tool.setuptools.packages.find]
+include = ["contracting_hub*"]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+

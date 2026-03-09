@@ -116,3 +116,6 @@ pytest -x -q --timeout=30
 pytest --cov=contracting_hub --cov-report=term-missing --cov-fail-under=80
 reflex export --no-zip
 ```
+
+## Operational Learnings
+- The task runner shell may start without an activated virtual environment, `python`, or project tools on `PATH`; use `python3 -m venv .venv` and `source .venv/bin/activate` first so the documented `python`, `pip`, `ruff`, `pytest`, and `reflex` commands resolve normally.
