@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from typing import TypedDict
+from urllib.parse import quote
 
 import reflex as rx
 
@@ -37,6 +39,7 @@ class ContractDetailState(rx.State):
     version_label: str = ""
     version_status_label: str = ""
     version_status_color_scheme: str = "gray"
+    selected_version_source_code: str = ""
     published_label: str = "Pending"
     updated_label: str = "Pending"
     star_count: str = "0"
@@ -113,6 +116,30 @@ class ContractDetailState(rx.State):
         """Return whether the contract has a public source repository URL."""
         return bool(self.source_repository_url)
 
+    @rx.var
+    def has_source_code(self) -> bool:
+        """Return whether the selected version exposes source code."""
+        return bool(self.selected_version_source_code)
+
+    @rx.var
+    def source_line_count_label(self) -> str:
+        """Return a human-readable source-code line count."""
+        return _format_line_count(_count_source_lines(self.selected_version_source_code))
+
+    @rx.var
+    def source_download_filename(self) -> str:
+        """Return the filename used for source downloads."""
+        return _build_source_download_filename(
+            contract_name=self.contract_name,
+            contract_slug=self.contract_slug,
+            version_label=self.version_label,
+        )
+
+    @rx.var
+    def source_download_url(self) -> str:
+        """Return a data URL for the selected source snapshot."""
+        return _build_source_download_url(self.selected_version_source_code)
+
     def load_page(self) -> None:
         """Load one public contract snapshot from the current route params."""
         params = self.router.page.params
@@ -137,6 +164,7 @@ class ContractDetailState(rx.State):
         self.version_label = snapshot.selected_version or "No published version"
         self.version_status_label = _status_label(snapshot.selected_version_status)
         self.version_status_color_scheme = _status_color_scheme(snapshot.selected_version_status)
+        self.selected_version_source_code = snapshot.selected_version_source_code
         self.published_label = format_contract_calendar_date(snapshot.selected_version_published_at)
         self.updated_label = format_contract_calendar_date(snapshot.updated_at)
         self.header_context_label = (
@@ -181,6 +209,7 @@ class ContractDetailState(rx.State):
         self.version_label = ""
         self.version_status_label = ""
         self.version_status_color_scheme = "gray"
+        self.selected_version_source_code = ""
         self.published_label = "Pending"
         self.updated_label = "Pending"
         self.star_count = "0"
@@ -235,6 +264,43 @@ def _author_initials(value: str) -> str:
     if not parts:
         return "CE"
     return "".join(parts[:2])
+
+
+def _count_source_lines(source_code: str) -> int:
+    if not source_code:
+        return 0
+    return len(source_code.splitlines())
+
+
+def _format_line_count(line_count: int) -> str:
+    if line_count == 1:
+        return "1 line"
+    return f"{line_count} lines"
+
+
+def _build_source_download_filename(
+    *,
+    contract_name: str,
+    contract_slug: str,
+    version_label: str,
+) -> str:
+    base_name = contract_name or contract_slug or "contract"
+    normalized_base_name = _sanitize_filename_token(base_name)
+    normalized_version_label = _sanitize_filename_token(version_label)
+    if normalized_version_label:
+        return f"{normalized_base_name}-{normalized_version_label}.py"
+    return f"{normalized_base_name}.py"
+
+
+def _sanitize_filename_token(value: str) -> str:
+    normalized = re.sub(r"[^0-9A-Za-z._-]+", "_", value).strip("._-")
+    return normalized or "contract"
+
+
+def _build_source_download_url(source_code: str) -> str:
+    if not source_code:
+        return ""
+    return f"data:text/x-python;charset=utf-8,{quote(source_code, safe='')}"
 
 
 __all__ = ["ContractDetailState"]

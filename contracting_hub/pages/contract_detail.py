@@ -10,6 +10,7 @@ from contracting_hub.components import (
     contract_detail_header,
     contract_metadata_badge,
     contract_rating_summary,
+    contract_source_viewer,
     page_section,
 )
 from contracting_hub.states import ContractDetailState
@@ -280,6 +281,18 @@ def _detail_header() -> rx.Component:
     )
 
 
+def _source_viewer() -> rx.Component:
+    return contract_source_viewer(
+        source_code=ContractDetailState.selected_version_source_code,
+        source_download_url=ContractDetailState.source_download_url,
+        source_download_filename=ContractDetailState.source_download_filename,
+        version_label=ContractDetailState.version_label,
+        line_count_label=ContractDetailState.source_line_count_label,
+        has_source_code=ContractDetailState.has_source_code,
+        custom_attrs={"data-testid": "contract-source-viewer"},
+    )
+
+
 def _loading_state() -> rx.Component:
     return page_section(
         rx.vstack(
@@ -334,7 +347,13 @@ def index() -> rx.Component:
         rx.box(
             rx.cond(
                 ContractDetailState.is_ready,
-                _detail_header(),
+                rx.vstack(
+                    _detail_header(),
+                    _source_viewer(),
+                    align="start",
+                    gap="var(--hub-space-7)",
+                    width="100%",
+                ),
                 rx.cond(
                     ContractDetailState.is_missing,
                     _missing_state(),

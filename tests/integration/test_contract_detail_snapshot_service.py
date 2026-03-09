@@ -159,6 +159,7 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
     assert snapshot.tag_names == ("escrow", "treasury")
     assert snapshot.selected_version == "1.2.0"
     assert snapshot.selected_version_status is PublicationStatus.PUBLISHED
+    assert snapshot.selected_version_source_code == "def seed():\n    return 'escrow'\n"
     assert snapshot.star_count == 3
     assert snapshot.rating_count == 2
     assert snapshot.average_rating == pytest.approx(4.5)

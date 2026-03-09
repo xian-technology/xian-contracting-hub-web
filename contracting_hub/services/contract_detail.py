@@ -47,6 +47,7 @@ class ContractDetailSnapshot:
     tag_names: tuple[str, ...]
     selected_version: str | None
     selected_version_status: PublicationStatus | None
+    selected_version_source_code: str
     selected_version_published_at: datetime | None
     updated_at: datetime | None
     star_count: int
@@ -90,6 +91,7 @@ def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> Contract
         tag_names=(),
         selected_version=None,
         selected_version_status=None,
+        selected_version_source_code="",
         selected_version_published_at=None,
         updated_at=None,
         star_count=0,
@@ -162,6 +164,7 @@ def load_public_contract_detail_snapshot(
             selected_version.semantic_version if selected_version is not None else None
         ),
         selected_version_status=selected_version.status if selected_version is not None else None,
+        selected_version_source_code=selected_version.source_code if selected_version else "",
         selected_version_published_at=_coerce_utc_datetime(
             selected_version.published_at if selected_version is not None else None
         ),

@@ -7,6 +7,7 @@ from contracting_hub.components.contract_catalog import (
     contract_metadata_badge,
     contract_rating_summary,
 )
+from contracting_hub.components.contract_code_viewer import contract_source_viewer
 from contracting_hub.components.contract_detail import contract_detail_header
 from contracting_hub.components.page_section import page_section
 
@@ -17,5 +18,6 @@ __all__ = [
     "contract_detail_header",
     "contract_metadata_badge",
     "contract_rating_summary",
+    "contract_source_viewer",
     "page_section",
 ]
