@@ -182,3 +182,66 @@ def test_create_contract_version_rebuilds_index_without_leaking_draft_source() -
         assert [result.contract.slug for result in published_results] == ["timelock"]
         assert draft_results == []
         assert [result.contract.slug for result in refreshed_published_results] == ["timelock"]
+
+
+def test_search_contract_catalog_respects_visibility_even_with_explicit_filters() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        _seed_search_catalog(session)
+
+        draft_contract = Contract(
+            slug="draft-escrow",
+            contract_name="con_draft_escrow",
+            display_name="Draft Escrow",
+            short_summary="Draft canary for filtered search visibility.",
+            long_description="Draft-only escrow search document for access-control coverage.",
+            status=PublicationStatus.DRAFT,
+            featured=True,
+            tags=["draft", "escrow"],
+            updated_at=_timestamp(7),
+        )
+        session.add(draft_contract)
+        session.commit()
+
+        create_contract_version(
+            session=session,
+            contract_slug="draft-escrow",
+            semantic_version="0.1.0",
+            source_code="@export\ndef hidden_draft_canary():\n    return 'draft'\n",
+            status=PublicationStatus.DRAFT,
+        )
+
+        filtered_public_results = search_contract_catalog(
+            session=session,
+            query="canary",
+            statuses=[PublicationStatus.DRAFT],
+        )
+        filtered_admin_results = search_contract_catalog(
+            session=session,
+            query="canary",
+            include_unpublished=True,
+            statuses=[PublicationStatus.DRAFT],
+        )
+        featured_public_results = search_contract_catalog(
+            session=session,
+            query="draft",
+            featured=True,
+        )
+        featured_admin_results = search_contract_catalog(
+            session=session,
+            query="draft",
+            include_unpublished=True,
+            featured=True,
+        )
+        empty_status_results = search_contract_catalog(
+            session=session,
+            query="escrow",
+            statuses=[],
+        )
+
+        assert filtered_public_results == []
+        assert [result.contract.slug for result in filtered_admin_results] == ["draft-escrow"]
+        assert featured_public_results == []
+        assert [result.contract.slug for result in featured_admin_results] == ["draft-escrow"]
+        assert empty_status_results == []

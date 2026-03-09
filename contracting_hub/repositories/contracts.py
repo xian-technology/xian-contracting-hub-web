@@ -324,7 +324,17 @@ def _apply_contract_visibility(
         normalized_statuses = tuple(dict.fromkeys(statuses))
         if not normalized_statuses:
             return statement.where(sa.false())
-        return statement.where(Contract.status.in_(normalized_statuses))
+        if include_unpublished:
+            return statement.where(Contract.status.in_(normalized_statuses))
+
+        visible_statuses = tuple(
+            status for status in normalized_statuses if status in PUBLIC_VISIBLE_STATUSES
+        )
+        if not visible_statuses:
+            return statement.where(sa.false())
+        return _apply_public_contract_visibility(statement, Contract).where(
+            Contract.status.in_(visible_statuses)
+        )
 
     if include_unpublished:
         return statement

@@ -189,3 +189,60 @@ def test_schema_enforces_single_star_per_user_and_contract() -> None:
             session.rollback()
         else:
             raise AssertionError("Expected duplicate star insert to fail")
+
+
+def test_schema_enforces_rating_score_range() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        user = User(email="carol@example.com", password_hash="hashed-password")
+        contract = Contract(
+            slug="rateable",
+            contract_name="con_rateable",
+            display_name="Rateable",
+            short_summary="Rating example.",
+            long_description="Long-form description for the rating example contract.",
+        )
+
+        session.add_all([user, contract])
+        session.commit()
+
+        session.add(Rating(user_id=user.id, contract_id=contract.id, score=0))
+
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+        else:
+            raise AssertionError("Expected out-of-range rating insert to fail")
+
+
+def test_schema_rejects_self_referential_contract_relations() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        contract = Contract(
+            slug="mirror",
+            contract_name="con_mirror",
+            display_name="Mirror",
+            short_summary="Relation example.",
+            long_description="Long-form description for the relation example contract.",
+        )
+
+        session.add(contract)
+        session.commit()
+
+        session.add(
+            ContractRelation(
+                source_contract_id=contract.id,
+                target_contract_id=contract.id,
+                relation_type=ContractRelationType.COMPANION,
+            )
+        )
+
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+        else:
+            raise AssertionError("Expected self-referential relation insert to fail")

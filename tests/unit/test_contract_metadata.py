@@ -81,6 +81,15 @@ def test_validate_contract_slug_rejects_invalid_values(invalid_slug: str) -> Non
     assert error.value.field == "slug"
 
 
+def test_validate_contract_slug_rejects_non_string_inputs() -> None:
+    with pytest.raises(ContractMetadataValidationError) as error:
+        validate_contract_slug(None)  # type: ignore[arg-type]
+
+    assert error.value.code is ContractMetadataValidationErrorCode.INVALID_SLUG
+    assert error.value.field == "slug"
+    assert error.value.details["expected_type"] == "str"
+
+
 @pytest.mark.parametrize(
     ("raw_version", "expected_version"),
     [
@@ -114,6 +123,15 @@ def test_validate_semantic_version_rejects_invalid_values(invalid_version: str) 
 
     assert error.value.code is ContractMetadataValidationErrorCode.INVALID_SEMANTIC_VERSION
     assert error.value.field == "semantic_version"
+
+
+def test_validate_semantic_version_rejects_non_string_inputs() -> None:
+    with pytest.raises(ContractMetadataValidationError) as error:
+        validate_semantic_version(None)  # type: ignore[arg-type]
+
+    assert error.value.code is ContractMetadataValidationErrorCode.INVALID_SEMANTIC_VERSION
+    assert error.value.field == "semantic_version"
+    assert error.value.details["expected_type"] == "str"
 
 
 def test_validate_publication_status_accepts_enums_and_strings() -> None:

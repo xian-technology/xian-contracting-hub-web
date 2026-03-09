@@ -20,7 +20,7 @@
 - [x] 2.7 — Implement diff generation helpers for version-to-version comparisons and expose a service-level API for diff retrieval.
 - [x] 2.8 — Integrate `xian-linter` into a lint service that validates source code before publish and stores structured lint results per version.
 - [x] 2.9 — Add SQLite FTS5 search indexing for contract metadata and selected source text, including rebuild hooks and ranking strategy.
-- [ ] 2.10 — Write unit and integration tests for schema rules, metadata validation, diff generation, lint storage, and search queries.
+- [x] 2.10 — Write unit and integration tests for schema rules, metadata validation, diff generation, lint storage, and search queries.
 
 ## Phase 3: Accounts, Engagement, and Deployment Services
 - [ ] 3.1 — Implement password hashing, session persistence, role checks, and auth service helpers for registration, login, logout, and current-user resolution.
