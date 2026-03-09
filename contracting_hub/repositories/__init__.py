@@ -10,6 +10,7 @@ from contracting_hub.repositories.contracts import (
     ContractRepository,
     ContractSearchResult,
 )
+from contracting_hub.repositories.stars import StarRepository
 
 __all__ = [
     "CONTRACT_SEARCH_INDEX_TABLE_NAME",
@@ -20,4 +21,5 @@ __all__ = [
     "ContractSearchResult",
     "ContractVersionRepository",
     "PUBLIC_VISIBLE_STATUSES",
+    "StarRepository",
 ]
