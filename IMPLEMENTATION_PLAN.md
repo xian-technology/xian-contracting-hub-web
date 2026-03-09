@@ -25,7 +25,7 @@
 ## Phase 3: Accounts, Engagement, and Deployment Services
 - [x] 3.1 — Implement password hashing, session persistence, role checks, and auth service helpers for registration, login, logout, and current-user resolution.
 - [x] 3.2 — Add route and action guards so anonymous, authenticated, and admin-only flows are enforced consistently.
-- [ ] 3.3 — Implement profile editing services for username, display name, bio, external links, and avatar updates.
+- [x] 3.3 — Implement profile editing services for username, display name, bio, external links, and avatar updates.
 - [ ] 3.4 — Implement star toggle services and persistence rules that guarantee one favorite record per user per contract.
 - [ ] 3.5 — Implement one-rating-per-user rules, editable rating submission, and aggregate rating recalculation.
 - [ ] 3.6 — Implement saved playground target CRUD and validation rules for playground IDs.

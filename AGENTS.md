@@ -140,3 +140,4 @@ reflex export --no-zip
 - Keep explicit `statuses=` filters intersected with public visibility when `include_unpublished=False`; otherwise browse and search queries can leak draft contracts even when the caller did not request unpublished content.
 - SQLite can load persisted `DateTime` values back as naive timestamps in tests even when model defaults use `utc_now()`; coerce auth-session expiry values back to UTC before comparing them to fresh application timestamps so session resolution stays stable.
 - Reflex state route-guard tests can instantiate a state with `_reflex_internal_init=True` and set `router_data` / `router` via `object.__setattr__(..., RouterData.from_router_data(...))` to simulate the current path without booting the app.
+- When replacing a stored avatar, commit the new `avatar_path` before deleting the old file, and delete the freshly uploaded replacement on rollback so failed profile updates do not leave broken references or orphaned files.

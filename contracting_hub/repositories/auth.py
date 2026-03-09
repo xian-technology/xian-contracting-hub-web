@@ -14,6 +14,11 @@ class AuthRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    def get_user_by_id(self, user_id: int) -> User | None:
+        """Load a user by primary key, including the public profile."""
+        statement = select(User).options(selectinload(User.profile)).where(User.id == user_id)
+        return self._session.exec(statement).first()
+
     def get_user_by_email(self, email: str) -> User | None:
         """Load a user by normalized email, including the public profile."""
         statement = select(User).options(selectinload(User.profile)).where(User.email == email)
