@@ -40,6 +40,15 @@ class AuthenticatedSession:
     user: User
 
 
+@dataclass(frozen=True)
+class RouteGuardDecision:
+    """Route-access outcome used by state-layer guards."""
+
+    allow: bool
+    redirect_to: str | None = None
+    remember_requested_path: bool = False
+
+
 class AuthServiceErrorCode(StrEnum):
     """Stable auth-service failures exposed to callers."""
 
@@ -52,6 +61,15 @@ class AuthServiceErrorCode(StrEnum):
     INVALID_EMAIL = "invalid_email"
     INVALID_PASSWORD = "invalid_password"
     INVALID_USERNAME = "invalid_username"
+
+
+class RouteGuardMode(StrEnum):
+    """Supported access policies for page-level route guards."""
+
+    PUBLIC = "public"
+    ANONYMOUS_ONLY = "anonymous_only"
+    AUTHENTICATED = "authenticated"
+    ADMIN = "admin"
 
 
 class AuthServiceError(ValueError):
@@ -243,6 +261,34 @@ def logout_user(
     return True
 
 
+def require_authenticated_user(
+    *,
+    session: Session,
+    session_token: str | None,
+    now: datetime | None = None,
+) -> User:
+    """Resolve the current active user or raise a stable auth error."""
+    user = _load_session_user(session=session, session_token=session_token, now=now, strict=True)
+    if user is None:
+        raise AssertionError("strict session loading must return a user or raise an auth error")
+    return user
+
+
+def require_admin_user(
+    *,
+    session: Session,
+    session_token: str | None,
+    now: datetime | None = None,
+) -> User:
+    """Resolve the current active administrator or raise a stable auth error."""
+    user = require_authenticated_user(
+        session=session,
+        session_token=session_token,
+        now=now,
+    )
+    return require_user_role(user, UserRole.ADMIN)
+
+
 def resolve_current_user(
     *,
     session: Session,
@@ -250,27 +296,48 @@ def resolve_current_user(
     now: datetime | None = None,
 ) -> User | None:
     """Resolve the current active user from an opaque cookie session token."""
-    normalized_token = _normalize_session_token(session_token)
-    if normalized_token is None:
-        return None
+    return _load_session_user(session=session, session_token=session_token, now=now, strict=False)
 
-    repository = AuthRepository(session)
-    auth_session = repository.get_auth_session_by_token_hash(
-        build_session_token_hash(normalized_token)
-    )
-    if auth_session is None:
-        return None
 
-    if _coerce_utc_datetime(auth_session.expires_at) <= _coerce_utc_datetime(now or utc_now()):
-        repository.delete_auth_session(auth_session)
-        session.commit()
-        return None
-    if auth_session.user.status is not UserStatus.ACTIVE:
-        repository.delete_auth_session(auth_session)
-        session.commit()
-        return None
+def evaluate_route_guard(
+    *,
+    mode: RouteGuardMode | str,
+    user: User | None,
+    login_route: str,
+    home_route: str,
+    unauthorized_route: str | None = None,
+) -> RouteGuardDecision:
+    """Return the route-access decision for the current viewer."""
+    normalized_mode = mode if isinstance(mode, RouteGuardMode) else RouteGuardMode(mode)
+    normalized_user = user if user is not None and user.status is UserStatus.ACTIVE else None
+    fallback_unauthorized_route = unauthorized_route or home_route
 
-    return auth_session.user
+    if normalized_mode is RouteGuardMode.PUBLIC:
+        return RouteGuardDecision(allow=True)
+
+    if normalized_mode is RouteGuardMode.ANONYMOUS_ONLY:
+        if normalized_user is None:
+            return RouteGuardDecision(allow=True)
+        return RouteGuardDecision(allow=False, redirect_to=home_route)
+
+    if normalized_mode is RouteGuardMode.AUTHENTICATED:
+        if normalized_user is not None:
+            return RouteGuardDecision(allow=True)
+        return RouteGuardDecision(
+            allow=False,
+            redirect_to=login_route,
+            remember_requested_path=True,
+        )
+
+    if normalized_user is None:
+        return RouteGuardDecision(
+            allow=False,
+            redirect_to=login_route,
+            remember_requested_path=True,
+        )
+    if normalized_user.role is UserRole.ADMIN:
+        return RouteGuardDecision(allow=True)
+    return RouteGuardDecision(allow=False, redirect_to=fallback_unauthorized_route)
 
 
 def user_has_role(user: User | None, role: UserRole | str) -> bool:
@@ -426,6 +493,64 @@ def _validate_session_ttl(session_ttl: timedelta) -> timedelta:
     return session_ttl
 
 
+def _load_session_user(
+    *,
+    session: Session,
+    session_token: str | None,
+    now: datetime | None,
+    strict: bool,
+) -> User | None:
+    normalized_token = _normalize_session_token(session_token)
+    if normalized_token is None:
+        if strict:
+            raise AuthServiceError(
+                AuthServiceErrorCode.AUTHENTICATION_REQUIRED,
+                "Authentication is required for this action.",
+                field="session",
+            )
+        return None
+
+    repository = AuthRepository(session)
+    auth_session = repository.get_auth_session_by_token_hash(
+        build_session_token_hash(normalized_token)
+    )
+    if auth_session is None:
+        if strict:
+            raise AuthServiceError(
+                AuthServiceErrorCode.AUTHENTICATION_REQUIRED,
+                "Authentication is required for this action.",
+                field="session",
+            )
+        return None
+
+    if _coerce_utc_datetime(auth_session.expires_at) <= _coerce_utc_datetime(now or utc_now()):
+        repository.delete_auth_session(auth_session)
+        session.commit()
+        if strict:
+            raise AuthServiceError(
+                AuthServiceErrorCode.AUTHENTICATION_REQUIRED,
+                "Your session has expired. Please sign in again.",
+                field="session",
+                details={"expired": True},
+            )
+        return None
+
+    user = auth_session.user
+    if user.status is not UserStatus.ACTIVE:
+        repository.delete_auth_session(auth_session)
+        session.commit()
+        if strict:
+            raise AuthServiceError(
+                AuthServiceErrorCode.ACCOUNT_DISABLED,
+                "This account is disabled.",
+                field="session",
+                details={"user_id": user.id},
+            )
+        return None
+
+    return user
+
+
 def _normalize_session_token(session_token: str | None) -> str | None:
     if session_token is None:
         return None
@@ -476,14 +601,19 @@ __all__ = [
     "SESSION_TOKEN_BYTES",
     "USERNAME_PATTERN",
     "AuthenticatedSession",
+    "RouteGuardDecision",
+    "RouteGuardMode",
     "AuthServiceError",
     "AuthServiceErrorCode",
     "build_session_token_hash",
+    "evaluate_route_guard",
     "hash_password",
     "login_user",
     "logout_user",
     "normalize_email",
     "normalize_username",
+    "require_admin_user",
+    "require_authenticated_user",
     "register_user",
     "require_user_role",
     "resolve_current_user",
