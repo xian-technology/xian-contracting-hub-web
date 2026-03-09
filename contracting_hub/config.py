@@ -12,7 +12,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ENV_FILE_NAME = ".env"
 DEFAULT_INSTANCE_DIR_NAME = ".local"
 DEFAULT_SQLITE_FILENAME = "contracting_hub.db"
+DEFAULT_UPLOADS_DIR_NAME = "uploads"
+DEFAULT_AVATAR_UPLOAD_SUBDIR = "avatars"
 DEFAULT_ENVIRONMENT = "development"
+DEFAULT_MANAGED_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
+DEFAULT_AVATAR_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 
 
 def _read_env_file(env_file: Path) -> dict[str, str]:
@@ -76,6 +80,22 @@ def _normalize_database_url(database_url: str, *, base_dir: Path) -> str:
     return sqlite_url_for_path(sqlite_path)
 
 
+def _read_positive_int(
+    value: str | None,
+    *,
+    default: int,
+    setting_name: str,
+) -> int:
+    """Parse an optional positive integer setting value."""
+    if value is None or not value.strip():
+        return default
+
+    parsed_value = int(value)
+    if parsed_value <= 0:
+        raise ValueError(f"{setting_name} must be a positive integer")
+    return parsed_value
+
+
 @dataclass(frozen=True)
 class AppSettings:
     """Resolved application settings for the local development environment."""
@@ -86,6 +106,10 @@ class AppSettings:
     instance_dir: Path
     database_url: str
     sqlite_database_path: Path | None
+    uploads_dir: Path
+    avatar_upload_dir: Path
+    managed_upload_max_bytes: int
+    avatar_upload_max_bytes: int
     alembic_config_path: Path
     migrations_dir: Path
 
@@ -98,6 +122,8 @@ class AppSettings:
         """Create local filesystem directories required by the current settings."""
         if self.sqlite_database_path is not None:
             self.sqlite_database_path.parent.mkdir(parents=True, exist_ok=True)
+        self.uploads_dir.mkdir(parents=True, exist_ok=True)
+        self.avatar_upload_dir.mkdir(parents=True, exist_ok=True)
 
 
 def load_settings(
@@ -119,6 +145,36 @@ def load_settings(
             base_dir=resolved_project_root,
         )
         or (resolved_project_root / DEFAULT_INSTANCE_DIR_NAME).resolve()
+    )
+    uploads_dir = (
+        _resolve_path(
+            merged_environment.get("CONTRACTING_HUB_UPLOADS_DIR"),
+            base_dir=resolved_project_root,
+        )
+        or (resolved_project_root / DEFAULT_UPLOADS_DIR_NAME).resolve()
+    )
+    avatar_upload_dir = (
+        _resolve_path(
+            merged_environment.get("CONTRACTING_HUB_AVATAR_UPLOAD_DIR"),
+            base_dir=uploads_dir,
+        )
+        or (uploads_dir / DEFAULT_AVATAR_UPLOAD_SUBDIR).resolve()
+    )
+    try:
+        avatar_upload_dir.relative_to(uploads_dir)
+    except ValueError as error:
+        raise ValueError(
+            "CONTRACTING_HUB_AVATAR_UPLOAD_DIR must stay within CONTRACTING_HUB_UPLOADS_DIR"
+        ) from error
+    managed_upload_max_bytes = _read_positive_int(
+        merged_environment.get("CONTRACTING_HUB_UPLOAD_MAX_BYTES"),
+        default=DEFAULT_MANAGED_UPLOAD_MAX_BYTES,
+        setting_name="CONTRACTING_HUB_UPLOAD_MAX_BYTES",
+    )
+    avatar_upload_max_bytes = _read_positive_int(
+        merged_environment.get("CONTRACTING_HUB_AVATAR_UPLOAD_MAX_BYTES"),
+        default=DEFAULT_AVATAR_UPLOAD_MAX_BYTES,
+        setting_name="CONTRACTING_HUB_AVATAR_UPLOAD_MAX_BYTES",
     )
     database_url_override = merged_environment.get("REFLEX_DB_URL") or merged_environment.get(
         "CONTRACTING_HUB_DB_URL"
@@ -147,6 +203,10 @@ def load_settings(
         instance_dir=instance_dir,
         database_url=database_url,
         sqlite_database_path=sqlite_database_path,
+        uploads_dir=uploads_dir,
+        avatar_upload_dir=avatar_upload_dir,
+        managed_upload_max_bytes=managed_upload_max_bytes,
+        avatar_upload_max_bytes=avatar_upload_max_bytes,
         alembic_config_path=resolved_project_root / "alembic.ini",
         migrations_dir=resolved_project_root / "migrations",
     )
