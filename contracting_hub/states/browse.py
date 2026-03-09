@@ -14,13 +14,14 @@ from contracting_hub.services import (
     load_public_contract_browse_snapshot_safe,
 )
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
-from contracting_hub.utils.meta import BROWSE_ROUTE
+from contracting_hub.utils.meta import BROWSE_ROUTE, build_contract_detail_path
 
 
 class BrowseCardPayload(TypedDict):
     """Serialized browse-card content kept in state."""
 
     slug: str
+    detail_href: str
     display_name: str
     contract_name: str
     short_summary: str
@@ -199,6 +200,7 @@ def _serialize_summary(summary: ContractBrowseSummary) -> BrowseCardPayload:
     )
     return {
         "slug": summary.slug,
+        "detail_href": build_contract_detail_path(summary.slug),
         "display_name": summary.display_name,
         "contract_name": summary.contract_name,
         "short_summary": summary.short_summary,

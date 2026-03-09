@@ -23,6 +23,7 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
     _ensure_project_root_on_path()
     home_module = importlib.import_module("contracting_hub.pages.home")
     browse_module = importlib.import_module("contracting_hub.pages.browse")
+    detail_module = importlib.import_module("contracting_hub.pages.contract_detail")
     meta_module = importlib.import_module("contracting_hub.utils.meta")
     return (
         (home_module.ROUTE, home_module.index, meta_module.APP_NAME, None),
@@ -31,6 +32,12 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
             browse_module.index,
             f"Browse | {meta_module.APP_NAME}",
             browse_module.ON_LOAD,
+        ),
+        (
+            detail_module.ROUTE,
+            detail_module.index,
+            f"Contract Detail | {meta_module.APP_NAME}",
+            detail_module.ON_LOAD,
         ),
     )
 

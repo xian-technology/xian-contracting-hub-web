@@ -272,6 +272,7 @@ def _browse_result_card(card) -> rx.Component:
             gap="var(--hub-space-2)",
         ),
         metric_columns=rx.breakpoints(initial="1", sm="3"),
+        href=card["detail_href"],
         custom_attrs={"data-testid": "browse-result-card"},
     )
 

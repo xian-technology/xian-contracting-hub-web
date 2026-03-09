@@ -18,7 +18,13 @@ from contracting_hub.services.homepage import (
     load_public_home_page_snapshot_safe,
 )
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
-from contracting_hub.utils.meta import APP_NAME, HOME_BADGE_TEXT, HOME_ROUTE, HOME_TAGLINE
+from contracting_hub.utils.meta import (
+    APP_NAME,
+    HOME_BADGE_TEXT,
+    HOME_ROUTE,
+    HOME_TAGLINE,
+    build_contract_detail_path,
+)
 
 ROUTE = HOME_ROUTE
 
@@ -105,6 +111,7 @@ def _contract_summary_card(
             gap="var(--hub-space-2)",
         ),
         metric_columns=rx.breakpoints(initial="1", sm="2"),
+        href=build_contract_detail_path(summary.slug),
     )
 
 
