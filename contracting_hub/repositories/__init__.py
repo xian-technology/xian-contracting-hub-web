@@ -10,6 +10,7 @@ from contracting_hub.repositories.contracts import (
     ContractRepository,
     ContractSearchResult,
 )
+from contracting_hub.repositories.playground_targets import PlaygroundTargetRepository
 from contracting_hub.repositories.ratings import RatingRepository
 from contracting_hub.repositories.stars import StarRepository
 
@@ -21,6 +22,7 @@ __all__ = [
     "ContractRepository",
     "ContractSearchResult",
     "ContractVersionRepository",
+    "PlaygroundTargetRepository",
     "PUBLIC_VISIBLE_STATUSES",
     "RatingRepository",
     "StarRepository",
