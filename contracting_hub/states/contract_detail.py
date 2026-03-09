@@ -3,27 +3,45 @@
 from __future__ import annotations
 
 import re
-from typing import TypedDict
+from typing import Any, TypedDict
 from urllib.parse import quote
 
 import reflex as rx
 
 from contracting_hub.config import get_settings
 from contracting_hub.database import session_scope
-from contracting_hub.models import LintStatus, PublicationStatus, User
+from contracting_hub.models import (
+    DeploymentStatus,
+    DeploymentTransport,
+    LintStatus,
+    PublicationStatus,
+    User,
+)
 from contracting_hub.services.auth import resolve_current_user
 from contracting_hub.services.contract_detail import (
     ContractDetailSnapshot,
     load_contract_detail_engagement_snapshot_safe,
     load_public_contract_detail_snapshot_safe,
 )
+from contracting_hub.services.deployments import (
+    ContractDeploymentAttemptResult,
+    ContractDeploymentServiceError,
+    deploy_contract_version,
+)
+from contracting_hub.services.playground_targets import list_playground_targets
 from contracting_hub.services.ratings import ContractRatingServiceError, submit_contract_rating
 from contracting_hub.services.stars import ContractStarServiceError, toggle_contract_star
 from contracting_hub.states.auth import AUTH_SESSION_COOKIE_NAME, POST_LOGIN_PATH_STORAGE_KEY
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
-from contracting_hub.utils.meta import BROWSE_ROUTE, LOGIN_ROUTE, build_contract_detail_path
+from contracting_hub.utils.meta import (
+    BROWSE_ROUTE,
+    LOGIN_ROUTE,
+    build_contract_detail_path,
+)
 
 _SETTINGS = get_settings()
+DEPLOYMENT_TARGET_MODE_SAVED = "saved"
+DEPLOYMENT_TARGET_MODE_AD_HOC = "ad_hoc"
 
 
 class AuthorLinkPayload(TypedDict):
@@ -65,6 +83,17 @@ class RelatedContractPayload(TypedDict):
     author_label: str
     primary_category_label: str
     latest_version_label: str
+
+
+class PlaygroundTargetOptionPayload(TypedDict):
+    """Serialized saved playground target option for deployment selection."""
+
+    id: int
+    label: str
+    playground_id: str
+    option_label: str
+    helper_label: str
+    is_default: bool
 
 
 class ContractDetailState(rx.State):
@@ -134,6 +163,25 @@ class ContractDetailState(rx.State):
     engagement_success_message: str = ""
     engagement_error_message: str = ""
     engagement_login_prompt_message: str = ""
+    deployment_drawer_open: bool = False
+    deployment_pending: bool = False
+    deployment_version: str = ""
+    deployment_target_mode: str = DEPLOYMENT_TARGET_MODE_AD_HOC
+    deployment_saved_target_id: str = ""
+    deployment_ad_hoc_playground_id: str = ""
+    deployment_saved_targets: list[PlaygroundTargetOptionPayload] = []
+    deployment_target_count_label: str = "0 saved targets"
+    deployment_form_error: str = ""
+    deployment_version_error: str = ""
+    deployment_saved_target_error: str = ""
+    deployment_playground_id_error: str = ""
+    deployment_result_status_label: str = ""
+    deployment_result_status_color_scheme: str = "gray"
+    deployment_result_message: str = ""
+    deployment_result_detail: str = ""
+    deployment_result_redirect_url: str = ""
+    deployment_result_transport_label: str = ""
+    deployment_result_external_request_id: str = ""
     author_name: str = "Curated entry"
     author_secondary: str = ""
     author_initials: str = "CE"
@@ -198,6 +246,53 @@ class ContractDetailState(rx.State):
         if self.engagement_login_prompt_message:
             return self.engagement_login_prompt_message
         return "Log in to save favorites and rate this contract."
+
+    @rx.var
+    def has_deployment_saved_targets(self) -> bool:
+        """Return whether the authenticated user has saved deploy targets."""
+        return bool(self.deployment_saved_targets)
+
+    @rx.var
+    def using_saved_deployment_target(self) -> bool:
+        """Return whether the drawer is using a saved playground target."""
+        return self.deployment_target_mode == DEPLOYMENT_TARGET_MODE_SAVED
+
+    @rx.var
+    def using_ad_hoc_deployment_target(self) -> bool:
+        """Return whether the drawer is using an ad hoc playground ID."""
+        return self.deployment_target_mode == DEPLOYMENT_TARGET_MODE_AD_HOC
+
+    @rx.var
+    def deployment_submit_label(self) -> str:
+        """Return the deployment submit-button copy."""
+        if self.deployment_pending:
+            return "Submitting deployment..."
+        return "Deploy version"
+
+    @rx.var
+    def has_deployment_result(self) -> bool:
+        """Return whether the drawer has a recorded deployment result to render."""
+        return bool(self.deployment_result_message)
+
+    @rx.var
+    def has_deployment_result_detail(self) -> bool:
+        """Return whether the drawer has secondary result detail copy."""
+        return bool(self.deployment_result_detail)
+
+    @rx.var
+    def has_deployment_result_redirect_url(self) -> bool:
+        """Return whether the drawer can link to a generated playground redirect."""
+        return bool(self.deployment_result_redirect_url)
+
+    @rx.var
+    def has_deployment_result_transport_label(self) -> bool:
+        """Return whether the drawer should show the adapter transport label."""
+        return bool(self.deployment_result_transport_label)
+
+    @rx.var
+    def has_deployment_result_external_request_id(self) -> bool:
+        """Return whether the drawer should show an external request identifier."""
+        return bool(self.deployment_result_external_request_id)
 
     @rx.var
     def star_button_label(self) -> str:
@@ -370,6 +465,7 @@ class ContractDetailState(rx.State):
     def load_page(self) -> None:
         """Load one public contract snapshot from the current route params."""
         self._clear_engagement_feedback()
+        self._clear_deployment_feedback(reset_result=True)
         self.star_pending = False
         self.rating_pending = False
         self._apply_user_snapshot(self._resolve_user_from_cookie())
@@ -380,11 +476,138 @@ class ContractDetailState(rx.State):
         )
         self._apply_snapshot(snapshot)
         self._load_engagement_state()
+        self._load_deployment_state()
 
     def begin_engagement_login(self) -> rx.event.EventSpec:
         """Remember the current detail route and redirect to the login screen."""
         self.post_login_path = self.current_detail_path
         return rx.redirect(LOGIN_ROUTE, replace=True)
+
+    def begin_deployment_login(self) -> rx.event.EventSpec:
+        """Remember the current detail route and redirect to login before deployment."""
+        self.post_login_path = self.current_detail_path
+        return rx.redirect(LOGIN_ROUTE, replace=True)
+
+    def open_deployment_drawer(self) -> rx.event.EventSpec | None:
+        """Open the deployment drawer for the current authenticated user."""
+        self._apply_user_snapshot(self._resolve_user_from_cookie())
+        if self.current_user_id is None:
+            return self.begin_deployment_login()
+        self._load_deployment_targets()
+        self._reset_deployment_form(reset_result=True)
+        self.deployment_drawer_open = True
+        return None
+
+    def close_deployment_drawer(self) -> None:
+        """Close the deployment drawer when no submission is in progress."""
+        if self.deployment_pending:
+            return
+        self.deployment_drawer_open = False
+
+    def set_deployment_version(self, value: str) -> None:
+        """Update the selected deployment version."""
+        self.deployment_version = value
+        self.deployment_version_error = ""
+
+    def set_deployment_target_mode(self, value: str) -> None:
+        """Switch between saved-target and ad hoc deployment selection."""
+        self.deployment_target_mode = _normalize_deployment_target_mode(
+            value,
+            has_saved_targets=bool(self.deployment_saved_targets),
+        )
+        if (
+            self.deployment_target_mode == DEPLOYMENT_TARGET_MODE_SAVED
+            and not self.deployment_saved_target_id
+        ):
+            self.deployment_saved_target_id = _default_saved_target_id(
+                self.deployment_saved_targets
+            )
+        self.deployment_form_error = ""
+        self.deployment_saved_target_error = ""
+        self.deployment_playground_id_error = ""
+
+    def set_deployment_saved_target_id(self, value: str) -> None:
+        """Update the selected saved playground target."""
+        self.deployment_saved_target_id = value
+        self.deployment_saved_target_error = ""
+
+    def set_deployment_ad_hoc_playground_id(self, value: str) -> None:
+        """Update the ad hoc playground identifier input."""
+        self.deployment_ad_hoc_playground_id = value
+        self.deployment_playground_id_error = ""
+
+    def submit_deployment(self, form_data: dict[str, Any]):
+        """Submit the selected contract version to the configured playground."""
+        self._clear_deployment_feedback(reset_result=True)
+        self._apply_user_snapshot(self._resolve_user_from_cookie())
+        user_id = self.current_user_id
+        if user_id is None:
+            self.deployment_form_error = "Log in to deploy this contract."
+            self.deployment_drawer_open = False
+            self.post_login_path = self.current_detail_path
+            return
+        if not self.contract_slug:
+            self.deployment_form_error = "A contract must be loaded before deployment."
+            return
+
+        selected_version = str(form_data.get("semantic_version", self.deployment_version)).strip()
+        self.deployment_version = selected_version
+        selected_target_mode = _normalize_deployment_target_mode(
+            str(form_data.get("target_mode", self.deployment_target_mode)),
+            has_saved_targets=bool(self.deployment_saved_targets),
+        )
+        self.deployment_target_mode = selected_target_mode
+        self.deployment_saved_target_id = str(
+            form_data.get("playground_target_id", self.deployment_saved_target_id)
+        ).strip()
+        self.deployment_ad_hoc_playground_id = str(
+            form_data.get("playground_id", self.deployment_ad_hoc_playground_id)
+        )
+
+        if not selected_version:
+            self.deployment_version_error = "Choose a contract version to deploy."
+            return
+
+        selected_target_id: int | None = None
+        ad_hoc_playground_id: str | None = None
+        if selected_target_mode == DEPLOYMENT_TARGET_MODE_SAVED:
+            if not self.deployment_saved_target_id:
+                self.deployment_saved_target_error = "Choose one of your saved playground targets."
+                return
+            try:
+                selected_target_id = int(self.deployment_saved_target_id)
+            except ValueError:
+                self.deployment_saved_target_error = "Choose one of your saved playground targets."
+                return
+        else:
+            ad_hoc_playground_id = self.deployment_ad_hoc_playground_id
+
+        self.deployment_pending = True
+        yield
+
+        try:
+            with session_scope() as session:
+                result = deploy_contract_version(
+                    session=session,
+                    user_id=user_id,
+                    contract_slug=self.contract_slug,
+                    semantic_version=selected_version,
+                    playground_target_id=selected_target_id,
+                    playground_id=ad_hoc_playground_id,
+                    client_context={"request_origin": "contract_detail"},
+                )
+        except ContractDeploymentServiceError as error:
+            self._apply_deployment_service_error(error)
+            self.deployment_pending = False
+            return
+        except Exception:
+            self.deployment_form_error = "The deployment request could not be completed."
+            self.deployment_pending = False
+            return
+
+        self._load_deployment_targets()
+        self._apply_deployment_result(result)
+        self.deployment_pending = False
 
     def toggle_star(self):
         """Toggle the current user's star state with optimistic feedback."""
@@ -648,6 +871,7 @@ class ContractDetailState(rx.State):
         self.source_repository_url = ""
         self.browse_href = BROWSE_ROUTE
         self._reset_engagement_state()
+        self._reset_deployment_state()
 
     def _load_engagement_state(self) -> None:
         self.starred_by_current_user = False
@@ -661,6 +885,108 @@ class ContractDetailState(rx.State):
         )
         self.starred_by_current_user = snapshot.starred_by_user
         self.current_user_rating_score = snapshot.current_user_rating_score
+
+    def _load_deployment_state(self) -> None:
+        self.deployment_drawer_open = False
+        self.deployment_pending = False
+        self._clear_deployment_feedback(reset_result=True)
+        self.deployment_version = _resolve_deployment_version(
+            selected_version=self.version_label,
+            available_versions=self.available_versions,
+        )
+        self.deployment_ad_hoc_playground_id = ""
+        if self.current_user_id is None or not self.contract_slug or not self.is_ready:
+            self.deployment_saved_targets = []
+            self.deployment_target_count_label = "0 saved targets"
+            self.deployment_target_mode = DEPLOYMENT_TARGET_MODE_AD_HOC
+            self.deployment_saved_target_id = ""
+            return
+
+        self._load_deployment_targets()
+        self._reset_deployment_form(reset_result=True)
+
+    def _load_deployment_targets(self) -> None:
+        user_id = self.current_user_id
+        if user_id is None:
+            self.deployment_saved_targets = []
+            self.deployment_target_count_label = "0 saved targets"
+            self.deployment_target_mode = DEPLOYMENT_TARGET_MODE_AD_HOC
+            self.deployment_saved_target_id = ""
+            return
+
+        try:
+            with session_scope() as session:
+                targets = list_playground_targets(session=session, user_id=user_id)
+        except Exception:
+            self.deployment_saved_targets = []
+            self.deployment_target_count_label = "0 saved targets"
+            self.deployment_target_mode = DEPLOYMENT_TARGET_MODE_AD_HOC
+            self.deployment_saved_target_id = ""
+            return
+        self._apply_deployment_targets(targets)
+
+    def _apply_deployment_targets(self, targets) -> None:
+        serialized_targets = _serialize_playground_target_options(targets)
+        self.deployment_saved_targets = serialized_targets
+        self.deployment_target_count_label = _format_saved_target_count_label(
+            len(serialized_targets)
+        )
+        if not serialized_targets:
+            self.deployment_saved_target_id = ""
+            self.deployment_target_mode = DEPLOYMENT_TARGET_MODE_AD_HOC
+            return
+
+        if not _saved_target_id_exists(
+            saved_target_id=self.deployment_saved_target_id,
+            targets=serialized_targets,
+        ):
+            self.deployment_saved_target_id = _default_saved_target_id(serialized_targets)
+
+    def _reset_deployment_form(self, *, reset_result: bool) -> None:
+        self.deployment_version = _resolve_deployment_version(
+            selected_version=self.version_label,
+            available_versions=self.available_versions,
+        )
+        self.deployment_saved_target_id = _default_saved_target_id(self.deployment_saved_targets)
+        self.deployment_target_mode = (
+            DEPLOYMENT_TARGET_MODE_SAVED
+            if self.deployment_saved_target_id
+            else DEPLOYMENT_TARGET_MODE_AD_HOC
+        )
+        self.deployment_ad_hoc_playground_id = ""
+        self._clear_deployment_feedback(reset_result=reset_result)
+
+    def _apply_deployment_service_error(self, error: ContractDeploymentServiceError) -> None:
+        field_messages = {
+            "semantic_version": "Choose a visible contract version to deploy.",
+            "playground_target_id": "Choose one of your saved playground targets.",
+            "playground_id": "Enter a playground ID to continue.",
+        }
+        message = field_messages.get(error.field, str(error))
+        if error.field == "semantic_version":
+            self.deployment_version_error = message
+            return
+        if error.field == "playground_target_id":
+            self.deployment_saved_target_error = message
+            return
+        if error.field == "playground_id":
+            self.deployment_playground_id_error = message
+            return
+        self.deployment_form_error = str(error)
+
+    def _apply_deployment_result(
+        self,
+        result: ContractDeploymentAttemptResult,
+    ) -> None:
+        self.deployment_result_status_label = _deployment_status_label(result.status)
+        self.deployment_result_status_color_scheme = _deployment_status_color_scheme(result.status)
+        self.deployment_result_message = _build_deployment_result_message(result)
+        self.deployment_result_detail = _build_deployment_result_detail(result)
+        self.deployment_result_redirect_url = result.redirect_url or ""
+        self.deployment_result_transport_label = _format_deployment_transport_label(
+            result.transport
+        )
+        self.deployment_result_external_request_id = result.external_request_id or ""
 
     def _prepare_engagement_action(self, *, prompt: str) -> int | None:
         self._clear_engagement_feedback()
@@ -697,6 +1023,21 @@ class ContractDetailState(rx.State):
         self.engagement_error_message = ""
         self.engagement_login_prompt_message = ""
 
+    def _clear_deployment_feedback(self, *, reset_result: bool) -> None:
+        self.deployment_form_error = ""
+        self.deployment_version_error = ""
+        self.deployment_saved_target_error = ""
+        self.deployment_playground_id_error = ""
+        if not reset_result:
+            return
+        self.deployment_result_status_label = ""
+        self.deployment_result_status_color_scheme = "gray"
+        self.deployment_result_message = ""
+        self.deployment_result_detail = ""
+        self.deployment_result_redirect_url = ""
+        self.deployment_result_transport_label = ""
+        self.deployment_result_external_request_id = ""
+
     def _reset_engagement_state(self) -> None:
         self._clear_engagement_feedback()
         self._apply_star_count(0)
@@ -708,6 +1049,17 @@ class ContractDetailState(rx.State):
         self.current_user_rating_score = None
         self.star_pending = False
         self.rating_pending = False
+
+    def _reset_deployment_state(self) -> None:
+        self.deployment_drawer_open = False
+        self.deployment_pending = False
+        self.deployment_version = ""
+        self.deployment_target_mode = DEPLOYMENT_TARGET_MODE_AD_HOC
+        self.deployment_saved_target_id = ""
+        self.deployment_ad_hoc_playground_id = ""
+        self.deployment_saved_targets = []
+        self.deployment_target_count_label = "0 saved targets"
+        self._clear_deployment_feedback(reset_result=True)
 
     def _resolve_user_from_cookie(self) -> User | None:
         with session_scope() as session:
@@ -986,6 +1338,136 @@ def _build_optimistic_rating_aggregate(
 
     running_total = (average_rating or 0.0) * rating_count
     return (running_total - previous_score + submitted_score) / rating_count, rating_count
+
+
+def _serialize_playground_target_options(targets) -> list[PlaygroundTargetOptionPayload]:
+    serialized_targets: list[PlaygroundTargetOptionPayload] = []
+    for target in targets:
+        serialized_targets.append(
+            {
+                "id": target.id,
+                "label": target.label,
+                "playground_id": target.playground_id,
+                "option_label": _build_saved_target_option_label(target),
+                "helper_label": _build_saved_target_helper_label(target),
+                "is_default": target.is_default,
+            }
+        )
+    return serialized_targets
+
+
+def _build_saved_target_option_label(target) -> str:
+    if target.is_default:
+        return f"{target.label} / {target.playground_id} / Default"
+    return f"{target.label} / {target.playground_id}"
+
+
+def _build_saved_target_helper_label(target) -> str:
+    if target.last_used_at is None:
+        prefix = "Never used"
+    else:
+        prefix = f"Last used {format_contract_calendar_date(target.last_used_at)}"
+    if target.is_default:
+        return f"{prefix} / Default target"
+    return prefix
+
+
+def _format_saved_target_count_label(count: int) -> str:
+    return "1 saved target" if count == 1 else f"{count} saved targets"
+
+
+def _default_saved_target_id(targets: list[PlaygroundTargetOptionPayload]) -> str:
+    if not targets:
+        return ""
+    return str(targets[0]["id"])
+
+
+def _saved_target_id_exists(
+    *,
+    saved_target_id: str,
+    targets: list[PlaygroundTargetOptionPayload],
+) -> bool:
+    if not saved_target_id:
+        return False
+    return any(str(target["id"]) == saved_target_id for target in targets)
+
+
+def _resolve_deployment_version(
+    *,
+    selected_version: str,
+    available_versions: list[VersionHistoryPayload],
+) -> str:
+    normalized_selected_version = selected_version.strip()
+    if normalized_selected_version:
+        return normalized_selected_version
+    if not available_versions:
+        return ""
+    return available_versions[0]["semantic_version"]
+
+
+def _normalize_deployment_target_mode(
+    value: str,
+    *,
+    has_saved_targets: bool,
+) -> str:
+    if has_saved_targets and value == DEPLOYMENT_TARGET_MODE_SAVED:
+        return DEPLOYMENT_TARGET_MODE_SAVED
+    return DEPLOYMENT_TARGET_MODE_AD_HOC
+
+
+def _deployment_status_label(status: DeploymentStatus) -> str:
+    if status is DeploymentStatus.REDIRECT_REQUIRED:
+        return "Redirect ready"
+    if status is DeploymentStatus.ACCEPTED:
+        return "Accepted"
+    return "Failed"
+
+
+def _deployment_status_color_scheme(status: DeploymentStatus) -> str:
+    if status is DeploymentStatus.FAILED:
+        return "tomato"
+    return "bronze"
+
+
+def _format_deployment_transport_label(transport: DeploymentTransport | None) -> str:
+    if transport is None:
+        return ""
+    if transport is DeploymentTransport.DEEP_LINK:
+        return "Deep link"
+    if transport is DeploymentTransport.HTTP:
+        return "HTTP"
+    return "Hybrid"
+
+
+def _build_deployment_result_message(result: ContractDeploymentAttemptResult) -> str:
+    if result.status is DeploymentStatus.REDIRECT_REQUIRED:
+        return "Deployment recorded. Open the playground to continue."
+    if result.status is DeploymentStatus.ACCEPTED:
+        return "Deployment accepted."
+    return _build_deployment_failure_message(result)
+
+
+def _build_deployment_failure_message(result: ContractDeploymentAttemptResult) -> str:
+    error_code = ""
+    if result.error_payload is not None:
+        error_code = str(result.error_payload.get("code", "")).strip()
+    mapped_messages = {
+        "adapter_misconfigured": "Deployment is unavailable right now.",
+        "invalid_contract_name": "This contract cannot be deployed right now.",
+        "invalid_playground_id": "This playground target could not be accepted.",
+        "invalid_source": "This version cannot be deployed because its source is invalid.",
+        "payload_rejected": "The playground rejected this deployment request.",
+        "timeout": "The deployment request timed out. Try again.",
+        "unavailable": "The playground is temporarily unavailable. Try again.",
+    }
+    return mapped_messages.get(error_code, result.message or "Deployment failed.")
+
+
+def _build_deployment_result_detail(result: ContractDeploymentAttemptResult) -> str:
+    return (
+        f"Deployment #{result.deployment_id} / Version {result.semantic_version} "
+        f"/ Playground {result.playground_id}"
+    )
 
 
 def _format_lint_finding_severity(severity: str) -> str:

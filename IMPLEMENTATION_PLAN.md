@@ -49,7 +49,7 @@
 - [x] 5.1 — Build registration, login, logout, and session-aware navigation flows.
 - [x] 5.2 — Build the profile settings page with avatar management, public profile fields, and saved playground target management.
 - [x] 5.3 — Build inline star and rating interactions on contract detail pages with optimistic feedback and error recovery.
-- [ ] 5.4 — Build the deployment drawer or modal that selects a contract version and playground target, submits the deployment request, and shows result state.
+- [x] 5.4 — Build the deployment drawer or modal that selects a contract version and playground target, submits the deployment request, and shows result state.
 - [ ] 5.5 — Build the authenticated deployment history view and user-level saved target shortcuts.
 - [ ] 5.6 — Build public developer profile pages that list authored contracts and developer KPI summaries.
 - [ ] 5.7 — Build the public developer leaderboard page with multiple KPI sorts and recent/all-time windows.
