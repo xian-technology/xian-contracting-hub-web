@@ -1,14 +1,15 @@
-import runpy
+import pytest
 
 from contracting_hub.config import get_settings
 from contracting_hub.database import get_engine, ping_database
 
+pytestmark = pytest.mark.smoke
 
-def test_rxconfig_uses_resolved_database_settings() -> None:
-    rxconfig = runpy.run_path("rxconfig.py")
+
+def test_rxconfig_uses_resolved_database_settings(rxconfig_module: dict[str, object]) -> None:
     settings = get_settings()
 
-    assert rxconfig["config"].db_url == settings.database_url
+    assert rxconfig_module["config"].db_url == settings.database_url
     assert settings.env_file.name == ".env"
 
 

@@ -1,7 +1,7 @@
-import runpy
+import pytest
+
+pytestmark = pytest.mark.smoke
 
 
-def test_app_entrypoint_is_importable() -> None:
-    module = runpy.run_path("contracting_hub/app.py")
-
-    assert callable(module["index"])
+def test_app_entrypoint_is_importable(app_module: dict[str, object]) -> None:
+    assert callable(app_module["index"])
