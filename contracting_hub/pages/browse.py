@@ -12,11 +12,11 @@ from contracting_hub.components import (
     contract_rating_summary,
     page_section,
 )
-from contracting_hub.states import BrowseState
+from contracting_hub.states import AuthState, BrowseState
 from contracting_hub.utils.meta import BROWSE_ROUTE
 
 ROUTE = BROWSE_ROUTE
-ON_LOAD = BrowseState.load_page
+ON_LOAD = [AuthState.sync_auth_state, BrowseState.load_page]
 
 SORT_OPTIONS: tuple[tuple[str, str], ...] = (
     ("relevance", "Best match"),

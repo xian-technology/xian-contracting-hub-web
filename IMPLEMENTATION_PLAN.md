@@ -46,7 +46,7 @@
 - [x] 4.10 — Add Playwright coverage for anonymous browsing, searching, filtering, contract detail loading, version switching, and diff viewing.
 
 ## Phase 5: Authenticated User and Community Features
-- [ ] 5.1 — Build registration, login, logout, and session-aware navigation flows.
+- [x] 5.1 — Build registration, login, logout, and session-aware navigation flows.
 - [ ] 5.2 — Build the profile settings page with avatar management, public profile fields, and saved playground target management.
 - [ ] 5.3 — Build inline star and rating interactions on contract detail pages with optimistic feedback and error recovery.
 - [ ] 5.4 — Build the deployment drawer or modal that selects a contract version and playground target, submits the deployment request, and shows result state.

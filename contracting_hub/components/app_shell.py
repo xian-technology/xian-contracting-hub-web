@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.utils.meta import APP_NAME, BROWSE_ROUTE, HOME_ROUTE
+from contracting_hub.states import AuthState
+from contracting_hub.utils.meta import (
+    APP_NAME,
+    BROWSE_ROUTE,
+    HOME_ROUTE,
+    LOGIN_ROUTE,
+    REGISTER_ROUTE,
+)
 
 SHELL_PILLARS = (
     "Curated catalog",
@@ -110,6 +117,79 @@ def _shell_navigation() -> rx.Component:
     )
 
 
+def _guest_session_navigation() -> rx.Component:
+    """Render header actions for anonymous visitors."""
+    return rx.flex(
+        rx.link(
+            rx.button("Log in", size="2", variant="soft"),
+            href=LOGIN_ROUTE,
+            text_decoration="none",
+        ),
+        rx.link(
+            rx.button("Create account", size="2", variant="solid"),
+            href=REGISTER_ROUTE,
+            text_decoration="none",
+        ),
+        gap="var(--hub-space-3)",
+        wrap="wrap",
+        justify=rx.breakpoints(initial="start", md="end"),
+    )
+
+
+def _authenticated_session_navigation() -> rx.Component:
+    """Render header account context for authenticated viewers."""
+    return rx.flex(
+        rx.box(
+            rx.vstack(
+                rx.text(
+                    AuthState.current_identity_label,
+                    font_size="0.92rem",
+                    font_weight="600",
+                    color="var(--hub-color-text)",
+                ),
+                rx.cond(
+                    AuthState.has_current_identity_secondary,
+                    rx.text(
+                        AuthState.current_identity_secondary,
+                        font_size="0.82rem",
+                        color="var(--hub-color-text-muted)",
+                    ),
+                ),
+                align="start",
+                spacing="1",
+            ),
+            padding="0.8rem 1rem",
+            border="1px solid var(--hub-color-line)",
+            border_radius="var(--hub-radius-md)",
+            background="rgba(255, 250, 242, 0.88)",
+        ),
+        rx.button(
+            "Log out",
+            size="2",
+            variant="soft",
+            on_click=AuthState.logout_current_user,
+        ),
+        direction=rx.breakpoints(initial="column", md="row"),
+        align=rx.breakpoints(initial="start", md="center"),
+        gap="var(--hub-space-3)",
+        width=rx.breakpoints(initial="100%", md="auto"),
+        justify=rx.breakpoints(initial="start", md="end"),
+    )
+
+
+def _session_navigation() -> rx.Component:
+    """Render session-aware navigation controls inside the shell header."""
+    return rx.box(
+        rx.cond(
+            AuthState.is_authenticated,
+            _authenticated_session_navigation(),
+            _guest_session_navigation(),
+        ),
+        width=rx.breakpoints(initial="100%", md="auto"),
+        custom_attrs={"data-testid": "session-navigation"},
+    )
+
+
 def _shell_frame(*children: rx.Component) -> rx.Component:
     """Constrain shared shell content to the global layout width."""
     return rx.box(
@@ -186,10 +266,19 @@ def _shell_header() -> rx.Component:
             rx.flex(
                 _brand_lockup(),
                 rx.vstack(
-                    _shell_navigation(),
+                    rx.flex(
+                        _shell_navigation(),
+                        _session_navigation(),
+                        direction=rx.breakpoints(initial="column", lg="row"),
+                        align=rx.breakpoints(initial="start", lg="center"),
+                        justify="end",
+                        gap="var(--hub-space-3)",
+                        width="100%",
+                    ),
                     _header_badges(),
                     align=rx.breakpoints(initial="start", md="end"),
                     gap="var(--hub-space-3)",
+                    width="100%",
                 ),
                 direction=rx.breakpoints(initial="column", sm="row"),
                 align=rx.breakpoints(initial="start", sm="center"),

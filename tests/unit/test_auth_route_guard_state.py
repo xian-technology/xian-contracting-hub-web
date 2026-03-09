@@ -7,7 +7,7 @@ from reflex.istate.data import RouterData
 from contracting_hub.models import Profile, User, UserRole, UserStatus
 from contracting_hub.services.auth import RouteGuardMode, evaluate_route_guard
 from contracting_hub.states import AuthState
-from contracting_hub.utils.meta import HOME_ROUTE
+from contracting_hub.utils.meta import HOME_ROUTE, LOGIN_ROUTE
 
 
 def _build_user(*, role: UserRole = UserRole.USER) -> User:
@@ -113,7 +113,7 @@ def test_auth_state_authenticated_guard_clears_stale_cookie_and_remembers_path(
     assert state.auth_session_token == ""
     assert state.current_user_id is None
     assert state.post_login_path == "/settings"
-    assert _redirect_path(event) == HOME_ROUTE
+    assert _redirect_path(event) == LOGIN_ROUTE
 
 
 def test_auth_state_admin_guard_redirects_standard_users_without_post_login_capture(

@@ -17,6 +17,7 @@ from contracting_hub.services.homepage import (
     HomePageSnapshot,
     load_public_home_page_snapshot_safe,
 )
+from contracting_hub.states import AuthState
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
 from contracting_hub.utils.meta import (
     APP_NAME,
@@ -27,6 +28,7 @@ from contracting_hub.utils.meta import (
 )
 
 ROUTE = HOME_ROUTE
+ON_LOAD = AuthState.sync_auth_state
 
 
 def _resolve_contract_context(summary: HomePageContractSummary, section_key: str) -> str:

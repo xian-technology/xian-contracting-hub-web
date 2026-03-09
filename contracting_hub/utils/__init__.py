@@ -12,6 +12,8 @@ from contracting_hub.utils.meta import (
     HOME_BADGE_TEXT,
     HOME_ROUTE,
     HOME_TAGLINE,
+    LOGIN_ROUTE,
+    REGISTER_ROUTE,
     build_contract_detail_path,
 )
 
@@ -23,6 +25,8 @@ __all__ = [
     "HOME_BADGE_TEXT",
     "HOME_ROUTE",
     "HOME_TAGLINE",
+    "LOGIN_ROUTE",
+    "REGISTER_ROUTE",
     "build_contract_rating_display",
     "build_contract_detail_path",
     "format_contract_calendar_date",

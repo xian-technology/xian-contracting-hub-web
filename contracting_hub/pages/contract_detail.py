@@ -17,11 +17,11 @@ from contracting_hub.components import (
     contract_version_history,
     page_section,
 )
-from contracting_hub.states import ContractDetailState
+from contracting_hub.states import AuthState, ContractDetailState
 from contracting_hub.utils.meta import CONTRACT_DETAIL_ROUTE
 
 ROUTE = CONTRACT_DETAIL_ROUTE
-ON_LOAD = ContractDetailState.load_page
+ON_LOAD = [AuthState.sync_auth_state, ContractDetailState.load_page]
 
 
 def _status_badge(label, color_scheme) -> rx.Component:
