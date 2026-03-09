@@ -175,6 +175,13 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
     assert snapshot.selected_version_source_code == "def seed():\n    return 'escrow'\n"
     assert snapshot.selected_version_changelog == "Add settlement timeouts."
     assert snapshot.selected_version_is_latest_public is True
+    assert snapshot.selected_version_diff.from_version == "1.1.0"
+    assert snapshot.selected_version_diff.to_version == "1.2.0"
+    assert snapshot.selected_version_diff.has_previous_version is True
+    assert snapshot.selected_version_diff.has_changes is True
+    assert snapshot.selected_version_diff.unified_diff is not None
+    assert "legacy escrow" in snapshot.selected_version_diff.unified_diff
+    assert "escrow" in snapshot.selected_version_diff.unified_diff
     assert [version.semantic_version for version in snapshot.available_versions] == [
         "1.2.0",
         "1.1.0",
@@ -255,6 +262,71 @@ def test_load_public_contract_detail_snapshot_selects_requested_visible_version(
         "1.2.0",
         "1.1.0",
     ]
+
+
+def test_load_public_contract_detail_snapshot_builds_diff_from_previous_visible_release() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        contract = Contract(
+            slug="escrow",
+            contract_name="con_escrow",
+            display_name="Escrow",
+            short_summary="Curated escrow primitives for Xian treasury flows.",
+            long_description="Protects multi-party settlements.",
+            status=PublicationStatus.PUBLISHED,
+            created_at=_timestamp(1),
+            updated_at=_timestamp(6),
+        )
+        first_release = ContractVersion(
+            contract=contract,
+            semantic_version="1.0.0",
+            status=PublicationStatus.PUBLISHED,
+            source_code="def seed():\n    return 'published'\n",
+            source_hash_sha256="a" * 64,
+            changelog="Initial public release.",
+            published_at=_timestamp(2),
+            created_at=_timestamp(2),
+            updated_at=_timestamp(2),
+        )
+        draft_release = ContractVersion(
+            contract=contract,
+            semantic_version="1.1.0",
+            status=PublicationStatus.DRAFT,
+            source_code="def seed():\n    return 'draft'\n",
+            source_hash_sha256="b" * 64,
+            changelog="Draft follow-up.",
+            created_at=_timestamp(4),
+            updated_at=_timestamp(4),
+        )
+        current_release = ContractVersion(
+            contract=contract,
+            semantic_version="2.0.0",
+            status=PublicationStatus.PUBLISHED,
+            source_code="def seed():\n    return 'released'\n",
+            source_hash_sha256="c" * 64,
+            changelog="Current public release.",
+            published_at=_timestamp(5),
+            created_at=_timestamp(5),
+            updated_at=_timestamp(5),
+        )
+        draft_release.previous_version = first_release
+        current_release.previous_version = draft_release
+        contract.latest_published_version = current_release
+
+        session.add_all([contract, first_release, draft_release, current_release])
+        session.commit()
+
+        snapshot = load_public_contract_detail_snapshot(session=session, slug="escrow")
+
+    assert snapshot.selected_version == "2.0.0"
+    assert snapshot.selected_version_diff.from_version == "1.0.0"
+    assert snapshot.selected_version_diff.to_version == "2.0.0"
+    assert snapshot.selected_version_diff.has_previous_version is True
+    assert snapshot.selected_version_diff.unified_diff is not None
+    assert "draft" not in snapshot.selected_version_diff.unified_diff
+    assert "published" in snapshot.selected_version_diff.unified_diff
+    assert "released" in snapshot.selected_version_diff.unified_diff
 
 
 def test_load_public_contract_detail_snapshot_hides_non_public_contracts() -> None:

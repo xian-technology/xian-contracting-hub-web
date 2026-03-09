@@ -1,4 +1,4 @@
-"""Service helpers for the public contract detail header."""
+"""Service helpers for the public contract detail surface."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from sqlmodel import Session
 from contracting_hub.database import session_scope
 from contracting_hub.models import ContractNetwork, ContractVersion, PublicationStatus
 from contracting_hub.repositories import ContractRepository, RatingRepository, StarRepository
+from contracting_hub.services.contract_diffs import build_contract_version_diff
 from contracting_hub.services.contract_metadata import validate_semantic_version
 
 
@@ -35,6 +36,24 @@ class ContractDetailVersionSummary:
     published_at: datetime | None
     changelog: str | None
     is_latest_public: bool
+
+
+@dataclass(frozen=True)
+class ContractDetailVersionDiffSummary:
+    """Public diff metadata rendered for the selected contract version."""
+
+    from_version: str | None
+    to_version: str | None
+    has_previous_version: bool
+    has_changes: bool
+    added_lines: int
+    removed_lines: int
+    line_delta: int
+    from_line_count: int
+    to_line_count: int
+    hunk_count: int
+    context_lines: int
+    unified_diff: str | None
 
 
 @dataclass(frozen=True)
@@ -63,6 +82,7 @@ class ContractDetailSnapshot:
     selected_version_changelog: str | None
     selected_version_published_at: datetime | None
     selected_version_is_latest_public: bool
+    selected_version_diff: ContractDetailVersionDiffSummary
     available_versions: tuple[ContractDetailVersionSummary, ...]
     updated_at: datetime | None
     star_count: int
@@ -110,6 +130,7 @@ def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> Contract
         selected_version_changelog=None,
         selected_version_published_at=None,
         selected_version_is_latest_public=False,
+        selected_version_diff=build_empty_contract_detail_version_diff_summary(),
         available_versions=(),
         updated_at=None,
         star_count=0,
@@ -166,6 +187,10 @@ def load_public_contract_detail_snapshot(
         latest_public_version=latest_public_version,
         semantic_version=normalize_contract_detail_version(semantic_version),
     )
+    selected_version_diff = _build_selected_version_diff(
+        versions=detail.versions,
+        selected_version=selected_version,
+    )
 
     return ContractDetailSnapshot(
         found=True,
@@ -197,6 +222,7 @@ def load_public_contract_detail_snapshot(
             version=selected_version,
             latest_public_version=latest_public_version,
         ),
+        selected_version_diff=selected_version_diff,
         available_versions=tuple(
             _build_contract_detail_version_summary(
                 version=version,
@@ -266,6 +292,28 @@ def normalize_contract_detail_version(semantic_version: str | None) -> str | Non
         return None
 
 
+def build_empty_contract_detail_version_diff_summary(
+    *,
+    to_version: str | None = None,
+    context_lines: int = 3,
+) -> ContractDetailVersionDiffSummary:
+    """Return a stable empty diff payload for versions without a public baseline."""
+    return ContractDetailVersionDiffSummary(
+        from_version=None,
+        to_version=to_version,
+        has_previous_version=False,
+        has_changes=False,
+        added_lines=0,
+        removed_lines=0,
+        line_delta=0,
+        from_line_count=0,
+        to_line_count=0,
+        hunk_count=0,
+        context_lines=context_lines,
+        unified_diff=None,
+    )
+
+
 def _resolve_selected_version(
     *,
     versions: tuple[ContractVersion, ...],
@@ -280,6 +328,47 @@ def _resolve_selected_version(
     if latest_public_version is not None:
         return latest_public_version
     return versions[0] if versions else None
+
+
+def _build_selected_version_diff(
+    *,
+    versions: tuple[ContractVersion, ...],
+    selected_version: ContractVersion | None,
+) -> ContractDetailVersionDiffSummary:
+    if selected_version is None:
+        return build_empty_contract_detail_version_diff_summary()
+
+    previous_visible_version = _resolve_previous_visible_version(
+        versions=versions,
+        selected_version=selected_version,
+    )
+    generated_diff = build_contract_version_diff(
+        previous_source_code=(
+            previous_visible_version.source_code if previous_visible_version is not None else None
+        ),
+        current_source_code=selected_version.source_code,
+        from_version=(
+            previous_visible_version.semantic_version
+            if previous_visible_version is not None
+            else None
+        ),
+        to_version=selected_version.semantic_version,
+    )
+    summary = generated_diff.summary
+    return ContractDetailVersionDiffSummary(
+        from_version=summary.get("from_version"),
+        to_version=summary.get("to_version"),
+        has_previous_version=bool(summary.get("has_previous_version")),
+        has_changes=bool(summary.get("has_changes")),
+        added_lines=int(summary.get("added_lines", 0)),
+        removed_lines=int(summary.get("removed_lines", 0)),
+        line_delta=int(summary.get("line_delta", 0)),
+        from_line_count=int(summary.get("from_line_count", 0)),
+        to_line_count=int(summary.get("to_line_count", 0)),
+        hunk_count=int(summary.get("hunk_count", 0)),
+        context_lines=int(summary.get("context_lines", 3)),
+        unified_diff=generated_diff.unified_diff,
+    )
 
 
 def _build_contract_detail_version_summary(
@@ -299,6 +388,25 @@ def _build_contract_detail_version_summary(
     )
 
 
+def _resolve_previous_visible_version(
+    *,
+    versions: tuple[ContractVersion, ...],
+    selected_version: ContractVersion,
+) -> ContractVersion | None:
+    for index, version in enumerate(versions):
+        if _versions_match(version, selected_version):
+            next_index = index + 1
+            return versions[next_index] if next_index < len(versions) else None
+
+    previous_version = selected_version.previous_version
+    while previous_version is not None and previous_version.status not in {
+        PublicationStatus.PUBLISHED,
+        PublicationStatus.DEPRECATED,
+    }:
+        previous_version = previous_version.previous_version
+    return previous_version
+
+
 def _version_is_latest_public(
     *,
     version: ContractVersion | None,
@@ -312,6 +420,12 @@ def _version_is_latest_public(
     return version.semantic_version == latest_public_version.semantic_version
 
 
+def _versions_match(left: ContractVersion, right: ContractVersion) -> bool:
+    if left.id is not None and right.id is not None:
+        return left.id == right.id
+    return left.semantic_version == right.semantic_version
+
+
 def _coerce_utc_datetime(value: datetime | None) -> datetime | None:
     if value is None:
         return None
@@ -323,8 +437,10 @@ def _coerce_utc_datetime(value: datetime | None) -> datetime | None:
 __all__ = [
     "ContractDetailAuthorSummary",
     "ContractDetailSnapshot",
+    "ContractDetailVersionDiffSummary",
     "ContractDetailVersionSummary",
     "build_empty_contract_detail_snapshot",
+    "build_empty_contract_detail_version_diff_summary",
     "load_public_contract_detail_snapshot",
     "load_public_contract_detail_snapshot_safe",
     "normalize_contract_detail_slug",

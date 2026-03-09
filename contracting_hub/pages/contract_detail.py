@@ -11,6 +11,7 @@ from contracting_hub.components import (
     contract_metadata_badge,
     contract_rating_summary,
     contract_source_viewer,
+    contract_version_diff_viewer,
     contract_version_history,
     page_section,
 )
@@ -294,6 +295,22 @@ def _source_viewer() -> rx.Component:
     )
 
 
+def _diff_viewer() -> rx.Component:
+    return contract_version_diff_viewer(
+        selected_version=ContractDetailState.version_label,
+        previous_version=ContractDetailState.selected_version_diff_previous_version,
+        has_previous_version=ContractDetailState.selected_version_diff_has_previous_version,
+        has_diff_content=ContractDetailState.has_selected_version_diff_content,
+        added_lines_label=ContractDetailState.selected_version_diff_added_lines_label,
+        removed_lines_label=ContractDetailState.selected_version_diff_removed_lines_label,
+        line_delta_label=ContractDetailState.selected_version_diff_line_delta_label,
+        hunk_count_label=ContractDetailState.selected_version_diff_hunk_count_label,
+        context_lines_label=ContractDetailState.selected_version_diff_context_lines_label,
+        unified_diff=ContractDetailState.selected_version_diff_unified_text,
+        custom_attrs={"data-testid": "contract-version-diff-viewer"},
+    )
+
+
 def _version_history() -> rx.Component:
     return contract_version_history(
         versions=ContractDetailState.available_versions,
@@ -366,6 +383,7 @@ def index() -> rx.Component:
                 rx.vstack(
                     _detail_header(),
                     _version_history(),
+                    _diff_viewer(),
                     _source_viewer(),
                     align="start",
                     gap="var(--hub-space-7)",

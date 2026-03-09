@@ -54,6 +54,15 @@ class ContractDetailState(rx.State):
     selected_version_source_code: str = ""
     selected_version_changelog: str = ""
     selected_version_is_latest_public: bool = False
+    selected_version_diff_previous_version: str = ""
+    selected_version_diff_unified_text: str = ""
+    selected_version_diff_has_previous_version: bool = False
+    selected_version_diff_has_changes: bool = False
+    selected_version_diff_added_lines: int = 0
+    selected_version_diff_removed_lines: int = 0
+    selected_version_diff_line_delta: int = 0
+    selected_version_diff_hunk_count: int = 0
+    selected_version_diff_context_lines: int = 3
     available_versions: list[VersionHistoryPayload] = []
     version_count_label: str = "0 public versions"
     published_label: str = "Pending"
@@ -143,6 +152,15 @@ class ContractDetailState(rx.State):
         return bool(self.selected_version_changelog)
 
     @rx.var
+    def has_selected_version_diff_content(self) -> bool:
+        """Return whether the selected version exposes diff content to render."""
+        return (
+            self.selected_version_diff_has_previous_version
+            and self.selected_version_diff_has_changes
+            and bool(self.selected_version_diff_unified_text.strip())
+        )
+
+    @rx.var
     def source_line_count_label(self) -> str:
         """Return a human-readable source-code line count."""
         return _format_line_count(_count_source_lines(self.selected_version_source_code))
@@ -160,6 +178,31 @@ class ContractDetailState(rx.State):
     def source_download_url(self) -> str:
         """Return a data URL for the selected source snapshot."""
         return _build_source_download_url(self.selected_version_source_code)
+
+    @rx.var
+    def selected_version_diff_added_lines_label(self) -> str:
+        """Return one human-readable added-lines label for the diff summary."""
+        return _format_added_lines_label(self.selected_version_diff_added_lines)
+
+    @rx.var
+    def selected_version_diff_removed_lines_label(self) -> str:
+        """Return one human-readable removed-lines label for the diff summary."""
+        return _format_removed_lines_label(self.selected_version_diff_removed_lines)
+
+    @rx.var
+    def selected_version_diff_line_delta_label(self) -> str:
+        """Return one human-readable net line-delta label."""
+        return _format_line_delta_label(self.selected_version_diff_line_delta)
+
+    @rx.var
+    def selected_version_diff_hunk_count_label(self) -> str:
+        """Return one human-readable hunk-count label."""
+        return _format_hunk_count_label(self.selected_version_diff_hunk_count)
+
+    @rx.var
+    def selected_version_diff_context_lines_label(self) -> str:
+        """Return one human-readable context-lines label."""
+        return _format_context_lines_label(self.selected_version_diff_context_lines)
 
     def load_page(self) -> None:
         """Load one public contract snapshot from the current route params."""
@@ -191,6 +234,19 @@ class ContractDetailState(rx.State):
         self.selected_version_source_code = snapshot.selected_version_source_code
         self.selected_version_changelog = snapshot.selected_version_changelog or ""
         self.selected_version_is_latest_public = snapshot.selected_version_is_latest_public
+        self.selected_version_diff_previous_version = (
+            snapshot.selected_version_diff.from_version or ""
+        )
+        self.selected_version_diff_unified_text = snapshot.selected_version_diff.unified_diff or ""
+        self.selected_version_diff_has_previous_version = (
+            snapshot.selected_version_diff.has_previous_version
+        )
+        self.selected_version_diff_has_changes = snapshot.selected_version_diff.has_changes
+        self.selected_version_diff_added_lines = snapshot.selected_version_diff.added_lines
+        self.selected_version_diff_removed_lines = snapshot.selected_version_diff.removed_lines
+        self.selected_version_diff_line_delta = snapshot.selected_version_diff.line_delta
+        self.selected_version_diff_hunk_count = snapshot.selected_version_diff.hunk_count
+        self.selected_version_diff_context_lines = snapshot.selected_version_diff.context_lines
         self.available_versions = _serialize_available_versions(snapshot)
         self.version_count_label = _format_version_count_label(len(snapshot.available_versions))
         self.published_label = format_contract_calendar_date(snapshot.selected_version_published_at)
@@ -240,6 +296,15 @@ class ContractDetailState(rx.State):
         self.selected_version_source_code = ""
         self.selected_version_changelog = ""
         self.selected_version_is_latest_public = False
+        self.selected_version_diff_previous_version = ""
+        self.selected_version_diff_unified_text = ""
+        self.selected_version_diff_has_previous_version = False
+        self.selected_version_diff_has_changes = False
+        self.selected_version_diff_added_lines = 0
+        self.selected_version_diff_removed_lines = 0
+        self.selected_version_diff_line_delta = 0
+        self.selected_version_diff_hunk_count = 0
+        self.selected_version_diff_context_lines = 3
         self.available_versions = []
         self.version_count_label = "0 public versions"
         self.published_label = "Pending"
@@ -335,6 +400,39 @@ def _format_version_count_label(version_count: int) -> str:
     if version_count == 1:
         return "1 public version"
     return f"{version_count} public versions"
+
+
+def _format_added_lines_label(line_count: int) -> str:
+    if line_count == 1:
+        return "+1 line added"
+    return f"+{line_count} lines added"
+
+
+def _format_removed_lines_label(line_count: int) -> str:
+    if line_count == 1:
+        return "-1 line removed"
+    return f"-{line_count} lines removed"
+
+
+def _format_line_delta_label(line_delta: int) -> str:
+    if line_delta == 0:
+        return "No line delta"
+
+    noun = "line" if abs(line_delta) == 1 else "lines"
+    sign = "+" if line_delta > 0 else ""
+    return f"{sign}{line_delta} {noun} net"
+
+
+def _format_hunk_count_label(hunk_count: int) -> str:
+    if hunk_count == 1:
+        return "1 hunk"
+    return f"{hunk_count} hunks"
+
+
+def _format_context_lines_label(line_count: int) -> str:
+    if line_count == 1:
+        return "1 context line"
+    return f"{line_count} context lines"
 
 
 def _build_source_download_filename(
