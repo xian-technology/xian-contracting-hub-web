@@ -12,6 +12,12 @@ from sqlmodel import Session
 from contracting_hub.models import ContractVersion, PublicationStatus, utc_now
 from contracting_hub.repositories import ContractVersionRepository
 from contracting_hub.services.contract_diffs import build_contract_diff_summary
+from contracting_hub.services.contract_linting import (
+    ContractLintReport,
+    ContractLintServiceError,
+    ContractLintServiceErrorCode,
+    lint_contract_source_code,
+)
 from contracting_hub.services.contract_metadata import (
     validate_publication_status,
     validate_semantic_version,
@@ -29,6 +35,9 @@ class ContractVersionServiceErrorCode(StrEnum):
     CONTRACT_NOT_FOUND = "contract_not_found"
     DUPLICATE_VERSION = "duplicate_version"
     INVALID_CHANGELOG = "invalid_changelog"
+    LINT_EXECUTION_FAILED = "lint_execution_failed"
+    LINT_FAILURE = "lint_failure"
+    LINT_UNAVAILABLE = "lint_unavailable"
     INVALID_SOURCE_CODE = "invalid_source_code"
     PREVIOUS_VERSION_NOT_FOUND = "previous_version_not_found"
 
@@ -85,6 +94,8 @@ def create_contract_version(
     normalized_status = validate_publication_status(status)
     snapshot = validate_contract_source_code(source_code)
     normalized_changelog = normalize_version_changelog(changelog)
+    lint_report = _lint_contract_source(snapshot)
+    _validate_publishable_lint_report(lint_report, status=normalized_status)
 
     if repository.get_contract_version(contract.id, normalized_version) is not None:
         raise ContractVersionServiceError(
@@ -110,6 +121,9 @@ def create_contract_version(
         source_hash_sha256=build_source_hash(snapshot),
         changelog=normalized_changelog,
         previous_version_id=previous_version.id if previous_version is not None else None,
+        lint_status=lint_report.status,
+        lint_summary=lint_report.summary,
+        lint_results=lint_report.results,
         diff_summary=build_contract_diff_summary(
             previous_source_code=previous_version.source_code
             if previous_version is not None
@@ -187,6 +201,46 @@ def normalize_version_changelog(changelog: str | None) -> str | None:
 def build_source_hash(source_code: str) -> str:
     """Return the persisted SHA-256 digest for a source snapshot."""
     return hashlib.sha256(source_code.encode("utf-8")).hexdigest()
+
+
+def _lint_contract_source(source_code: str) -> ContractLintReport:
+    try:
+        return lint_contract_source_code(source_code)
+    except ContractLintServiceError as error:
+        if error.code is ContractLintServiceErrorCode.LINTER_UNAVAILABLE:
+            raise ContractVersionServiceError(
+                ContractVersionServiceErrorCode.LINT_UNAVAILABLE,
+                "Contract linting is unavailable in the current environment.",
+                field="source_code",
+                details=error.as_payload(),
+            ) from error
+
+        raise ContractVersionServiceError(
+            ContractVersionServiceErrorCode.LINT_EXECUTION_FAILED,
+            "Contract linting could not analyze the provided source.",
+            field="source_code",
+            details=error.as_payload(),
+        ) from error
+
+
+def _validate_publishable_lint_report(
+    lint_report: ContractLintReport,
+    *,
+    status: PublicationStatus,
+) -> None:
+    if status not in PUBLIC_VERSION_STATUSES or not lint_report.has_errors:
+        return
+
+    raise ContractVersionServiceError(
+        ContractVersionServiceErrorCode.LINT_FAILURE,
+        "Published contract versions must pass lint validation.",
+        field="source_code",
+        details={
+            "lint_status": lint_report.status.value,
+            "lint_summary": lint_report.summary,
+            "lint_results": lint_report.results,
+        },
+    )
 
 
 def _resolve_previous_version(

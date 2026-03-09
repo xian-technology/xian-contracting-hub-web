@@ -30,6 +30,13 @@ from contracting_hub.integrations.storage import (
     validate_not_empty,
     validate_upload,
 )
+from contracting_hub.integrations.xian_linter import (
+    XianLinterIntegrationError,
+    XianLinterIntegrationErrorCode,
+    XianLintFinding,
+    XianLintPosition,
+    lint_contract_source,
+)
 
 __all__ = [
     "PLAYGROUND_DEPLOYMENT_CHANNEL",
@@ -58,4 +65,9 @@ __all__ = [
     "validate_max_bytes",
     "validate_not_empty",
     "validate_upload",
+    "XianLintFinding",
+    "XianLintPosition",
+    "XianLinterIntegrationError",
+    "XianLinterIntegrationErrorCode",
+    "lint_contract_source",
 ]

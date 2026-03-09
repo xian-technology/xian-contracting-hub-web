@@ -36,6 +36,10 @@ def _create_contract(session: Session, slug: str = "escrow") -> Contract:
     return contract
 
 
+def _valid_source(label: str) -> str:
+    return f"@export\ndef seed():\n    return {label!r}\n"
+
+
 def test_get_contract_version_diff_uses_visible_history_for_public_reads() -> None:
     engine = _build_engine()
 
@@ -45,21 +49,21 @@ def test_get_contract_version_diff_uses_visible_history_for_public_reads() -> No
             session=session,
             contract_slug=contract.slug,
             semantic_version="1.0.0",
-            source_code="def seed():\n    return 'published'\n",
+            source_code=_valid_source("published"),
             status=PublicationStatus.PUBLISHED,
         )
         create_contract_version(
             session=session,
             contract_slug=contract.slug,
             semantic_version="1.1.0",
-            source_code="def seed():\n    return 'draft'\n",
+            source_code=_valid_source("draft"),
             status=PublicationStatus.DRAFT,
         )
         current_release = create_contract_version(
             session=session,
             contract_slug=contract.slug,
             semantic_version="2.0.0",
-            source_code="def seed():\n    return 'released'\n",
+            source_code=_valid_source("released"),
             status=PublicationStatus.PUBLISHED,
         )
 

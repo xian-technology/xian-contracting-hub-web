@@ -20,6 +20,13 @@ from contracting_hub.services.contract_diffs import (
     build_unified_contract_diff,
     get_contract_version_diff,
 )
+from contracting_hub.services.contract_linting import (
+    ContractLintReport,
+    ContractLintServiceError,
+    ContractLintServiceErrorCode,
+    build_contract_lint_report,
+    lint_contract_source_code,
+)
 from contracting_hub.services.contract_metadata import (
     CONTRACT_NAME_PATTERN,
     CONTRACT_SLUG_PATTERN,
@@ -60,6 +67,9 @@ __all__ = [
     "CONTRACT_NAME_PATTERN",
     "CONTRACT_SLUG_PATTERN",
     "CategorySeedDefinition",
+    "ContractLintReport",
+    "ContractLintServiceError",
+    "ContractLintServiceErrorCode",
     "ContractMetadataValidationError",
     "ContractMetadataValidationErrorCode",
     "ContractVersionDiff",
@@ -77,6 +87,7 @@ __all__ = [
     "build_avatar_upload_constraints",
     "build_bootstrap_admin_definition",
     "build_contract_diff_summary",
+    "build_contract_lint_report",
     "build_contract_version_diff",
     "build_source_hash",
     "build_managed_upload_constraints",
@@ -85,6 +96,7 @@ __all__ = [
     "delete_managed_upload",
     "get_upload_storage",
     "get_contract_version_diff",
+    "lint_contract_source_code",
     "normalize_version_changelog",
     "seed_local_development_data",
     "store_avatar_upload",
