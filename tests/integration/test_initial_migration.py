@@ -8,6 +8,8 @@ from sqlalchemy import inspect
 
 import contracting_hub.models  # noqa: F401
 from contracting_hub.config import get_settings
+from contracting_hub.repositories import CONTRACT_SEARCH_INDEX_TABLE_NAME
+from contracting_hub.services import SEARCH_INDEX_SHADOW_TABLE_NAMES
 
 
 def _database_url(database_path: Path) -> str:
@@ -22,7 +24,11 @@ def _load_alembic_config() -> Config:
 def _schema_snapshot(database_url: str) -> dict[str, dict[str, object]]:
     engine = sa.create_engine(database_url)
     inspector = inspect(engine)
-    tables = sorted(table for table in inspector.get_table_names() if table != "alembic_version")
+    tables = sorted(
+        table
+        for table in inspector.get_table_names()
+        if table != "alembic_version" and table not in SEARCH_INDEX_SHADOW_TABLE_NAMES
+    )
 
     return {
         table: {
@@ -91,3 +97,26 @@ def test_initial_migration_downgrades_to_base(tmp_path: Path, monkeypatch) -> No
     inspector = inspect(sa.create_engine(_database_url(database_path)))
 
     assert inspector.get_table_names() == ["alembic_version"]
+
+
+def test_head_migration_creates_contract_search_index(tmp_path: Path, monkeypatch) -> None:
+    database_path = tmp_path / "search.db"
+
+    monkeypatch.setenv("REFLEX_DB_URL", _database_url(database_path))
+    get_settings.cache_clear()
+    command.upgrade(_load_alembic_config(), "head")
+
+    engine = sa.create_engine(_database_url(database_path))
+    with engine.connect() as connection:
+        search_schema_sql = connection.execute(
+            sa.text(
+                """
+                SELECT sql
+                FROM sqlite_master
+                WHERE name = :table_name
+                """
+            ),
+            {"table_name": CONTRACT_SEARCH_INDEX_TABLE_NAME},
+        ).scalar_one()
+
+    assert "CREATE VIRTUAL TABLE contract_search_index USING fts5" in search_schema_sql

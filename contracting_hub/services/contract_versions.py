@@ -22,6 +22,7 @@ from contracting_hub.services.contract_metadata import (
     validate_publication_status,
     validate_semantic_version,
 )
+from contracting_hub.services.contract_search import rebuild_contract_search_document
 
 PUBLIC_VERSION_STATUSES: tuple[PublicationStatus, ...] = (
     PublicationStatus.PUBLISHED,
@@ -144,6 +145,7 @@ def create_contract_version(
         repository.add_contract_version(version)
         if normalized_status in PUBLIC_VERSION_STATUSES:
             contract.latest_published_version = version
+        rebuild_contract_search_document(session, contract_id=contract.id)
         session.commit()
     except IntegrityError as error:
         session.rollback()

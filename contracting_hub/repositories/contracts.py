@@ -22,6 +22,7 @@ PUBLIC_VISIBLE_STATUSES: tuple[PublicationStatus, ...] = (
     PublicationStatus.PUBLISHED,
     PublicationStatus.DEPRECATED,
 )
+CONTRACT_SEARCH_INDEX_TABLE_NAME = "contract_search_index"
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,14 @@ class ContractDetailRecord:
     contract: Contract
     versions: tuple[ContractVersion, ...]
     relations: ContractRelationTraversal
+
+
+@dataclass(frozen=True)
+class ContractSearchResult:
+    """Search hit plus the computed ranking score."""
+
+    contract: Contract
+    rank: float
 
 
 class ContractRepository:
@@ -132,6 +141,75 @@ class ContractRepository:
             .order_by(*_version_ordering_clause())
         )
         return self._session.exec(statement).first()
+
+    def search_contracts(
+        self,
+        *,
+        match_query: str,
+        normalized_query: str,
+        include_unpublished: bool = False,
+        statuses: Iterable[PublicationStatus] | None = None,
+        featured: bool | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ContractSearchResult]:
+        """Return contracts ranked by FTS relevance and exact-name boosts."""
+        search_index = sa.table(
+            CONTRACT_SEARCH_INDEX_TABLE_NAME,
+            sa.column("rowid", sa.Integer()),
+        )
+        lower_query = normalized_query.lower()
+        prefix_query = f"{lower_query}%"
+        rank_expression = sa.literal_column(
+            (
+                "bm25("
+                f"{CONTRACT_SEARCH_INDEX_TABLE_NAME}, "
+                "14.0, 12.0, 10.0, 5.0, 3.0, 8.0, 6.0, 4.0, 1.5"
+                ")"
+            )
+        )
+        exact_match_boost = sa.case(
+            (sa.func.lower(Contract.contract_name) == lower_query, 3),
+            (sa.func.lower(Contract.display_name) == lower_query, 2),
+            (sa.func.lower(Contract.slug) == lower_query, 1),
+            else_=0,
+        )
+        prefix_match_boost = sa.case(
+            (sa.func.lower(Contract.contract_name).like(prefix_query), 3),
+            (sa.func.lower(Contract.display_name).like(prefix_query), 2),
+            (sa.func.lower(Contract.slug).like(prefix_query), 1),
+            else_=0,
+        )
+        score = rank_expression.label("search_rank")
+        statement = (
+            select(Contract, score)
+            .join(search_index, search_index.c.rowid == Contract.id)
+            .options(*_contract_summary_load_options())
+            .where(sa.text(f"{CONTRACT_SEARCH_INDEX_TABLE_NAME} MATCH :match_query"))
+            .order_by(
+                exact_match_boost.desc(),
+                prefix_match_boost.desc(),
+                score.asc(),
+                Contract.featured.desc(),
+                Contract.updated_at.desc(),
+                Contract.display_name.asc(),
+            )
+        )
+        statement = _apply_contract_visibility(
+            statement,
+            include_unpublished=include_unpublished,
+            statuses=statuses,
+        )
+
+        if featured is not None:
+            statement = statement.where(Contract.featured.is_(featured))
+        if offset:
+            statement = statement.offset(offset)
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        rows = self._session.execute(statement, {"match_query": match_query}).all()
+        return [ContractSearchResult(contract=row[0], rank=float(row[1])) for row in rows]
 
     def traverse_relations(
         self,
@@ -273,8 +351,10 @@ def _version_ordering_clause() -> tuple[sa.ColumnElement[object], ...]:
 
 
 __all__ = [
+    "CONTRACT_SEARCH_INDEX_TABLE_NAME",
     "ContractDetailRecord",
     "ContractRelationTraversal",
     "ContractRepository",
+    "ContractSearchResult",
     "PUBLIC_VISIBLE_STATUSES",
 ]
