@@ -114,10 +114,32 @@ class User(TimestampedModel, table=True):
         back_populates="user",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    sessions: list["AuthSession"] = sqlmodel.Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
     admin_actions: list["AdminAuditLog"] = sqlmodel.Relationship(
         back_populates="admin_user",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+
+
+class AuthSession(TimestampedModel, table=True):
+    """Persisted login session resolved from an opaque cookie token."""
+
+    __tablename__ = "auth_sessions"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "session_token_hash",
+            name="uq_auth_sessions_session_token_hash",
+        ),
+    )
+
+    user_id: int = sqlmodel.Field(foreign_key="users.id", index=True)
+    session_token_hash: str = sqlmodel.Field(max_length=64, index=True)
+    expires_at: datetime = sqlmodel.Field(nullable=False, index=True)
+
+    user: User = sqlmodel.Relationship(back_populates="sessions")
 
 
 class Profile(TimestampedModel, table=True):
@@ -453,6 +475,7 @@ class AdminAuditLog(TimestampedModel, table=True):
 
 __all__ = [
     "AdminAuditLog",
+    "AuthSession",
     "Category",
     "Contract",
     "ContractCategoryLink",

@@ -23,7 +23,7 @@
 - [x] 2.10 — Write unit and integration tests for schema rules, metadata validation, diff generation, lint storage, and search queries.
 
 ## Phase 3: Accounts, Engagement, and Deployment Services
-- [ ] 3.1 — Implement password hashing, session persistence, role checks, and auth service helpers for registration, login, logout, and current-user resolution.
+- [x] 3.1 — Implement password hashing, session persistence, role checks, and auth service helpers for registration, login, logout, and current-user resolution.
 - [ ] 3.2 — Add route and action guards so anonymous, authenticated, and admin-only flows are enforced consistently.
 - [ ] 3.3 — Implement profile editing services for username, display name, bio, external links, and avatar updates.
 - [ ] 3.4 — Implement star toggle services and persistence rules that guarantee one favorite record per user per contract.

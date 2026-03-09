@@ -3,6 +3,7 @@
 from contracting_hub.models.base import AppModel, TimestampedModel, utc_now
 from contracting_hub.models.schema import (
     AdminAuditLog,
+    AuthSession,
     Category,
     Contract,
     ContractCategoryLink,
@@ -27,6 +28,7 @@ from contracting_hub.models.schema import (
 __all__ = [
     "AdminAuditLog",
     "AppModel",
+    "AuthSession",
     "Category",
     "Contract",
     "ContractCategoryLink",

@@ -4,6 +4,7 @@ from sqlmodel import Session, select
 
 from contracting_hub.models import (
     AdminAuditLog,
+    AuthSession,
     Category,
     Contract,
     ContractCategoryLink,
@@ -112,6 +113,11 @@ def test_domain_models_support_catalog_relationships() -> None:
             playground_id="playground-123",
             is_default=True,
         )
+        auth_session = AuthSession(
+            user=author,
+            session_token_hash="c" * 64,
+            expires_at=version.created_at,
+        )
         deployment = DeploymentHistory(
             user=author,
             contract_version=version,
@@ -131,6 +137,7 @@ def test_domain_models_support_catalog_relationships() -> None:
                 star,
                 rating,
                 target,
+                auth_session,
                 deployment,
             ]
         )
@@ -160,6 +167,7 @@ def test_domain_models_support_catalog_relationships() -> None:
         assert stored_contract.ratings[0].score == 5
         assert stored_contract.tags == ["finance", "escrow"]
         assert stored_contract.versions[0].deployments[0].status == DeploymentStatus.ACCEPTED
+        assert stored_user.sessions[0].session_token_hash == "c" * 64
         assert stored_user.admin_actions[0].action == "publish"
 
 

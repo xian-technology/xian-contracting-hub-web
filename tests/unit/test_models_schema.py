@@ -4,6 +4,7 @@ from contracting_hub import models
 
 EXPECTED_TABLES = {
     "admin_audit_logs",
+    "auth_sessions",
     "categories",
     "contract_category_links",
     "contract_relations",
@@ -21,7 +22,14 @@ EXPECTED_TABLES = {
 def test_models_module_exports_full_domain_schema() -> None:
     exported_names = set(models.__all__)
 
-    assert {"User", "Profile", "Contract", "ContractVersion", "DeploymentHistory"} <= exported_names
+    assert {
+        "AuthSession",
+        "User",
+        "Profile",
+        "Contract",
+        "ContractVersion",
+        "DeploymentHistory",
+    } <= exported_names
     assert models.ContractRelationType.DEPENDS_ON.value == "depends_on"
     assert models.PublicationStatus.PUBLISHED.value == "published"
 
