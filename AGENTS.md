@@ -120,3 +120,5 @@ reflex export --no-zip
 ## Operational Learnings
 - The task runner shell may start without an activated virtual environment, `python`, or project tools on `PATH`; use `python3 -m venv .venv` and `source .venv/bin/activate` first so the documented `python`, `pip`, `ruff`, `pytest`, and `reflex` commands resolve normally.
 - The current smoke tests execute [`contracting_hub/app.py`](/home/endogen/projects/contracting-hub/contracting_hub/app.py) with `runpy.run_path(...)`; keep the entrypoint importable in that mode by ensuring the project root is on `sys.path` before package-style imports.
+- When the shell is not activated but the local virtualenv already exists, invoking tools directly from [`.venv/bin`](/home/endogen/projects/contracting-hub/.venv/bin) is a reliable fallback for `pip`, `ruff`, `pytest`, and `reflex`.
+- Reflex `0.8.27` resolves the production app module as `[app_name]/[app_name].py`; if the real entrypoint lives elsewhere, keep a thin shim at [`contracting_hub/contracting_hub.py`](/home/endogen/projects/contracting-hub/contracting_hub/contracting_hub.py) so `reflex export --no-zip` can compile successfully.
