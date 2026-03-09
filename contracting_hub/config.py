@@ -17,6 +17,10 @@ DEFAULT_AVATAR_UPLOAD_SUBDIR = "avatars"
 DEFAULT_ENVIRONMENT = "development"
 DEFAULT_MANAGED_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 DEFAULT_AVATAR_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
+DEFAULT_BOOTSTRAP_ADMIN_EMAIL = "admin@contractinghub.local"
+DEFAULT_BOOTSTRAP_ADMIN_USERNAME = "admin"
+DEFAULT_BOOTSTRAP_ADMIN_DISPLAY_NAME = "Local Admin"
+DEFAULT_BOOTSTRAP_ADMIN_PASSWORD_HASH = "!bootstrap-admin-auth-pending!"
 
 
 def _read_env_file(env_file: Path) -> dict[str, str]:
@@ -51,6 +55,17 @@ def _resolve_path(value: str | None, *, base_dir: Path) -> Path | None:
     if path.is_absolute():
         return path.resolve()
     return (base_dir / path).resolve()
+
+
+def _read_optional_text(value: str | None, *, default: str | None = None) -> str | None:
+    """Normalize optional text settings while allowing blank values to disable them."""
+    if value is None:
+        return default
+
+    cleaned_value = value.strip()
+    if not cleaned_value:
+        return None
+    return cleaned_value
 
 
 def sqlite_url_for_path(path: Path) -> str:
@@ -110,6 +125,10 @@ class AppSettings:
     avatar_upload_dir: Path
     managed_upload_max_bytes: int
     avatar_upload_max_bytes: int
+    bootstrap_admin_email: str | None
+    bootstrap_admin_username: str | None
+    bootstrap_admin_display_name: str | None
+    bootstrap_admin_password_hash: str
     alembic_config_path: Path
     migrations_dir: Path
 
@@ -176,6 +195,25 @@ def load_settings(
         default=DEFAULT_AVATAR_UPLOAD_MAX_BYTES,
         setting_name="CONTRACTING_HUB_AVATAR_UPLOAD_MAX_BYTES",
     )
+    bootstrap_admin_email = _read_optional_text(
+        merged_environment.get("CONTRACTING_HUB_BOOTSTRAP_ADMIN_EMAIL"),
+        default=DEFAULT_BOOTSTRAP_ADMIN_EMAIL,
+    )
+    bootstrap_admin_username = _read_optional_text(
+        merged_environment.get("CONTRACTING_HUB_BOOTSTRAP_ADMIN_USERNAME"),
+        default=DEFAULT_BOOTSTRAP_ADMIN_USERNAME,
+    )
+    bootstrap_admin_display_name = _read_optional_text(
+        merged_environment.get("CONTRACTING_HUB_BOOTSTRAP_ADMIN_DISPLAY_NAME"),
+        default=DEFAULT_BOOTSTRAP_ADMIN_DISPLAY_NAME,
+    )
+    bootstrap_admin_password_hash = (
+        _read_optional_text(
+            merged_environment.get("CONTRACTING_HUB_BOOTSTRAP_ADMIN_PASSWORD_HASH"),
+            default=DEFAULT_BOOTSTRAP_ADMIN_PASSWORD_HASH,
+        )
+        or DEFAULT_BOOTSTRAP_ADMIN_PASSWORD_HASH
+    )
     database_url_override = merged_environment.get("REFLEX_DB_URL") or merged_environment.get(
         "CONTRACTING_HUB_DB_URL"
     )
@@ -207,6 +245,10 @@ def load_settings(
         avatar_upload_dir=avatar_upload_dir,
         managed_upload_max_bytes=managed_upload_max_bytes,
         avatar_upload_max_bytes=avatar_upload_max_bytes,
+        bootstrap_admin_email=bootstrap_admin_email,
+        bootstrap_admin_username=bootstrap_admin_username,
+        bootstrap_admin_display_name=bootstrap_admin_display_name,
+        bootstrap_admin_password_hash=bootstrap_admin_password_hash,
         alembic_config_path=resolved_project_root / "alembic.ini",
         migrations_dir=resolved_project_root / "migrations",
     )

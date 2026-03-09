@@ -21,6 +21,10 @@ def test_load_settings_uses_local_sqlite_defaults(tmp_path: Path) -> None:
     assert settings.avatar_upload_dir == (tmp_path / "uploads" / "avatars").resolve()
     assert settings.managed_upload_max_bytes == 10 * 1024 * 1024
     assert settings.avatar_upload_max_bytes == 5 * 1024 * 1024
+    assert settings.bootstrap_admin_email == "admin@contractinghub.local"
+    assert settings.bootstrap_admin_username == "admin"
+    assert settings.bootstrap_admin_display_name == "Local Admin"
+    assert settings.bootstrap_admin_password_hash == "!bootstrap-admin-auth-pending!"
     assert settings.alembic_config_path == tmp_path / "alembic.ini"
     assert settings.migrations_dir == tmp_path / "migrations"
 
@@ -45,6 +49,10 @@ def test_environment_variables_override_dotenv_values(tmp_path: Path) -> None:
             "CONTRACTING_HUB_AVATAR_UPLOAD_DIR": "custom/avatars",
             "CONTRACTING_HUB_UPLOAD_MAX_BYTES": "1234",
             "CONTRACTING_HUB_AVATAR_UPLOAD_MAX_BYTES": "456",
+            "CONTRACTING_HUB_BOOTSTRAP_ADMIN_EMAIL": "ops@example.com",
+            "CONTRACTING_HUB_BOOTSTRAP_ADMIN_USERNAME": "opsadmin",
+            "CONTRACTING_HUB_BOOTSTRAP_ADMIN_DISPLAY_NAME": "Ops Admin",
+            "CONTRACTING_HUB_BOOTSTRAP_ADMIN_PASSWORD_HASH": "hashed-admin",
         },
     )
 
@@ -60,6 +68,24 @@ def test_environment_variables_override_dotenv_values(tmp_path: Path) -> None:
     )
     assert settings.managed_upload_max_bytes == 1234
     assert settings.avatar_upload_max_bytes == 456
+    assert settings.bootstrap_admin_email == "ops@example.com"
+    assert settings.bootstrap_admin_username == "opsadmin"
+    assert settings.bootstrap_admin_display_name == "Ops Admin"
+    assert settings.bootstrap_admin_password_hash == "hashed-admin"
+
+
+def test_blank_bootstrap_admin_identity_disables_local_admin_seed(tmp_path: Path) -> None:
+    settings = load_settings(
+        project_root=tmp_path,
+        environ={
+            "CONTRACTING_HUB_BOOTSTRAP_ADMIN_EMAIL": "",
+            "CONTRACTING_HUB_BOOTSTRAP_ADMIN_USERNAME": " ",
+        },
+        env_file=tmp_path / ".env",
+    )
+
+    assert settings.bootstrap_admin_email is None
+    assert settings.bootstrap_admin_username is None
 
 
 def test_ensure_local_paths_creates_sqlite_and_upload_directories(tmp_path: Path) -> None:
