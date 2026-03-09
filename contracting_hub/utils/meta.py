@@ -5,6 +5,7 @@ from urllib.parse import quote, urlencode
 APP_NAME = "contracting-hub"
 HOME_ROUTE = "/"
 BROWSE_ROUTE = "/browse"
+DEVELOPER_LEADERBOARD_ROUTE = "/developers"
 LOGIN_ROUTE = "/login"
 REGISTER_ROUTE = "/register"
 PROFILE_SETTINGS_ROUTE = "/settings/profile"
@@ -36,7 +37,7 @@ def build_developer_profile_path(username: str | None) -> str:
     """Build the canonical public developer-profile URL for one username."""
     normalized_username = str(username or "").strip().lower().lstrip("@")
     if not normalized_username:
-        return "/developers"
+        return DEVELOPER_LEADERBOARD_ROUTE
     return f"/developers/{quote(normalized_username)}"
 
 
@@ -45,6 +46,7 @@ __all__ = [
     "BROWSE_ROUTE",
     "CONTRACT_DETAIL_ROUTE",
     "DEVELOPER_PROFILE_ROUTE",
+    "DEVELOPER_LEADERBOARD_ROUTE",
     "DEPLOYMENT_HISTORY_ROUTE",
     "HOME_BADGE_TEXT",
     "HOME_ROUTE",

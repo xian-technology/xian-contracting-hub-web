@@ -9,6 +9,7 @@ from contracting_hub.utils.meta import (
     APP_NAME,
     BROWSE_ROUTE,
     DEPLOYMENT_HISTORY_ROUTE,
+    DEVELOPER_LEADERBOARD_ROUTE,
     HOME_ROUTE,
     LOGIN_ROUTE,
     PROFILE_SETTINGS_ROUTE,
@@ -109,6 +110,13 @@ def _shell_navigation() -> rx.Component:
         rx.link(
             "Browse",
             href=BROWSE_ROUTE,
+            text_decoration="none",
+            color="var(--hub-color-text)",
+            font_weight="600",
+        ),
+        rx.link(
+            "Developers",
+            href=DEVELOPER_LEADERBOARD_ROUTE,
             text_decoration="none",
             color="var(--hub-color-text)",
             font_weight="600",

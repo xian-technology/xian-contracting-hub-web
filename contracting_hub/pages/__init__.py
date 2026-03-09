@@ -4,6 +4,8 @@ from contracting_hub.pages.browse import ROUTE as BROWSE_ROUTE
 from contracting_hub.pages.browse import index as browse_index
 from contracting_hub.pages.contract_detail import ROUTE as CONTRACT_DETAIL_ROUTE
 from contracting_hub.pages.contract_detail import index as contract_detail_index
+from contracting_hub.pages.developer_leaderboard import ROUTE as DEVELOPER_LEADERBOARD_ROUTE
+from contracting_hub.pages.developer_leaderboard import index as developer_leaderboard_index
 from contracting_hub.pages.developer_profile import ROUTE as DEVELOPER_PROFILE_ROUTE
 from contracting_hub.pages.developer_profile import index as developer_profile_index
 from contracting_hub.pages.home import ROUTE as HOME_ROUTE
@@ -18,6 +20,7 @@ from contracting_hub.pages.register import index as register_index
 __all__ = [
     "BROWSE_ROUTE",
     "CONTRACT_DETAIL_ROUTE",
+    "DEVELOPER_LEADERBOARD_ROUTE",
     "DEVELOPER_PROFILE_ROUTE",
     "HOME_ROUTE",
     "LOGIN_ROUTE",
@@ -25,6 +28,7 @@ __all__ = [
     "REGISTER_ROUTE",
     "browse_index",
     "contract_detail_index",
+    "developer_leaderboard_index",
     "developer_profile_index",
     "index",
     "login_index",

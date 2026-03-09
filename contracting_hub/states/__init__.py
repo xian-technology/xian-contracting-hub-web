@@ -11,6 +11,7 @@ from contracting_hub.states.deployment_history import (
     ALL_DEPLOYMENT_FILTER_VALUE,
     DeploymentHistoryState,
 )
+from contracting_hub.states.developer_leaderboard import DeveloperLeaderboardState
 from contracting_hub.states.developer_profile import DeveloperProfileState
 from contracting_hub.states.profile_settings import (
     PLAYGROUND_DEFAULT_NO,
@@ -24,6 +25,7 @@ __all__ = [
     "ALL_DEPLOYMENT_FILTER_VALUE",
     "BrowseState",
     "ContractDetailState",
+    "DeveloperLeaderboardState",
     "DeveloperProfileState",
     "DeploymentHistoryState",
     "POST_LOGIN_PATH_STORAGE_KEY",
