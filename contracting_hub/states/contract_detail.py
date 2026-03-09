@@ -8,13 +8,22 @@ from urllib.parse import quote
 
 import reflex as rx
 
-from contracting_hub.models import LintStatus, PublicationStatus
-from contracting_hub.services import (
+from contracting_hub.config import get_settings
+from contracting_hub.database import session_scope
+from contracting_hub.models import LintStatus, PublicationStatus, User
+from contracting_hub.services.auth import resolve_current_user
+from contracting_hub.services.contract_detail import (
     ContractDetailSnapshot,
+    load_contract_detail_engagement_snapshot_safe,
     load_public_contract_detail_snapshot_safe,
 )
+from contracting_hub.services.ratings import ContractRatingServiceError, submit_contract_rating
+from contracting_hub.services.stars import ContractStarServiceError, toggle_contract_star
+from contracting_hub.states.auth import AUTH_SESSION_COOKIE_NAME, POST_LOGIN_PATH_STORAGE_KEY
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
-from contracting_hub.utils.meta import BROWSE_ROUTE, build_contract_detail_path
+from contracting_hub.utils.meta import BROWSE_ROUTE, LOGIN_ROUTE, build_contract_detail_path
+
+_SETTINGS = get_settings()
 
 
 class AuthorLinkPayload(TypedDict):
@@ -61,6 +70,15 @@ class RelatedContractPayload(TypedDict):
 class ContractDetailState(rx.State):
     """Route-driven state for the public contract detail header."""
 
+    auth_session_token: str = rx.Cookie(
+        "",
+        name=AUTH_SESSION_COOKIE_NAME,
+        path="/",
+        same_site="lax",
+        secure=_SETTINGS.environment == "production",
+    )
+    post_login_path: str = rx.LocalStorage("", name=POST_LOGIN_PATH_STORAGE_KEY)
+    current_user_id: int | None = None
     load_state: str = "loading"
     contract_slug: str = ""
     display_name: str = ""
@@ -102,10 +120,20 @@ class ContractDetailState(rx.State):
     incoming_related_contract_count_label: str = "0 incoming links"
     published_label: str = "Pending"
     updated_label: str = "Pending"
+    star_count_value: int = 0
     star_count: str = "0"
+    rating_count_value: int = 0
+    average_rating_value: float | None = None
     rating_headline: str = "No ratings yet"
     rating_detail: str = ""
     rating_empty: bool = True
+    starred_by_current_user: bool = False
+    current_user_rating_score: int | None = None
+    star_pending: bool = False
+    rating_pending: bool = False
+    engagement_success_message: str = ""
+    engagement_error_message: str = ""
+    engagement_login_prompt_message: str = ""
     author_name: str = "Curated entry"
     author_secondary: str = ""
     author_initials: str = "CE"
@@ -135,6 +163,62 @@ class ContractDetailState(rx.State):
     def is_missing(self) -> bool:
         """Return whether the current route resolved to no visible contract."""
         return self.load_state == "missing"
+
+    @rx.var
+    def is_authenticated(self) -> bool:
+        """Return whether the current browser has an active user session."""
+        return self.current_user_id is not None
+
+    @rx.var
+    def current_detail_path(self) -> str:
+        """Return the current detail route used for post-login redirects."""
+        if not self.contract_slug:
+            return BROWSE_ROUTE
+        selected_version = None if self.selected_version_is_latest_public else self.version_label
+        return build_contract_detail_path(
+            self.contract_slug,
+            semantic_version=selected_version,
+        )
+
+    @rx.var
+    def has_current_user_rating(self) -> bool:
+        """Return whether the current user has already rated this contract."""
+        return self.current_user_rating_score is not None
+
+    @rx.var
+    def current_user_rating_label(self) -> str:
+        """Return a compact personalized rating summary."""
+        if self.current_user_rating_score is None:
+            return "Choose a score from 1 to 5."
+        return f"Your rating: {self.current_user_rating_score}/5"
+
+    @rx.var
+    def engagement_login_copy(self) -> str:
+        """Return the anonymous engagement helper copy."""
+        if self.engagement_login_prompt_message:
+            return self.engagement_login_prompt_message
+        return "Log in to save favorites and rate this contract."
+
+    @rx.var
+    def star_button_label(self) -> str:
+        """Return the inline star button label."""
+        if self.star_pending:
+            return "Updating favorite..."
+        return "Starred" if self.starred_by_current_user else "Star contract"
+
+    @rx.var
+    def star_button_helper(self) -> str:
+        """Return a personalized star-status line."""
+        if not self.is_authenticated:
+            return _format_total_stars_label(self.star_count_value)
+        if self.starred_by_current_user:
+            return "Saved in your favorites."
+        return "Save this release to your favorites."
+
+    @rx.var
+    def star_total_label(self) -> str:
+        """Return the current public star total."""
+        return _format_total_stars_label(self.star_count_value)
 
     @rx.var
     def has_author_secondary(self) -> bool:
@@ -285,22 +369,133 @@ class ContractDetailState(rx.State):
 
     def load_page(self) -> None:
         """Load one public contract snapshot from the current route params."""
+        self._clear_engagement_feedback()
+        self.star_pending = False
+        self.rating_pending = False
+        self._apply_user_snapshot(self._resolve_user_from_cookie())
         params = self.router.page.params
         snapshot = load_public_contract_detail_snapshot_safe(
             slug=params.get("slug"),
             semantic_version=params.get("version"),
         )
         self._apply_snapshot(snapshot)
+        self._load_engagement_state()
+
+    def begin_engagement_login(self) -> rx.event.EventSpec:
+        """Remember the current detail route and redirect to the login screen."""
+        self.post_login_path = self.current_detail_path
+        return rx.redirect(LOGIN_ROUTE, replace=True)
+
+    def toggle_star(self):
+        """Toggle the current user's star state with optimistic feedback."""
+        user_id = self._prepare_engagement_action(
+            prompt="Log in to star this contract.",
+        )
+        if user_id is None or not self.contract_slug:
+            return
+
+        previous_starred = self.starred_by_current_user
+        previous_star_count = self.star_count_value
+        self.star_pending = True
+        self.starred_by_current_user = not previous_starred
+        self._apply_star_count(
+            previous_star_count + (1 if not previous_starred else -1),
+        )
+        yield
+
+        try:
+            with session_scope() as session:
+                result = toggle_contract_star(
+                    session=session,
+                    user_id=user_id,
+                    contract_slug=self.contract_slug,
+                )
+        except ContractStarServiceError as error:
+            self.starred_by_current_user = previous_starred
+            self._apply_star_count(previous_star_count)
+            self.engagement_error_message = str(error)
+            self.star_pending = False
+            return
+        except Exception:
+            self.starred_by_current_user = previous_starred
+            self._apply_star_count(previous_star_count)
+            self.engagement_error_message = "The favorite action could not be completed."
+            self.star_pending = False
+            return
+
+        self.starred_by_current_user = result.starred_by_user
+        self._apply_star_count(result.star_count)
+        self.engagement_success_message = (
+            "Saved to favorites." if result.starred_by_user else "Removed from favorites."
+        )
+        self.star_pending = False
+
+    def submit_rating(self, score: int):
+        """Create or update the current user's rating with optimistic feedback."""
+        user_id = self._prepare_engagement_action(
+            prompt="Log in to rate this contract.",
+        )
+        if user_id is None or not self.contract_slug:
+            return
+
+        previous_rating_score = self.current_user_rating_score
+        previous_rating_count = self.rating_count_value
+        previous_average_rating = self.average_rating_value
+        self.rating_pending = True
+        self.current_user_rating_score = score
+        optimistic_average, optimistic_count = _build_optimistic_rating_aggregate(
+            average_rating=previous_average_rating,
+            rating_count=previous_rating_count,
+            previous_score=previous_rating_score,
+            submitted_score=score,
+        )
+        self._apply_rating_aggregate(
+            average_rating=optimistic_average,
+            rating_count=optimistic_count,
+        )
+        yield
+
+        try:
+            with session_scope() as session:
+                result = submit_contract_rating(
+                    session=session,
+                    user_id=user_id,
+                    contract_slug=self.contract_slug,
+                    score=score,
+                )
+        except ContractRatingServiceError as error:
+            self.current_user_rating_score = previous_rating_score
+            self._apply_rating_aggregate(
+                average_rating=previous_average_rating,
+                rating_count=previous_rating_count,
+            )
+            self.engagement_error_message = str(error)
+            self.rating_pending = False
+            return
+        except Exception:
+            self.current_user_rating_score = previous_rating_score
+            self._apply_rating_aggregate(
+                average_rating=previous_average_rating,
+                rating_count=previous_rating_count,
+            )
+            self.engagement_error_message = "The rating could not be saved."
+            self.rating_pending = False
+            return
+
+        self.current_user_rating_score = result.score
+        self._apply_rating_aggregate(
+            average_rating=result.average_score,
+            rating_count=result.rating_count,
+        )
+        self.engagement_success_message = (
+            "Rating updated." if result.updated_existing else "Rating saved."
+        )
+        self.rating_pending = False
 
     def _apply_snapshot(self, snapshot: ContractDetailSnapshot) -> None:
         if not snapshot.found:
             self._apply_missing(snapshot.slug)
             return
-
-        rating_display = build_contract_rating_display(
-            average_rating=snapshot.average_rating,
-            rating_count=snapshot.rating_count,
-        )
         self.load_state = "ready"
         self.contract_slug = snapshot.slug or ""
         self.display_name = snapshot.display_name
@@ -368,10 +563,11 @@ class ContractDetailState(rx.State):
         )
         self.contract_status_label = _status_label(snapshot.contract_status)
         self.contract_status_color_scheme = _status_color_scheme(snapshot.contract_status)
-        self.star_count = str(snapshot.star_count)
-        self.rating_headline = rating_display.headline
-        self.rating_detail = rating_display.detail
-        self.rating_empty = rating_display.empty
+        self._apply_star_count(snapshot.star_count)
+        self._apply_rating_aggregate(
+            average_rating=snapshot.average_rating,
+            rating_count=snapshot.rating_count,
+        )
         self.author_name = snapshot.author.display_name
         self.author_secondary = (
             f"@{snapshot.author.username}" if snapshot.author.username else "Curated author"
@@ -451,6 +647,83 @@ class ContractDetailState(rx.State):
         self.documentation_url = ""
         self.source_repository_url = ""
         self.browse_href = BROWSE_ROUTE
+        self._reset_engagement_state()
+
+    def _load_engagement_state(self) -> None:
+        self.starred_by_current_user = False
+        self.current_user_rating_score = None
+        if self.current_user_id is None or not self.contract_slug or not self.is_ready:
+            return
+
+        snapshot = load_contract_detail_engagement_snapshot_safe(
+            user_id=self.current_user_id,
+            slug=self.contract_slug,
+        )
+        self.starred_by_current_user = snapshot.starred_by_user
+        self.current_user_rating_score = snapshot.current_user_rating_score
+
+    def _prepare_engagement_action(self, *, prompt: str) -> int | None:
+        self._clear_engagement_feedback()
+        self._apply_user_snapshot(self._resolve_user_from_cookie())
+        if self.current_user_id is None:
+            self.post_login_path = self.current_detail_path
+            self.engagement_login_prompt_message = prompt
+            return None
+        return self.current_user_id
+
+    def _apply_star_count(self, star_count: int) -> None:
+        safe_star_count = max(star_count, 0)
+        self.star_count_value = safe_star_count
+        self.star_count = str(safe_star_count)
+
+    def _apply_rating_aggregate(
+        self,
+        *,
+        average_rating: float | None,
+        rating_count: int,
+    ) -> None:
+        rating_display = build_contract_rating_display(
+            average_rating=average_rating,
+            rating_count=rating_count,
+        )
+        self.average_rating_value = average_rating
+        self.rating_count_value = max(rating_count, 0)
+        self.rating_headline = rating_display.headline
+        self.rating_detail = rating_display.detail
+        self.rating_empty = rating_display.empty
+
+    def _clear_engagement_feedback(self) -> None:
+        self.engagement_success_message = ""
+        self.engagement_error_message = ""
+        self.engagement_login_prompt_message = ""
+
+    def _reset_engagement_state(self) -> None:
+        self._clear_engagement_feedback()
+        self._apply_star_count(0)
+        self._apply_rating_aggregate(
+            average_rating=None,
+            rating_count=0,
+        )
+        self.starred_by_current_user = False
+        self.current_user_rating_score = None
+        self.star_pending = False
+        self.rating_pending = False
+
+    def _resolve_user_from_cookie(self) -> User | None:
+        with session_scope() as session:
+            return resolve_current_user(
+                session=session,
+                session_token=self.auth_session_token,
+            )
+
+    def _apply_user_snapshot(self, user: User | None) -> None:
+        if user is None:
+            if self.auth_session_token:
+                self.auth_session_token = ""
+            self.current_user_id = None
+            return
+
+        self.current_user_id = user.id
 
 
 def _serialize_author_links(snapshot: ContractDetailSnapshot) -> list[AuthorLinkPayload]:
@@ -565,6 +838,12 @@ def _format_related_contract_count_label(relation_count: int) -> str:
 def _format_relation_group_count_label(relation_count: int, *, direction: str) -> str:
     noun = "link" if relation_count == 1 else "links"
     return f"{relation_count} {direction} {noun}"
+
+
+def _format_total_stars_label(star_count: int) -> str:
+    if star_count == 1:
+        return "1 total star"
+    return f"{star_count} total stars"
 
 
 def _lint_status_label(status: LintStatus | None) -> str:
@@ -686,6 +965,27 @@ def _build_source_download_url(source_code: str) -> str:
     if not source_code:
         return ""
     return f"data:text/x-python;charset=utf-8,{quote(source_code, safe='')}"
+
+
+def _build_optimistic_rating_aggregate(
+    *,
+    average_rating: float | None,
+    rating_count: int,
+    previous_score: int | None,
+    submitted_score: int,
+) -> tuple[float | None, int]:
+    if previous_score is None:
+        updated_count = rating_count + 1
+        if updated_count <= 0:
+            return None, 0
+        running_total = (average_rating or 0.0) * rating_count
+        return (running_total + submitted_score) / updated_count, updated_count
+
+    if rating_count <= 0:
+        return float(submitted_score), 1
+
+    running_total = (average_rating or 0.0) * rating_count
+    return (running_total - previous_score + submitted_score) / rating_count, rating_count
 
 
 def _format_lint_finding_severity(severity: str) -> str:

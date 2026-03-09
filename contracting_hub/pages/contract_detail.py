@@ -207,6 +207,216 @@ def _author_panel() -> rx.Component:
     )
 
 
+def _feedback_banner(message, *, tone: str, test_id: str) -> rx.Component:
+    color = "tomato" if tone == "error" else "var(--hub-color-accent-strong)"
+    border = (
+        "1px solid rgba(191, 61, 48, 0.22)"
+        if tone == "error"
+        else "1px solid rgba(142, 89, 30, 0.22)"
+    )
+    background = "rgba(255, 244, 242, 0.95)" if tone == "error" else "rgba(255, 249, 239, 0.96)"
+    return rx.cond(
+        message != "",
+        rx.box(
+            rx.text(
+                message,
+                color=color,
+                font_weight="600",
+            ),
+            width="100%",
+            padding="0.9rem 1rem",
+            border=border,
+            border_radius="var(--hub-radius-md)",
+            background=background,
+            custom_attrs={"data-testid": test_id},
+        ),
+    )
+
+
+def _star_button() -> rx.Component:
+    starred_button = rx.button(
+        ContractDetailState.star_button_label,
+        type="button",
+        size="3",
+        variant="solid",
+        color_scheme="bronze",
+        on_click=ContractDetailState.toggle_star,
+        disabled=ContractDetailState.star_pending,
+        custom_attrs={"data-testid": "contract-star-toggle"},
+    )
+    default_button = rx.button(
+        ContractDetailState.star_button_label,
+        type="button",
+        size="3",
+        variant="soft",
+        color_scheme="gray",
+        on_click=ContractDetailState.toggle_star,
+        disabled=ContractDetailState.star_pending,
+        custom_attrs={"data-testid": "contract-star-toggle"},
+    )
+    return rx.cond(
+        ContractDetailState.starred_by_current_user,
+        starred_button,
+        default_button,
+    )
+
+
+def _rating_button(score: int) -> rx.Component:
+    selected_button = rx.button(
+        str(score),
+        type="button",
+        size="2",
+        variant="solid",
+        color_scheme="bronze",
+        on_click=ContractDetailState.submit_rating(score),
+        disabled=ContractDetailState.rating_pending,
+        custom_attrs={"data-testid": f"contract-rating-option-{score}"},
+    )
+    unselected_button = rx.button(
+        str(score),
+        type="button",
+        size="2",
+        variant="soft",
+        color_scheme="gray",
+        on_click=ContractDetailState.submit_rating(score),
+        disabled=ContractDetailState.rating_pending,
+        custom_attrs={"data-testid": f"contract-rating-option-{score}"},
+    )
+    return rx.cond(
+        ContractDetailState.current_user_rating_score == score,
+        selected_button,
+        unselected_button,
+    )
+
+
+def _engagement_panel() -> rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.vstack(
+                rx.text(
+                    "Engagement",
+                    font_size="0.75rem",
+                    font_weight="600",
+                    text_transform="uppercase",
+                    letter_spacing="0.08em",
+                    color="var(--hub-color-text-muted)",
+                ),
+                rx.text(
+                    "Save this release or rate it inline without leaving the detail page.",
+                    color="var(--hub-color-text-muted)",
+                    font_size="0.92rem",
+                ),
+                align="start",
+                gap="var(--hub-space-2)",
+                width="100%",
+            ),
+            _feedback_banner(
+                ContractDetailState.engagement_success_message,
+                tone="success",
+                test_id="contract-engagement-success",
+            ),
+            _feedback_banner(
+                ContractDetailState.engagement_error_message,
+                tone="error",
+                test_id="contract-engagement-error",
+            ),
+            rx.cond(
+                ContractDetailState.engagement_login_prompt_message != "",
+                _feedback_banner(
+                    ContractDetailState.engagement_login_prompt_message,
+                    tone="success",
+                    test_id="contract-engagement-login-prompt",
+                ),
+            ),
+            rx.box(
+                rx.vstack(
+                    _star_button(),
+                    rx.text(
+                        ContractDetailState.star_button_helper,
+                        color="var(--hub-color-text)",
+                        font_weight="500",
+                    ),
+                    rx.text(
+                        ContractDetailState.star_total_label,
+                        color="var(--hub-color-text-muted)",
+                        font_size="0.9rem",
+                    ),
+                    align="start",
+                    gap="var(--hub-space-2)",
+                    width="100%",
+                ),
+                width="100%",
+                padding="var(--hub-space-4)",
+                border="1px solid rgba(124, 93, 37, 0.14)",
+                border_radius="var(--hub-radius-md)",
+                background="rgba(255, 252, 246, 0.84)",
+            ),
+            rx.box(
+                rx.vstack(
+                    rx.text(
+                        "Rate this release",
+                        font_weight="600",
+                        color="var(--hub-color-text)",
+                    ),
+                    rx.flex(
+                        _rating_button(1),
+                        _rating_button(2),
+                        _rating_button(3),
+                        _rating_button(4),
+                        _rating_button(5),
+                        wrap="wrap",
+                        gap="var(--hub-space-2)",
+                        width="100%",
+                    ),
+                    rx.cond(
+                        ContractDetailState.is_authenticated,
+                        rx.text(
+                            ContractDetailState.current_user_rating_label,
+                            color="var(--hub-color-text-muted)",
+                            font_size="0.9rem",
+                        ),
+                        rx.text(
+                            ContractDetailState.engagement_login_copy,
+                            color="var(--hub-color-text-muted)",
+                            font_size="0.9rem",
+                        ),
+                    ),
+                    align="start",
+                    gap="var(--hub-space-3)",
+                    width="100%",
+                ),
+                width="100%",
+                padding="var(--hub-space-4)",
+                border="1px solid rgba(124, 93, 37, 0.14)",
+                border_radius="var(--hub-radius-md)",
+                background="rgba(255, 252, 246, 0.84)",
+            ),
+            rx.cond(
+                ContractDetailState.is_authenticated,
+                rx.fragment(),
+                rx.button(
+                    "Log in to engage",
+                    type="button",
+                    size="3",
+                    variant="soft",
+                    color_scheme="bronze",
+                    on_click=ContractDetailState.begin_engagement_login,
+                    custom_attrs={"data-testid": "contract-engagement-login"},
+                ),
+            ),
+            align="start",
+            gap="var(--hub-space-4)",
+            width="100%",
+        ),
+        width="100%",
+        padding="var(--hub-space-5)",
+        border="1px solid rgba(124, 93, 37, 0.14)",
+        border_radius="var(--hub-radius-md)",
+        background="rgba(255, 248, 236, 0.82)",
+        custom_attrs={"data-testid": "contract-engagement-panel"},
+    )
+
+
 def _header_actions() -> rx.Component:
     return rx.vstack(
         rx.text(
@@ -247,8 +457,9 @@ def _header_actions() -> rx.Component:
             gap="var(--hub-space-3)",
             width="100%",
         ),
+        _engagement_panel(),
         align="start",
-        gap="var(--hub-space-2)",
+        gap="var(--hub-space-4)",
         width=rx.breakpoints(initial="100%", lg="auto"),
     )
 

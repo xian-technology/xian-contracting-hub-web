@@ -24,6 +24,14 @@ from contracting_hub.services.contract_metadata import validate_semantic_version
 
 
 @dataclass(frozen=True)
+class ContractDetailEngagementSnapshot:
+    """Authenticated engagement state rendered beside one public contract."""
+
+    starred_by_user: bool
+    current_user_rating_score: int | None
+
+
+@dataclass(frozen=True)
 class ContractDetailAuthorSummary:
     """Pure author summary rendered inside the public contract header."""
 
@@ -151,6 +159,14 @@ def normalize_contract_detail_slug(slug: str | None) -> str | None:
     return normalized or None
 
 
+def build_empty_contract_detail_engagement_snapshot() -> ContractDetailEngagementSnapshot:
+    """Return a stable empty personalized engagement snapshot."""
+    return ContractDetailEngagementSnapshot(
+        starred_by_user=False,
+        current_user_rating_score=None,
+    )
+
+
 def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> ContractDetailSnapshot:
     """Return a stable empty snapshot for loading failures or unknown slugs."""
     return ContractDetailSnapshot(
@@ -192,6 +208,36 @@ def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> Contract
         star_count=0,
         rating_count=0,
         average_rating=None,
+    )
+
+
+def load_contract_detail_engagement_snapshot(
+    *,
+    session: Session,
+    user_id: int,
+    slug: str | None,
+) -> ContractDetailEngagementSnapshot:
+    """Load the current user's star and rating state for one public contract."""
+    normalized_slug = normalize_contract_detail_slug(slug)
+    if normalized_slug is None:
+        return build_empty_contract_detail_engagement_snapshot()
+
+    contract = StarRepository(session).get_contract_by_slug(normalized_slug)
+    if contract is None or contract.id is None:
+        return build_empty_contract_detail_engagement_snapshot()
+    if contract.status not in {
+        PublicationStatus.PUBLISHED,
+        PublicationStatus.DEPRECATED,
+    }:
+        return build_empty_contract_detail_engagement_snapshot()
+
+    star_repository = StarRepository(session)
+    rating_repository = RatingRepository(session)
+    star = star_repository.get_star(user_id=user_id, contract_id=contract.id)
+    rating = rating_repository.get_rating(user_id=user_id, contract_id=contract.id)
+    return ContractDetailEngagementSnapshot(
+        starred_by_user=star is not None,
+        current_user_rating_score=rating.score if rating is not None else None,
     )
 
 
@@ -305,6 +351,24 @@ def load_public_contract_detail_snapshot_safe(
             )
     except (sa.exc.OperationalError, sa.exc.ProgrammingError):
         return build_empty_contract_detail_snapshot(slug=normalized_slug)
+
+
+def load_contract_detail_engagement_snapshot_safe(
+    *,
+    user_id: int,
+    slug: str | None,
+) -> ContractDetailEngagementSnapshot:
+    """Load personalized contract engagement while tolerating an unmigrated database."""
+    normalized_slug = normalize_contract_detail_slug(slug)
+    try:
+        with session_scope() as session:
+            return load_contract_detail_engagement_snapshot(
+                session=session,
+                user_id=user_id,
+                slug=normalized_slug,
+            )
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+        return build_empty_contract_detail_engagement_snapshot()
 
 
 def _build_contract_detail_author(contract) -> ContractDetailAuthorSummary:
@@ -675,15 +739,19 @@ def _format_relation_type_label(relation_type: ContractRelationType) -> str:
 
 __all__ = [
     "ContractDetailAuthorSummary",
+    "ContractDetailEngagementSnapshot",
     "ContractDetailLintFinding",
     "ContractDetailLintSummary",
     "ContractDetailRelatedContractSummary",
     "ContractDetailSnapshot",
     "ContractDetailVersionDiffSummary",
     "ContractDetailVersionSummary",
+    "build_empty_contract_detail_engagement_snapshot",
     "build_empty_contract_detail_snapshot",
     "build_empty_contract_detail_lint_summary",
     "build_empty_contract_detail_version_diff_summary",
+    "load_contract_detail_engagement_snapshot",
+    "load_contract_detail_engagement_snapshot_safe",
     "load_public_contract_detail_snapshot",
     "load_public_contract_detail_snapshot_safe",
     "normalize_contract_detail_slug",
