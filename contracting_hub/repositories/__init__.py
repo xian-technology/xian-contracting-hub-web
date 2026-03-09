@@ -14,6 +14,11 @@ from contracting_hub.repositories.deployments import (
     PUBLIC_DEPLOYABLE_STATUSES,
     DeploymentRepository,
 )
+from contracting_hub.repositories.developer_kpis import (
+    PUBLISHED_KPI_CONTRACT_STATUSES,
+    DeveloperKPIRecord,
+    DeveloperKPIRepository,
+)
 from contracting_hub.repositories.playground_targets import PlaygroundTargetRepository
 from contracting_hub.repositories.ratings import RatingRepository
 from contracting_hub.repositories.stars import StarRepository
@@ -26,9 +31,12 @@ __all__ = [
     "ContractRepository",
     "ContractSearchResult",
     "ContractVersionRepository",
+    "DeveloperKPIRecord",
+    "DeveloperKPIRepository",
     "DeploymentRepository",
     "PlaygroundTargetRepository",
     "PUBLIC_DEPLOYABLE_STATUSES",
+    "PUBLISHED_KPI_CONTRACT_STATUSES",
     "PUBLIC_VISIBLE_STATUSES",
     "RatingRepository",
     "StarRepository",
