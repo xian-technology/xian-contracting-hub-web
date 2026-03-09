@@ -18,12 +18,21 @@ def _load_data_layer() -> None:
     importlib.import_module("contracting_hub.models")
 
 
-def _load_home_page() -> tuple[str, object, str]:
-    """Load the home page module when the app file is executed by path."""
+def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
+    """Load public pages when the app file is executed by path."""
     _ensure_project_root_on_path()
     home_module = importlib.import_module("contracting_hub.pages.home")
+    browse_module = importlib.import_module("contracting_hub.pages.browse")
     meta_module = importlib.import_module("contracting_hub.utils.meta")
-    return home_module.ROUTE, home_module.index, meta_module.APP_NAME
+    return (
+        (home_module.ROUTE, home_module.index, meta_module.APP_NAME, None),
+        (
+            browse_module.ROUTE,
+            browse_module.index,
+            f"Browse | {meta_module.APP_NAME}",
+            browse_module.ON_LOAD,
+        ),
+    )
 
 
 def _load_theme_config() -> tuple[object, object, object]:
@@ -35,7 +44,9 @@ def _load_theme_config() -> tuple[object, object, object]:
 
 _load_data_layer()
 APP_STYLE, APP_STYLESHEETS, APP_THEME = _load_theme_config()
-HOME_ROUTE, index, APP_NAME = _load_home_page()
+PAGES = _load_pages()
+HOME_ROUTE, index, APP_NAME, _ = PAGES[0]
 
 app = rx.App(theme=APP_THEME, style=APP_STYLE, stylesheets=APP_STYLESHEETS)
-app.add_page(index, route=HOME_ROUTE, title=APP_NAME)
+for route, component, title, on_load in PAGES:
+    app.add_page(component, route=route, title=title, on_load=on_load)

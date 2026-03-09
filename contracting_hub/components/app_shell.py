@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.utils.meta import APP_NAME, HOME_ROUTE
+from contracting_hub.utils.meta import APP_NAME, BROWSE_ROUTE, HOME_ROUTE
 
 SHELL_PILLARS = (
     "Curated catalog",
@@ -87,6 +87,29 @@ def _header_badges() -> rx.Component:
     )
 
 
+def _shell_navigation() -> rx.Component:
+    """Render the shared public navigation links."""
+    return rx.flex(
+        rx.link(
+            "Home",
+            href=HOME_ROUTE,
+            text_decoration="none",
+            color="var(--hub-color-text)",
+            font_weight="600",
+        ),
+        rx.link(
+            "Browse",
+            href=BROWSE_ROUTE,
+            text_decoration="none",
+            color="var(--hub-color-text)",
+            font_weight="600",
+        ),
+        gap="var(--hub-space-4)",
+        wrap="wrap",
+        justify=rx.breakpoints(initial="start", md="end"),
+    )
+
+
 def _shell_frame(*children: rx.Component) -> rx.Component:
     """Constrain shared shell content to the global layout width."""
     return rx.box(
@@ -162,7 +185,12 @@ def _shell_header() -> rx.Component:
         _shell_frame(
             rx.flex(
                 _brand_lockup(),
-                _header_badges(),
+                rx.vstack(
+                    _shell_navigation(),
+                    _header_badges(),
+                    align=rx.breakpoints(initial="start", md="end"),
+                    gap="var(--hub-space-3)",
+                ),
                 direction=rx.breakpoints(initial="column", sm="row"),
                 align=rx.breakpoints(initial="start", sm="center"),
                 justify="between",
