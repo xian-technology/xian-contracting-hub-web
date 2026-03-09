@@ -11,6 +11,7 @@ from sqlmodel import Session
 
 from contracting_hub.models import ContractVersion, PublicationStatus, utc_now
 from contracting_hub.repositories import ContractVersionRepository
+from contracting_hub.services.contract_diffs import build_contract_diff_summary
 from contracting_hub.services.contract_metadata import (
     validate_publication_status,
     validate_semantic_version,
@@ -109,6 +110,16 @@ def create_contract_version(
         source_hash_sha256=build_source_hash(snapshot),
         changelog=normalized_changelog,
         previous_version_id=previous_version.id if previous_version is not None else None,
+        diff_summary=build_contract_diff_summary(
+            previous_source_code=previous_version.source_code
+            if previous_version is not None
+            else None,
+            current_source_code=snapshot,
+            from_version=previous_version.semantic_version
+            if previous_version is not None
+            else None,
+            to_version=normalized_version,
+        ),
         published_at=_resolve_published_at(
             status=normalized_status,
             published_at=published_at,

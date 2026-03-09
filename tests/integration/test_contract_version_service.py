@@ -69,6 +69,19 @@ def test_create_contract_version_persists_changelog_hash_and_public_pointer() ->
             "6587210b629c8a195d74ea4d4d70de6f4fc47165e9a29538c32cecfef5396544"
         )
         assert stored_version.previous_version_id is None
+        assert stored_version.diff_summary == {
+            "from_version": None,
+            "to_version": "1.0.0",
+            "has_previous_version": False,
+            "has_changes": False,
+            "added_lines": 0,
+            "removed_lines": 0,
+            "line_delta": 2,
+            "from_line_count": 0,
+            "to_line_count": 2,
+            "hunk_count": 0,
+            "context_lines": 3,
+        }
         assert stored_version.published_at is not None
         assert stored_contract.latest_published_version_id == stored_version.id
 
@@ -98,6 +111,19 @@ def test_create_contract_version_links_to_latest_existing_version_and_keeps_draf
 
         assert draft_version.status is PublicationStatus.DRAFT
         assert draft_version.previous_version_id == published_version.id
+        assert draft_version.diff_summary == {
+            "from_version": "1.0.0",
+            "to_version": "1.1.0",
+            "has_previous_version": True,
+            "has_changes": True,
+            "added_lines": 1,
+            "removed_lines": 1,
+            "line_delta": 0,
+            "from_line_count": 2,
+            "to_line_count": 2,
+            "hunk_count": 1,
+            "context_lines": 3,
+        }
         assert draft_version.changelog is None
         assert stored_contract.latest_published_version_id == published_version.id
 
