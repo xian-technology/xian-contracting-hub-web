@@ -37,6 +37,7 @@ from contracting_hub.utils.meta import (
     BROWSE_ROUTE,
     LOGIN_ROUTE,
     build_contract_detail_path,
+    build_developer_profile_path,
 )
 
 _SETTINGS = get_settings()
@@ -186,6 +187,7 @@ class ContractDetailState(rx.State):
     author_secondary: str = ""
     author_initials: str = "CE"
     author_bio: str = ""
+    author_profile_href: str = ""
     author_links: list[AuthorLinkPayload] = []
     primary_category_label: str = "Uncategorized"
     category_labels: list[str] = []
@@ -329,6 +331,11 @@ class ContractDetailState(rx.State):
     def has_author_links(self) -> bool:
         """Return whether the author panel has outbound links."""
         return bool(self.author_links)
+
+    @rx.var
+    def has_author_profile_href(self) -> bool:
+        """Return whether the author panel can deep-link to a public profile."""
+        return bool(self.author_profile_href)
 
     @rx.var
     def has_tags(self) -> bool:
@@ -797,6 +804,11 @@ class ContractDetailState(rx.State):
         )
         self.author_initials = _author_initials(snapshot.author.display_name)
         self.author_bio = snapshot.author.bio or ""
+        self.author_profile_href = (
+            build_developer_profile_path(snapshot.author.username)
+            if snapshot.author.username
+            else ""
+        )
         self.author_links = _serialize_author_links(snapshot)
         self.primary_category_label = snapshot.primary_category_name or "Uncategorized"
         self.category_labels = list(snapshot.category_names)
@@ -860,6 +872,7 @@ class ContractDetailState(rx.State):
         self.author_secondary = ""
         self.author_initials = "CE"
         self.author_bio = ""
+        self.author_profile_href = ""
         self.author_links = []
         self.primary_category_label = "Uncategorized"
         self.category_labels = []

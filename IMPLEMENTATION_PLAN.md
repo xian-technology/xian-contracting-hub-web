@@ -51,7 +51,7 @@
 - [x] 5.3 — Build inline star and rating interactions on contract detail pages with optimistic feedback and error recovery.
 - [x] 5.4 — Build the deployment drawer or modal that selects a contract version and playground target, submits the deployment request, and shows result state.
 - [x] 5.5 — Build the authenticated deployment history view and user-level saved target shortcuts.
-- [ ] 5.6 — Build public developer profile pages that list authored contracts and developer KPI summaries.
+- [x] 5.6 — Build public developer profile pages that list authored contracts and developer KPI summaries.
 - [ ] 5.7 — Build the public developer leaderboard page with multiple KPI sorts and recent/all-time windows.
 - [ ] 5.8 — Add Playwright tests for register/login/logout, profile updates, star/rate flows, deployment attempts, deployment history, and leaderboard navigation.
 

@@ -223,6 +223,15 @@ def _author_panel() -> rx.Component:
                 ),
             ),
             rx.cond(
+                ContractDetailState.has_author_profile_href,
+                rx.link(
+                    "View developer profile",
+                    href=ContractDetailState.author_profile_href,
+                    color="var(--hub-color-accent-strong)",
+                    text_decoration="underline",
+                ),
+            ),
+            rx.cond(
                 ContractDetailState.has_author_links,
                 rx.flex(
                     rx.foreach(

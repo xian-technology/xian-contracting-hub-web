@@ -279,6 +279,19 @@ class ContractRepository:
             ordering="recently_deployed",
         )
 
+    def list_authored_contract_highlights(
+        self,
+        *,
+        author_user_id: int,
+        limit: int | None = None,
+    ) -> list[ContractHighlightRecord]:
+        """Return one developer's public authored contracts ordered by recent updates."""
+        return self._list_contract_highlights(
+            ordering="recently_updated",
+            author_user_id=author_user_id,
+            limit=limit,
+        )
+
     def traverse_relations(
         self,
         contract_slug: str,
@@ -377,6 +390,7 @@ class ContractRepository:
         self,
         *,
         ordering: str,
+        author_user_id: int | None = None,
         featured: bool | None = None,
         require_deployments: bool = False,
         limit: int | None = None,
@@ -411,6 +425,8 @@ class ContractRepository:
         )
         statement = _apply_public_contract_visibility(statement, Contract)
 
+        if author_user_id is not None:
+            statement = statement.where(Contract.author_user_id == author_user_id)
         if featured is not None:
             statement = statement.where(Contract.featured.is_(featured))
         if require_deployments:

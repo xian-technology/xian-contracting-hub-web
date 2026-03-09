@@ -35,6 +35,8 @@ def test_authenticated_users_can_manage_profile_settings_and_saved_targets(
     expect(profile_form).to_be_visible()
     expect(target_form).to_be_visible()
     expect(page).to_have_url(settings_url)
+    expect(profile_form.locator('input[name="username"]')).to_have_value("frank_builder")
+    expect(profile_form.locator('input[name="display_name"]')).to_have_value("Frank Builder")
 
     profile_form.locator('input[name="username"]').fill("eve_ops")
     profile_form.locator('input[name="display_name"]').fill("Eve Ops")
