@@ -5,7 +5,7 @@
 - [x] 1.2 — Create the base package structure for pages, components, states, models, services, repositories, integrations, theme, and shared utilities.
 - [x] 1.3 — Define global design tokens, typography, color system, spacing scale, and the primary responsive application shell used by all pages.
 - [x] 1.4 — Configure SQLite connectivity, model base classes, migration workflow, and local environment settings management.
-- [ ] 1.5 — Define the playground integration adapter contract and document the current Xian playground ID flow, expected payload shape, and error semantics.
+- [x] 1.5 — Define the playground integration adapter contract and document the current Xian playground ID flow, expected payload shape, and error semantics.
 - [ ] 1.6 — Add local file-storage plumbing for user avatars and other managed uploads with size/type validation hooks.
 - [ ] 1.7 — Set up pytest, pytest-cov, pytest-timeout, pytest-playwright, shared fixtures, test markers, and browser installation instructions.
 - [ ] 1.8 — Add smoke tests for app startup, configuration loading, database initialization, and rendering the shared layout shell.
