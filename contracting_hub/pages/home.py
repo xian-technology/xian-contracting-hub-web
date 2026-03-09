@@ -2,42 +2,34 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import (
+    ContractCardMetric,
+    app_shell,
+    contract_card,
+    contract_metadata_badge,
+    contract_rating_summary,
+    page_section,
+)
 from contracting_hub.services.homepage import (
     HomePageContractSummary,
     HomePageSnapshot,
     load_public_home_page_snapshot_safe,
 )
+from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
 from contracting_hub.utils.meta import APP_NAME, HOME_BADGE_TEXT, HOME_ROUTE, HOME_TAGLINE
 
 ROUTE = HOME_ROUTE
 
 
-def _format_calendar_date(value: datetime | None) -> str:
-    """Render one UTC-ish timestamp as a compact calendar label."""
-    if value is None:
-        return "Pending"
-    return value.strftime("%b %d, %Y").replace(" 0", " ")
-
-
-def _format_rating_summary(summary: HomePageContractSummary) -> str:
-    """Render one concise rating summary for a contract card."""
-    if summary.rating_count == 0 or summary.average_rating is None:
-        return "No ratings yet"
-    return f"{summary.average_rating:.1f} avg from {summary.rating_count}"
-
-
 def _resolve_contract_context(summary: HomePageContractSummary, section_key: str) -> str:
     """Return the section-specific context line rendered in each summary card."""
     if section_key == "recently_deployed":
-        return f"Last deployed {_format_calendar_date(summary.latest_deployment_at)}"
+        return f"Last deployed {format_contract_calendar_date(summary.latest_deployment_at)}"
     if section_key == "featured" and summary.published_at is not None:
-        return f"Published {_format_calendar_date(summary.published_at)}"
-    return f"Updated {_format_calendar_date(summary.updated_at)}"
+        return f"Published {format_contract_calendar_date(summary.published_at)}"
+    return f"Updated {format_contract_calendar_date(summary.updated_at)}"
 
 
 def _summary_metric(label: str, value: str) -> rx.Component:
@@ -71,117 +63,48 @@ def _contract_summary_card(
     """Render one home-page contract card."""
     tag_preview = summary.tag_names[:3]
     status_label = summary.status.value.replace("_", " ").title()
-
-    return rx.box(
-        rx.vstack(
-            rx.flex(
-                rx.flex(
-                    rx.badge(
-                        summary.primary_category_name or "Uncategorized",
-                        radius="full",
-                        variant="soft",
-                        color_scheme="bronze",
-                    ),
-                    rx.badge(
-                        status_label,
-                        radius="full",
-                        variant="soft",
-                        color_scheme="grass" if summary.status.value == "published" else "orange",
-                    ),
-                    *(
-                        [
-                            rx.badge(
-                                "Featured",
-                                radius="full",
-                                variant="soft",
-                                color_scheme="gold",
-                            )
-                        ]
-                        if summary.featured
-                        else []
-                    ),
-                    wrap="wrap",
-                    gap="var(--hub-space-2)",
-                ),
-                rx.text(
-                    _resolve_contract_context(summary, section_key),
-                    font_size="0.82rem",
-                    color="var(--hub-color-text-muted)",
-                ),
-                direction=rx.breakpoints(initial="column", md="row"),
-                align=rx.breakpoints(initial="start", md="center"),
-                justify="between",
-                gap="var(--hub-space-3)",
-                width="100%",
+    rating_display = build_contract_rating_display(
+        average_rating=summary.average_rating,
+        rating_count=summary.rating_count,
+    )
+    return contract_card(
+        badges=rx.flex(
+            contract_metadata_badge(
+                summary.primary_category_name or "Uncategorized",
+                tone="category",
             ),
-            rx.vstack(
-                rx.heading(
-                    summary.display_name,
-                    size="4",
-                    font_family="var(--hub-font-display)",
-                    letter_spacing="-0.04em",
-                    color="var(--hub-color-text)",
-                ),
-                rx.text(
-                    summary.contract_name,
-                    font_family="var(--hub-font-mono)",
-                    font_size="0.88rem",
-                    color="var(--hub-color-accent-strong)",
-                ),
-                rx.text(
-                    summary.short_summary,
-                    color="var(--hub-color-text-muted)",
-                ),
-                align="start",
-                spacing="2",
-                width="100%",
+            contract_metadata_badge(
+                status_label,
+                tone="success" if summary.status.value == "published" else "warning",
             ),
-            rx.grid(
-                _summary_metric(
-                    "Version",
-                    summary.semantic_version or "No published version",
-                ),
-                _summary_metric("Stars", str(summary.star_count)),
-                _summary_metric("Rating", _format_rating_summary(summary)),
-                _summary_metric("Deploys", str(summary.deployment_count)),
-                columns=rx.breakpoints(initial="1", sm="2"),
-                gap="var(--hub-space-3)",
-                width="100%",
-            ),
-            rx.flex(
-                rx.text(
-                    f"Author: {summary.author_name or 'Curated entry'}",
-                    font_size="0.88rem",
-                    color="var(--hub-color-text-muted)",
-                ),
-                rx.flex(
-                    *[
-                        rx.badge(
-                            tag,
-                            radius="full",
-                            variant="soft",
-                            color_scheme="gray",
-                        )
-                        for tag in tag_preview
-                    ],
-                    wrap="wrap",
-                    gap="var(--hub-space-2)",
-                ),
-                direction=rx.breakpoints(initial="column", md="row"),
-                align=rx.breakpoints(initial="start", md="center"),
-                justify="between",
-                gap="var(--hub-space-3)",
-                width="100%",
-            ),
-            align="start",
-            gap="var(--hub-space-4)",
-            width="100%",
+            *([contract_metadata_badge("Featured", tone="featured")] if summary.featured else []),
+            wrap="wrap",
+            gap="var(--hub-space-2)",
         ),
-        width="100%",
-        padding="var(--hub-space-5)",
-        border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 252, 246, 0.88)",
+        context_label=_resolve_contract_context(summary, section_key),
+        display_name=summary.display_name,
+        contract_name=summary.contract_name,
+        short_summary=summary.short_summary,
+        metrics=(
+            ContractCardMetric("Version", summary.semantic_version or "No published version"),
+            ContractCardMetric("Stars", str(summary.star_count)),
+            ContractCardMetric(
+                "Rating",
+                contract_rating_summary(
+                    headline=rating_display.headline,
+                    detail=rating_display.detail,
+                    empty=rating_display.empty,
+                ),
+            ),
+            ContractCardMetric("Deploys", str(summary.deployment_count)),
+        ),
+        author_name=summary.author_name or "Curated entry",
+        tags=rx.flex(
+            *[contract_metadata_badge(tag, tone="neutral") for tag in tag_preview],
+            wrap="wrap",
+            gap="var(--hub-space-2)",
+        ),
+        metric_columns=rx.breakpoints(initial="1", sm="2"),
     )
 
 

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import (
+    ContractCardMetric,
+    app_shell,
+    contract_card,
+    contract_metadata_badge,
+    contract_rating_summary,
+    page_section,
+)
 from contracting_hub.states import BrowseState
 from contracting_hub.utils.meta import BROWSE_ROUTE
 
@@ -229,104 +236,43 @@ def _active_filter_badge(filter_item) -> rx.Component:
 
 
 def _browse_result_card(card) -> rx.Component:
-    return rx.box(
-        rx.vstack(
-            rx.flex(
-                rx.flex(
-                    rx.badge(
-                        card["category_label"],
-                        radius="full",
-                        variant="soft",
-                        color_scheme="bronze",
-                    ),
-                    rx.cond(
-                        card["featured"],
-                        rx.badge(
-                            "Featured",
-                            radius="full",
-                            variant="soft",
-                            color_scheme="gold",
-                        ),
-                    ),
-                    wrap="wrap",
-                    gap="var(--hub-space-2)",
-                ),
-                rx.text(
-                    card["updated_label"],
-                    font_size="0.82rem",
-                    color="var(--hub-color-text-muted)",
-                ),
-                direction=rx.breakpoints(initial="column", md="row"),
-                align=rx.breakpoints(initial="start", md="center"),
-                justify="between",
-                gap="var(--hub-space-3)",
-                width="100%",
+    return contract_card(
+        badges=rx.flex(
+            contract_metadata_badge(card["category_label"], tone="category"),
+            rx.cond(
+                card["featured"],
+                contract_metadata_badge("Featured", tone="featured"),
             ),
-            rx.vstack(
-                rx.heading(
-                    card["display_name"],
-                    size="4",
-                    font_family="var(--hub-font-display)",
-                    letter_spacing="-0.04em",
-                    color="var(--hub-color-text)",
-                ),
-                rx.text(
-                    card["contract_name"],
-                    font_family="var(--hub-font-mono)",
-                    font_size="0.88rem",
-                    color="var(--hub-color-accent-strong)",
-                ),
-                rx.text(
-                    card["short_summary"],
-                    color="var(--hub-color-text-muted)",
-                ),
-                align="start",
-                spacing="2",
-                width="100%",
-            ),
-            rx.grid(
-                _summary_chip("Version", card["version_label"]),
-                _summary_chip("Stars", card["star_count"]),
-                _summary_chip("Rating", card["rating_label"]),
-                columns=rx.breakpoints(initial="1", sm="3"),
-                gap="var(--hub-space-3)",
-                width="100%",
-            ),
-            rx.flex(
-                rx.text(
-                    "Author: ",
-                    card["author_name"],
-                    font_size="0.88rem",
-                    color="var(--hub-color-text-muted)",
-                ),
-                rx.flex(
-                    rx.foreach(
-                        card["tag_preview"],
-                        lambda tag: rx.badge(
-                            tag,
-                            radius="full",
-                            variant="soft",
-                            color_scheme="gray",
-                        ),
-                    ),
-                    wrap="wrap",
-                    gap="var(--hub-space-2)",
-                ),
-                direction=rx.breakpoints(initial="column", md="row"),
-                align=rx.breakpoints(initial="start", md="center"),
-                justify="between",
-                gap="var(--hub-space-3)",
-                width="100%",
-            ),
-            align="start",
-            gap="var(--hub-space-4)",
-            width="100%",
+            wrap="wrap",
+            gap="var(--hub-space-2)",
         ),
-        width="100%",
-        padding="var(--hub-space-5)",
-        border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 252, 246, 0.88)",
+        context_label=card["updated_label"],
+        display_name=card["display_name"],
+        contract_name=card["contract_name"],
+        short_summary=card["short_summary"],
+        metrics=(
+            ContractCardMetric("Version", card["version_label"]),
+            ContractCardMetric("Stars", card["star_count"]),
+            ContractCardMetric(
+                "Rating",
+                contract_rating_summary(
+                    headline=card["rating_headline"],
+                    detail=card["rating_detail"],
+                    empty=card["rating_empty"],
+                ),
+            ),
+        ),
+        author_name=card["author_name"],
+        tags=rx.flex(
+            rx.foreach(
+                card["tag_preview"],
+                lambda tag: contract_metadata_badge(tag, tone="neutral"),
+            ),
+            wrap="wrap",
+            gap="var(--hub-space-2)",
+        ),
+        metric_columns=rx.breakpoints(initial="1", sm="3"),
+        custom_attrs={"data-testid": "browse-result-card"},
     )
 
 

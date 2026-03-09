@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, TypedDict
 
 import reflex as rx
@@ -14,6 +13,7 @@ from contracting_hub.services import (
     build_contract_browse_path,
     load_public_contract_browse_snapshot_safe,
 )
+from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
 from contracting_hub.utils.meta import BROWSE_ROUTE
 
 
@@ -31,7 +31,9 @@ class BrowseCardPayload(TypedDict):
     updated_label: str
     published_label: str
     star_count: str
-    rating_label: str
+    rating_headline: str
+    rating_detail: str
+    rating_empty: bool
     tag_preview: list[str]
 
 
@@ -191,6 +193,10 @@ class BrowseState(rx.State):
 
 
 def _serialize_summary(summary: ContractBrowseSummary) -> BrowseCardPayload:
+    rating_display = build_contract_rating_display(
+        average_rating=summary.average_rating,
+        rating_count=summary.rating_count,
+    )
     return {
         "slug": summary.slug,
         "display_name": summary.display_name,
@@ -200,10 +206,12 @@ def _serialize_summary(summary: ContractBrowseSummary) -> BrowseCardPayload:
         "version_label": summary.semantic_version or "No published version",
         "author_name": summary.author_name,
         "category_label": summary.primary_category_name,
-        "updated_label": _format_calendar_date(summary.updated_at),
-        "published_label": _format_calendar_date(summary.published_at),
+        "updated_label": format_contract_calendar_date(summary.updated_at),
+        "published_label": format_contract_calendar_date(summary.published_at),
         "star_count": str(summary.star_count),
-        "rating_label": _format_rating_summary(summary),
+        "rating_headline": rating_display.headline,
+        "rating_detail": rating_display.detail,
+        "rating_empty": rating_display.empty,
         "tag_preview": list(summary.tag_names[:4]),
     }
 
@@ -260,18 +268,6 @@ def _visible_page_numbers(current_page: int, total_pages: int) -> list[int]:
     end_page = min(total_pages, start_page + 4)
     start_page = max(1, end_page - 4)
     return list(range(start_page, end_page + 1))
-
-
-def _format_calendar_date(value: datetime | None) -> str:
-    if value is None:
-        return "Pending"
-    return value.strftime("%b %d, %Y").replace(" 0", " ")
-
-
-def _format_rating_summary(summary: ContractBrowseSummary) -> str:
-    if summary.rating_count == 0 or summary.average_rating is None:
-        return "No ratings yet"
-    return f"{summary.average_rating:.1f} avg from {summary.rating_count}"
 
 
 def _sort_label(sort_value: str) -> str:
