@@ -14,6 +14,7 @@ from contracting_hub.repositories.contracts import (
 )
 from contracting_hub.repositories.deployments import (
     PUBLIC_DEPLOYABLE_STATUSES,
+    DeploymentHistoryRecord,
     DeploymentRepository,
 )
 from contracting_hub.repositories.developer_kpis import (
@@ -36,6 +37,7 @@ __all__ = [
     "ContractVersionRepository",
     "DeveloperKPIRecord",
     "DeveloperKPIRepository",
+    "DeploymentHistoryRecord",
     "DeploymentRepository",
     "PlaygroundTargetRepository",
     "PUBLIC_HOME_PAGE_DEPLOYMENT_STATUSES",

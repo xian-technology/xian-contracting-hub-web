@@ -8,6 +8,7 @@ from contracting_hub.states import AuthState
 from contracting_hub.utils.meta import (
     APP_NAME,
     BROWSE_ROUTE,
+    DEPLOYMENT_HISTORY_ROUTE,
     HOME_ROUTE,
     LOGIN_ROUTE,
     PROFILE_SETTINGS_ROUTE,
@@ -167,6 +168,11 @@ def _authenticated_session_navigation(auth_state: type[AuthState]) -> rx.Compone
         rx.link(
             rx.button("Profile settings", size="2", variant="soft"),
             href=PROFILE_SETTINGS_ROUTE,
+            text_decoration="none",
+        ),
+        rx.link(
+            rx.button("Deployment history", size="2", variant="soft"),
+            href=DEPLOYMENT_HISTORY_ROUTE,
             text_decoration="none",
         ),
         rx.button(

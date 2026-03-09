@@ -8,6 +8,7 @@ BROWSE_ROUTE = "/browse"
 LOGIN_ROUTE = "/login"
 REGISTER_ROUTE = "/register"
 PROFILE_SETTINGS_ROUTE = "/settings/profile"
+DEPLOYMENT_HISTORY_ROUTE = "/settings/deployments"
 CONTRACT_DETAIL_ROUTE = "/contracts/[slug]"
 HOME_BADGE_TEXT = "Xian Ecosystem"
 HOME_TAGLINE = "Curated smart contracts, version history, and deployment workflows."
@@ -34,6 +35,7 @@ __all__ = [
     "APP_NAME",
     "BROWSE_ROUTE",
     "CONTRACT_DETAIL_ROUTE",
+    "DEPLOYMENT_HISTORY_ROUTE",
     "HOME_BADGE_TEXT",
     "HOME_ROUTE",
     "LOGIN_ROUTE",
