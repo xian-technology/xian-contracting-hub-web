@@ -53,7 +53,7 @@
 - [x] 5.5 — Build the authenticated deployment history view and user-level saved target shortcuts.
 - [x] 5.6 — Build public developer profile pages that list authored contracts and developer KPI summaries.
 - [x] 5.7 — Build the public developer leaderboard page with multiple KPI sorts and recent/all-time windows.
-- [ ] 5.8 — Add Playwright tests for register/login/logout, profile updates, star/rate flows, deployment attempts, deployment history, and leaderboard navigation.
+- [x] 5.8 — Add Playwright tests for register/login/logout, profile updates, star/rate flows, deployment attempts, deployment history, and leaderboard navigation.
 
 ## Phase 6: Admin Workspace and Content Operations
 - [ ] 6.1 — Build the admin contract index with filters, status tabs, and quick actions for create, edit, publish, archive, and delete.
