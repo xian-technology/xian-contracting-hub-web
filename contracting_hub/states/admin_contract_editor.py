@@ -22,7 +22,11 @@ from contracting_hub.services.admin_contract_editor import (
 )
 from contracting_hub.services.auth import AuthServiceError, logout_user, resolve_current_user
 from contracting_hub.states.auth import AUTH_SESSION_COOKIE_NAME
-from contracting_hub.utils.meta import HOME_ROUTE, build_admin_contract_edit_path
+from contracting_hub.utils.meta import (
+    HOME_ROUTE,
+    build_admin_contract_edit_path,
+    build_admin_contract_versions_path,
+)
 
 _SETTINGS = get_settings()
 
@@ -66,6 +70,7 @@ class AdminContractEditorState(rx.State):
     contract_status_label: str = "Draft"
     latest_public_version_label: str = "No public version yet"
     public_detail_href: str = ""
+    versions_href: str = ""
     contract_slug_value: str = ""
     contract_name_value: str = ""
     display_name_value: str = ""
@@ -164,6 +169,11 @@ class AdminContractEditorState(rx.State):
     def has_public_detail(self) -> bool:
         """Return whether the contract has a public detail route."""
         return bool(self.public_detail_href)
+
+    @rx.var
+    def has_version_manager(self) -> bool:
+        """Return whether the current editor should link to version management."""
+        return bool(self.versions_href)
 
     @rx.var
     def has_categories(self) -> bool:
@@ -394,6 +404,9 @@ class AdminContractEditorState(rx.State):
         self.contract_status_label = snapshot.status.value.title()
         self.latest_public_version_label = snapshot.latest_public_version or "No public version yet"
         self.public_detail_href = snapshot.public_detail_href or ""
+        self.versions_href = (
+            build_admin_contract_versions_path(snapshot.slug) if snapshot.contract_id else ""
+        )
         self.contract_slug_value = snapshot.slug
         self.contract_name_value = snapshot.contract_name
         self.display_name_value = snapshot.display_name

@@ -306,6 +306,11 @@ def _contract_row(row) -> rx.Component:
                         href=row["edit_href"],
                         text_decoration="none",
                     ),
+                    rx.link(
+                        rx.button("Versions", size="2", variant="soft"),
+                        href=row["versions_href"],
+                        text_decoration="none",
+                    ),
                     rx.cond(
                         row["has_public_detail"],
                         rx.link(

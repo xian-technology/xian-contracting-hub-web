@@ -79,6 +79,7 @@ def create_contract_version(
     status: PublicationStatus | str = PublicationStatus.DRAFT,
     published_at: datetime | None = None,
     previous_version_semantic_version: str | None = None,
+    auto_commit: bool = True,
 ) -> ContractVersion:
     """Create a new append-only contract version row for the target contract."""
     repository = ContractVersionRepository(session)
@@ -146,7 +147,10 @@ def create_contract_version(
         if normalized_status in PUBLIC_VERSION_STATUSES:
             contract.latest_published_version = version
         rebuild_contract_search_document(session, contract_id=contract.id)
-        session.commit()
+        if auto_commit:
+            session.commit()
+        else:
+            session.flush()
     except IntegrityError as error:
         session.rollback()
         if _looks_like_duplicate_version_violation(error):
@@ -161,7 +165,8 @@ def create_contract_version(
             ) from error
         raise
 
-    session.refresh(version)
+    if auto_commit:
+        session.refresh(version)
     return version
 
 

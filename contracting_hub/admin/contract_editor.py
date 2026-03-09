@@ -179,6 +179,14 @@ def _overview_card() -> rx.Component:
                         text_decoration="none",
                     ),
                     rx.cond(
+                        AdminContractEditorState.has_version_manager,
+                        rx.link(
+                            rx.button("Manage versions", size="3", variant="soft"),
+                            href=AdminContractEditorState.versions_href,
+                            text_decoration="none",
+                        ),
+                    ),
+                    rx.cond(
                         AdminContractEditorState.has_public_detail,
                         rx.link(
                             rx.button("View public detail", size="3"),

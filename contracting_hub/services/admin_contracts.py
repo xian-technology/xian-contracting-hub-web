@@ -22,6 +22,7 @@ from contracting_hub.services.contract_versions import PUBLIC_VERSION_STATUSES
 from contracting_hub.utils.meta import (
     ADMIN_CONTRACTS_ROUTE,
     build_admin_contract_edit_path,
+    build_admin_contract_versions_path,
     build_contract_detail_path,
 )
 
@@ -90,6 +91,7 @@ class AdminContractIndexEntry:
     updated_at_label: str
     public_detail_href: str | None
     edit_href: str
+    versions_href: str
     can_publish: bool
     can_archive: bool
     can_delete: bool
@@ -514,6 +516,7 @@ def _build_index_entry(contract: Contract) -> AdminContractIndexEntry:
             else None
         ),
         edit_href=build_admin_contract_edit_path(contract.slug),
+        versions_href=build_admin_contract_versions_path(contract.slug),
         can_publish=can_publish,
         can_archive=can_archive,
         can_delete=can_delete,

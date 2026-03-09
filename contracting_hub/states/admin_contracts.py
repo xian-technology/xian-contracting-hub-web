@@ -49,6 +49,7 @@ class AdminContractRowPayload(TypedDict):
     public_detail_href: str
     has_public_detail: bool
     edit_href: str
+    versions_href: str
     can_publish: bool
     can_archive: bool
     can_delete: bool
@@ -304,6 +305,7 @@ def _serialize_contract_row(entry: AdminContractIndexEntry) -> AdminContractRowP
         "public_detail_href": entry.public_detail_href or "",
         "has_public_detail": entry.public_detail_href is not None,
         "edit_href": entry.edit_href,
+        "versions_href": entry.versions_href,
         "can_publish": entry.can_publish,
         "can_archive": entry.can_archive,
         "can_delete": entry.can_delete,

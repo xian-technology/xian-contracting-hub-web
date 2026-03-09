@@ -69,6 +69,7 @@ def _build_snapshot() -> AdminContractIndexSnapshot:
                 updated_at_label="2026-03-09",
                 public_detail_href=None,
                 edit_href="/admin/contracts/draft-escrow/edit",
+                versions_href="/admin/contracts/draft-escrow/versions",
                 can_publish=False,
                 can_archive=True,
                 can_delete=True,
@@ -119,6 +120,7 @@ def test_admin_contracts_state_load_page_applies_snapshot_and_auth_shell(monkeyp
     assert state.selected_featured_filter == "featured"
     assert state.result_count_label == "1 contract"
     assert state.contract_rows[0]["slug"] == "draft-escrow"
+    assert state.contract_rows[0]["versions_href"] == "/admin/contracts/draft-escrow/versions"
     assert (
         state.status_tabs[0]["href"]
         == "/admin/contracts?query=escrow&status=draft&featured=featured"
