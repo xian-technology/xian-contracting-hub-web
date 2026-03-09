@@ -13,6 +13,7 @@ from contracting_hub.models import (
     ContractCategoryLink,
     ContractNetwork,
     ContractVersion,
+    LintStatus,
     Profile,
     PublicationStatus,
     Rating,
@@ -86,6 +87,25 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
             source_code="def seed():\n    return 'escrow'\n",
             source_hash_sha256="a" * 64,
             changelog="Add settlement timeouts.",
+            lint_status=LintStatus.WARN,
+            lint_summary={
+                "status": "warn",
+                "issue_count": 2,
+                "error_count": 0,
+                "warning_count": 1,
+                "info_count": 1,
+            },
+            lint_results=[
+                {
+                    "message": "Prefer explicit timeout docs for claim paths.",
+                    "severity": "warning",
+                    "position": {"line": 12, "column": 4},
+                },
+                {
+                    "message": "Generated metadata was normalized for display.",
+                    "severity": "info",
+                },
+            ],
             published_at=_timestamp(5),
             created_at=_timestamp(5),
             updated_at=_timestamp(5),
@@ -175,6 +195,16 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
     assert snapshot.selected_version_source_code == "def seed():\n    return 'escrow'\n"
     assert snapshot.selected_version_changelog == "Add settlement timeouts."
     assert snapshot.selected_version_is_latest_public is True
+    assert snapshot.selected_version_lint.status is LintStatus.WARN
+    assert snapshot.selected_version_lint.issue_count == 2
+    assert snapshot.selected_version_lint.warning_count == 1
+    assert snapshot.selected_version_lint.info_count == 1
+    assert snapshot.selected_version_lint.findings[0].message == (
+        "Prefer explicit timeout docs for claim paths."
+    )
+    assert snapshot.selected_version_lint.findings[0].line == 12
+    assert snapshot.selected_version_lint.findings[0].column == 4
+    assert snapshot.selected_version_lint.findings[1].severity == "info"
     assert snapshot.selected_version_diff.from_version == "1.1.0"
     assert snapshot.selected_version_diff.to_version == "1.2.0"
     assert snapshot.selected_version_diff.has_previous_version is True
@@ -214,6 +244,15 @@ def test_load_public_contract_detail_snapshot_selects_requested_visible_version(
             source_code="def seed():\n    return 'escrow'\n",
             source_hash_sha256="d" * 64,
             changelog="Current public release.",
+            lint_status=LintStatus.PASS,
+            lint_summary={
+                "status": "pass",
+                "issue_count": 0,
+                "error_count": 0,
+                "warning_count": 0,
+                "info_count": 0,
+            },
+            lint_results=[],
             published_at=_timestamp(5),
             created_at=_timestamp(5),
             updated_at=_timestamp(5),
@@ -225,6 +264,21 @@ def test_load_public_contract_detail_snapshot_selects_requested_visible_version(
             source_code="def seed():\n    return 'legacy escrow'\n",
             source_hash_sha256="e" * 64,
             changelog="Legacy release.",
+            lint_status=LintStatus.FAIL,
+            lint_summary={
+                "status": "fail",
+                "issue_count": 1,
+                "error_count": 1,
+                "warning_count": 0,
+                "info_count": 0,
+            },
+            lint_results=[
+                {
+                    "message": "Missing required decorator for historical release.",
+                    "severity": "error",
+                    "position": {"line": 1, "column": 1},
+                }
+            ],
             published_at=_timestamp(4),
             created_at=_timestamp(4),
             updated_at=_timestamp(4),
@@ -258,6 +312,11 @@ def test_load_public_contract_detail_snapshot_selects_requested_visible_version(
     assert snapshot.selected_version_source_code == "def seed():\n    return 'legacy escrow'\n"
     assert snapshot.selected_version_changelog == "Legacy release."
     assert snapshot.selected_version_is_latest_public is False
+    assert snapshot.selected_version_lint.status is LintStatus.FAIL
+    assert snapshot.selected_version_lint.error_count == 1
+    assert snapshot.selected_version_lint.findings[0].message == (
+        "Missing required decorator for historical release."
+    )
     assert [version.semantic_version for version in snapshot.available_versions] == [
         "1.2.0",
         "1.1.0",

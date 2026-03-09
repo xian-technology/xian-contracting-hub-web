@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import reflex as rx
 
-from contracting_hub.models import PublicationStatus
+from contracting_hub.models import LintStatus, PublicationStatus
 from contracting_hub.services import (
     ContractDetailSnapshot,
     load_public_contract_detail_snapshot_safe,
@@ -36,6 +36,15 @@ class VersionHistoryPayload(TypedDict):
     is_latest_public: bool
 
 
+class LintFindingPayload(TypedDict):
+    """Serialized selected-version lint issue stored in state."""
+
+    severity_label: str
+    severity_color_scheme: str
+    message: str
+    location_label: str
+
+
 class ContractDetailState(rx.State):
     """Route-driven state for the public contract detail header."""
 
@@ -54,6 +63,14 @@ class ContractDetailState(rx.State):
     selected_version_source_code: str = ""
     selected_version_changelog: str = ""
     selected_version_is_latest_public: bool = False
+    selected_version_has_lint_report: bool = False
+    selected_version_lint_status_label: str = "Unavailable"
+    selected_version_lint_status_color_scheme: str = "gray"
+    selected_version_lint_issue_count: int = 0
+    selected_version_lint_error_count: int = 0
+    selected_version_lint_warning_count: int = 0
+    selected_version_lint_info_count: int = 0
+    selected_version_lint_findings: list[LintFindingPayload] = []
     selected_version_diff_previous_version: str = ""
     selected_version_diff_unified_text: str = ""
     selected_version_diff_has_previous_version: bool = False
@@ -152,12 +169,46 @@ class ContractDetailState(rx.State):
         return bool(self.selected_version_changelog)
 
     @rx.var
+    def has_selected_version_lint_findings(self) -> bool:
+        """Return whether the selected public version exposes lint findings."""
+        return bool(self.selected_version_lint_findings)
+
+    @rx.var
     def has_selected_version_diff_content(self) -> bool:
         """Return whether the selected version exposes diff content to render."""
         return (
             self.selected_version_diff_has_previous_version
             and self.selected_version_diff_has_changes
             and bool(self.selected_version_diff_unified_text.strip())
+        )
+
+    @rx.var
+    def selected_version_lint_issue_count_label(self) -> str:
+        """Return one human-readable issue-count label."""
+        return _format_lint_issue_count_label(self.selected_version_lint_issue_count)
+
+    @rx.var
+    def selected_version_lint_error_count_label(self) -> str:
+        """Return one human-readable error-count label."""
+        return _format_lint_error_count_label(self.selected_version_lint_error_count)
+
+    @rx.var
+    def selected_version_lint_warning_count_label(self) -> str:
+        """Return one human-readable warning-count label."""
+        return _format_lint_warning_count_label(self.selected_version_lint_warning_count)
+
+    @rx.var
+    def selected_version_lint_info_count_label(self) -> str:
+        """Return one human-readable info-count label."""
+        return _format_lint_info_count_label(self.selected_version_lint_info_count)
+
+    @rx.var
+    def selected_version_lint_summary_copy(self) -> str:
+        """Return the detail copy shown in the lint panel header."""
+        return _build_lint_summary_copy(
+            has_report=self.selected_version_has_lint_report,
+            issue_count=self.selected_version_lint_issue_count,
+            status_label=self.selected_version_lint_status_label,
         )
 
     @rx.var
@@ -234,6 +285,18 @@ class ContractDetailState(rx.State):
         self.selected_version_source_code = snapshot.selected_version_source_code
         self.selected_version_changelog = snapshot.selected_version_changelog or ""
         self.selected_version_is_latest_public = snapshot.selected_version_is_latest_public
+        self.selected_version_has_lint_report = snapshot.selected_version_lint.has_report
+        self.selected_version_lint_status_label = _lint_status_label(
+            snapshot.selected_version_lint.status
+        )
+        self.selected_version_lint_status_color_scheme = _lint_status_color_scheme(
+            snapshot.selected_version_lint.status
+        )
+        self.selected_version_lint_issue_count = snapshot.selected_version_lint.issue_count
+        self.selected_version_lint_error_count = snapshot.selected_version_lint.error_count
+        self.selected_version_lint_warning_count = snapshot.selected_version_lint.warning_count
+        self.selected_version_lint_info_count = snapshot.selected_version_lint.info_count
+        self.selected_version_lint_findings = _serialize_lint_findings(snapshot)
         self.selected_version_diff_previous_version = (
             snapshot.selected_version_diff.from_version or ""
         )
@@ -296,6 +359,14 @@ class ContractDetailState(rx.State):
         self.selected_version_source_code = ""
         self.selected_version_changelog = ""
         self.selected_version_is_latest_public = False
+        self.selected_version_has_lint_report = False
+        self.selected_version_lint_status_label = "Unavailable"
+        self.selected_version_lint_status_color_scheme = "gray"
+        self.selected_version_lint_issue_count = 0
+        self.selected_version_lint_error_count = 0
+        self.selected_version_lint_warning_count = 0
+        self.selected_version_lint_info_count = 0
+        self.selected_version_lint_findings = []
         self.selected_version_diff_previous_version = ""
         self.selected_version_diff_unified_text = ""
         self.selected_version_diff_has_previous_version = False
@@ -361,6 +432,18 @@ def _serialize_available_versions(snapshot: ContractDetailSnapshot) -> list[Vers
     ]
 
 
+def _serialize_lint_findings(snapshot: ContractDetailSnapshot) -> list[LintFindingPayload]:
+    return [
+        {
+            "severity_label": _format_lint_finding_severity(finding.severity),
+            "severity_color_scheme": _lint_finding_color_scheme(finding.severity),
+            "message": finding.message,
+            "location_label": _format_lint_finding_location(finding.line, finding.column),
+        }
+        for finding in snapshot.selected_version_lint.findings
+    ]
+
+
 def _status_label(status: PublicationStatus | None) -> str:
     if status is None:
         return "Pending"
@@ -400,6 +483,69 @@ def _format_version_count_label(version_count: int) -> str:
     if version_count == 1:
         return "1 public version"
     return f"{version_count} public versions"
+
+
+def _lint_status_label(status: LintStatus | None) -> str:
+    if status is LintStatus.PASS:
+        return "Pass"
+    if status is LintStatus.WARN:
+        return "Warn"
+    if status is LintStatus.FAIL:
+        return "Fail"
+    return "Unavailable"
+
+
+def _lint_status_color_scheme(status: LintStatus | None) -> str:
+    if status is LintStatus.PASS:
+        return "grass"
+    if status is LintStatus.WARN:
+        return "orange"
+    if status is LintStatus.FAIL:
+        return "tomato"
+    return "gray"
+
+
+def _format_lint_issue_count_label(issue_count: int) -> str:
+    if issue_count == 1:
+        return "1 issue"
+    return f"{issue_count} issues"
+
+
+def _format_lint_error_count_label(error_count: int) -> str:
+    if error_count == 1:
+        return "1 error"
+    return f"{error_count} errors"
+
+
+def _format_lint_warning_count_label(warning_count: int) -> str:
+    if warning_count == 1:
+        return "1 warning"
+    return f"{warning_count} warnings"
+
+
+def _format_lint_info_count_label(info_count: int) -> str:
+    if info_count == 1:
+        return "1 info note"
+    return f"{info_count} info notes"
+
+
+def _build_lint_summary_copy(
+    *,
+    has_report: bool,
+    issue_count: int,
+    status_label: str,
+) -> str:
+    if not has_report:
+        return "Lint metadata is unavailable for this public release."
+    if status_label == "Unavailable":
+        return "Stored lint findings are available, but the summary status is unavailable."
+    if issue_count == 0:
+        return "No lint issues were reported for this public release."
+    if status_label == "Fail":
+        return "Blocking lint issues were detected and should be reviewed before reuse."
+    if status_label == "Warn":
+        return "Non-blocking lint warnings were detected for this public release."
+    return "Review the lint findings captured for this public release."
 
 
 def _format_added_lines_label(line_count: int) -> str:
@@ -458,6 +604,30 @@ def _build_source_download_url(source_code: str) -> str:
     if not source_code:
         return ""
     return f"data:text/x-python;charset=utf-8,{quote(source_code, safe='')}"
+
+
+def _format_lint_finding_severity(severity: str) -> str:
+    normalized = severity.lower().strip()
+    if normalized in {"error", "fatal"}:
+        return "Error"
+    if normalized in {"warn", "warning"}:
+        return "Warning"
+    return "Info"
+
+
+def _lint_finding_color_scheme(severity: str) -> str:
+    normalized = severity.lower().strip()
+    if normalized in {"error", "fatal"}:
+        return "tomato"
+    if normalized in {"warn", "warning"}:
+        return "orange"
+    return "gray"
+
+
+def _format_lint_finding_location(line: int | None, column: int | None) -> str:
+    if line is None or column is None or line <= 0 or column <= 0:
+        return "General finding"
+    return f"Line {line}, Column {column}"
 
 
 __all__ = ["ContractDetailState"]

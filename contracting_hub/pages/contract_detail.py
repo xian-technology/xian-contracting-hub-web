@@ -8,6 +8,7 @@ from contracting_hub.components import (
     ContractCardMetric,
     app_shell,
     contract_detail_header,
+    contract_lint_results_panel,
     contract_metadata_badge,
     contract_rating_summary,
     contract_source_viewer,
@@ -311,6 +312,23 @@ def _diff_viewer() -> rx.Component:
     )
 
 
+def _lint_results_panel() -> rx.Component:
+    return contract_lint_results_panel(
+        selected_version=ContractDetailState.version_label,
+        has_lint_report=ContractDetailState.selected_version_has_lint_report,
+        lint_status_label=ContractDetailState.selected_version_lint_status_label,
+        lint_status_color_scheme=ContractDetailState.selected_version_lint_status_color_scheme,
+        lint_summary_copy=ContractDetailState.selected_version_lint_summary_copy,
+        issue_count_label=ContractDetailState.selected_version_lint_issue_count_label,
+        error_count_label=ContractDetailState.selected_version_lint_error_count_label,
+        warning_count_label=ContractDetailState.selected_version_lint_warning_count_label,
+        info_count_label=ContractDetailState.selected_version_lint_info_count_label,
+        findings=ContractDetailState.selected_version_lint_findings,
+        has_findings=ContractDetailState.has_selected_version_lint_findings,
+        custom_attrs={"data-testid": "contract-lint-results-panel"},
+    )
+
+
 def _version_history() -> rx.Component:
     return contract_version_history(
         versions=ContractDetailState.available_versions,
@@ -383,6 +401,7 @@ def index() -> rx.Component:
                 rx.vstack(
                     _detail_header(),
                     _version_history(),
+                    _lint_results_panel(),
                     _diff_viewer(),
                     _source_viewer(),
                     align="start",

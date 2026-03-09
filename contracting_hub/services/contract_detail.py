@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlmodel import Session
 
 from contracting_hub.database import session_scope
-from contracting_hub.models import ContractNetwork, ContractVersion, PublicationStatus
+from contracting_hub.models import ContractNetwork, ContractVersion, LintStatus, PublicationStatus
 from contracting_hub.repositories import ContractRepository, RatingRepository, StarRepository
 from contracting_hub.services.contract_diffs import build_contract_version_diff
 from contracting_hub.services.contract_metadata import validate_semantic_version
@@ -57,6 +57,33 @@ class ContractDetailVersionDiffSummary:
 
 
 @dataclass(frozen=True)
+class ContractDetailLintFinding:
+    """Public lint finding metadata rendered for the selected contract version."""
+
+    message: str
+    severity: str
+    line: int | None
+    column: int | None
+
+
+@dataclass(frozen=True)
+class ContractDetailLintSummary:
+    """Public lint summary rendered for the selected contract version."""
+
+    status: LintStatus | None
+    issue_count: int
+    error_count: int
+    warning_count: int
+    info_count: int
+    findings: tuple[ContractDetailLintFinding, ...]
+
+    @property
+    def has_report(self) -> bool:
+        """Return whether the selected version carries lint metadata."""
+        return self.status is not None or self.issue_count > 0 or bool(self.findings)
+
+
+@dataclass(frozen=True)
 class ContractDetailSnapshot:
     """Header-ready public contract detail data."""
 
@@ -82,6 +109,7 @@ class ContractDetailSnapshot:
     selected_version_changelog: str | None
     selected_version_published_at: datetime | None
     selected_version_is_latest_public: bool
+    selected_version_lint: ContractDetailLintSummary
     selected_version_diff: ContractDetailVersionDiffSummary
     available_versions: tuple[ContractDetailVersionSummary, ...]
     updated_at: datetime | None
@@ -130,6 +158,7 @@ def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> Contract
         selected_version_changelog=None,
         selected_version_published_at=None,
         selected_version_is_latest_public=False,
+        selected_version_lint=build_empty_contract_detail_lint_summary(),
         selected_version_diff=build_empty_contract_detail_version_diff_summary(),
         available_versions=(),
         updated_at=None,
@@ -222,6 +251,7 @@ def load_public_contract_detail_snapshot(
             version=selected_version,
             latest_public_version=latest_public_version,
         ),
+        selected_version_lint=_build_contract_detail_lint_summary(selected_version),
         selected_version_diff=selected_version_diff,
         available_versions=tuple(
             _build_contract_detail_version_summary(
@@ -314,6 +344,18 @@ def build_empty_contract_detail_version_diff_summary(
     )
 
 
+def build_empty_contract_detail_lint_summary() -> ContractDetailLintSummary:
+    """Return a stable empty lint payload for versions without lint metadata."""
+    return ContractDetailLintSummary(
+        status=None,
+        issue_count=0,
+        error_count=0,
+        warning_count=0,
+        info_count=0,
+        findings=(),
+    )
+
+
 def _resolve_selected_version(
     *,
     versions: tuple[ContractVersion, ...],
@@ -368,6 +410,27 @@ def _build_selected_version_diff(
         hunk_count=int(summary.get("hunk_count", 0)),
         context_lines=int(summary.get("context_lines", 3)),
         unified_diff=generated_diff.unified_diff,
+    )
+
+
+def _build_contract_detail_lint_summary(
+    version: ContractVersion | None,
+) -> ContractDetailLintSummary:
+    if version is None:
+        return build_empty_contract_detail_lint_summary()
+
+    findings = _normalize_lint_findings(version.lint_results)
+    error_count, warning_count, info_count = _count_lint_findings(findings)
+    summary = version.lint_summary or {}
+
+    issue_count = _coerce_lint_count(summary.get("issue_count"), fallback=len(findings))
+    return ContractDetailLintSummary(
+        status=_normalize_lint_status(version.lint_status or summary.get("status")),
+        issue_count=issue_count,
+        error_count=_coerce_lint_count(summary.get("error_count"), fallback=error_count),
+        warning_count=_coerce_lint_count(summary.get("warning_count"), fallback=warning_count),
+        info_count=_coerce_lint_count(summary.get("info_count"), fallback=info_count),
+        findings=findings,
     )
 
 
@@ -434,12 +497,86 @@ def _coerce_utc_datetime(value: datetime | None) -> datetime | None:
     return value.astimezone(timezone.utc)
 
 
+def _normalize_lint_findings(
+    raw_findings: list[dict[str, object]] | None,
+) -> tuple[ContractDetailLintFinding, ...]:
+    if not raw_findings:
+        return ()
+
+    findings: list[ContractDetailLintFinding] = []
+    for raw_finding in raw_findings:
+        if not isinstance(raw_finding, dict):
+            continue
+        position = raw_finding.get("position")
+        line: int | None = None
+        column: int | None = None
+        if isinstance(position, dict):
+            line = _coerce_optional_lint_count(position.get("line"))
+            column = _coerce_optional_lint_count(position.get("column"))
+        findings.append(
+            ContractDetailLintFinding(
+                message=str(raw_finding.get("message") or ""),
+                severity=str(raw_finding.get("severity") or "info").lower().strip(),
+                line=line,
+                column=column,
+            )
+        )
+    return tuple(findings)
+
+
+def _count_lint_findings(
+    findings: tuple[ContractDetailLintFinding, ...],
+) -> tuple[int, int, int]:
+    error_count = 0
+    warning_count = 0
+    info_count = 0
+
+    for finding in findings:
+        if finding.severity in {"error", "fatal"}:
+            error_count += 1
+        elif finding.severity in {"warn", "warning"}:
+            warning_count += 1
+        else:
+            info_count += 1
+
+    return error_count, warning_count, info_count
+
+
+def _normalize_lint_status(value: object) -> LintStatus | None:
+    if isinstance(value, LintStatus):
+        return value
+    if isinstance(value, str):
+        normalized = value.lower().strip()
+        try:
+            return LintStatus(normalized)
+        except ValueError:
+            return None
+    return None
+
+
+def _coerce_lint_count(value: object, *, fallback: int) -> int:
+    coerced = _coerce_optional_lint_count(value)
+    if coerced is None:
+        return fallback
+    return coerced
+
+
+def _coerce_optional_lint_count(value: object) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 __all__ = [
     "ContractDetailAuthorSummary",
+    "ContractDetailLintFinding",
+    "ContractDetailLintSummary",
     "ContractDetailSnapshot",
     "ContractDetailVersionDiffSummary",
     "ContractDetailVersionSummary",
     "build_empty_contract_detail_snapshot",
+    "build_empty_contract_detail_lint_summary",
     "build_empty_contract_detail_version_diff_summary",
     "load_public_contract_detail_snapshot",
     "load_public_contract_detail_snapshot_safe",
