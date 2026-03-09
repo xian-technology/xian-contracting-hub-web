@@ -12,6 +12,12 @@ def _ensure_project_root_on_path() -> None:
         sys.path.insert(0, str(project_root))
 
 
+def _load_data_layer() -> None:
+    """Import model modules so Reflex can discover metadata for migrations."""
+    _ensure_project_root_on_path()
+    importlib.import_module("contracting_hub.models")
+
+
 def _load_home_page() -> tuple[str, object, str]:
     """Load the home page module when the app file is executed by path."""
     _ensure_project_root_on_path()
@@ -27,6 +33,7 @@ def _load_theme_config() -> tuple[object, object, object]:
     return theme_module.APP_STYLE, theme_module.APP_STYLESHEETS, theme_module.APP_THEME
 
 
+_load_data_layer()
 APP_STYLE, APP_STYLESHEETS, APP_THEME = _load_theme_config()
 HOME_ROUTE, index, APP_NAME = _load_home_page()
 

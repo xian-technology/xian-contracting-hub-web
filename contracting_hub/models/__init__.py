@@ -1,3 +1,5 @@
-"""Database models and related domain types."""
+"""Database models and shared table bases."""
 
-__all__: list[str] = []
+from contracting_hub.models.base import AppModel, TimestampedModel, utc_now
+
+__all__ = ["AppModel", "TimestampedModel", "utc_now"]
