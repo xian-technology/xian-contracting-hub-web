@@ -9,7 +9,15 @@ import sqlalchemy as sa
 from sqlmodel import Session
 
 from contracting_hub.database import session_scope
-from contracting_hub.models import ContractNetwork, ContractVersion, LintStatus, PublicationStatus
+from contracting_hub.models import (
+    Contract,
+    ContractNetwork,
+    ContractRelation,
+    ContractRelationType,
+    ContractVersion,
+    LintStatus,
+    PublicationStatus,
+)
 from contracting_hub.repositories import ContractRepository, RatingRepository, StarRepository
 from contracting_hub.services.contract_diffs import build_contract_version_diff
 from contracting_hub.services.contract_metadata import validate_semantic_version
@@ -36,6 +44,21 @@ class ContractDetailVersionSummary:
     published_at: datetime | None
     changelog: str | None
     is_latest_public: bool
+
+
+@dataclass(frozen=True)
+class ContractDetailRelatedContractSummary:
+    """Public summary of one visible related contract link."""
+
+    slug: str
+    display_name: str
+    contract_name: str
+    short_summary: str
+    relation_type: ContractRelationType
+    relation_label: str
+    author_name: str
+    primary_category_name: str | None
+    latest_version_label: str
 
 
 @dataclass(frozen=True)
@@ -112,6 +135,8 @@ class ContractDetailSnapshot:
     selected_version_lint: ContractDetailLintSummary
     selected_version_diff: ContractDetailVersionDiffSummary
     available_versions: tuple[ContractDetailVersionSummary, ...]
+    outgoing_related_contracts: tuple[ContractDetailRelatedContractSummary, ...]
+    incoming_related_contracts: tuple[ContractDetailRelatedContractSummary, ...]
     updated_at: datetime | None
     star_count: int
     rating_count: int
@@ -161,6 +186,8 @@ def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> Contract
         selected_version_lint=build_empty_contract_detail_lint_summary(),
         selected_version_diff=build_empty_contract_detail_version_diff_summary(),
         available_versions=(),
+        outgoing_related_contracts=(),
+        incoming_related_contracts=(),
         updated_at=None,
         star_count=0,
         rating_count=0,
@@ -192,22 +219,9 @@ def load_public_contract_detail_snapshot(
     star_count = StarRepository(session).count_contract_stars(contract_id)
     rating_count, average_rating = RatingRepository(session).get_contract_rating_stats(contract_id)
 
-    ordered_categories = tuple(
-        sorted(
-            contract.category_links,
-            key=lambda link: (
-                link.sort_order,
-                link.category.sort_order,
-                link.category.name.lower(),
-                link.category.slug,
-            ),
-        )
-    )
+    ordered_categories = _sorted_contract_category_links(contract)
     category_names = tuple(link.category.name for link in ordered_categories)
-    primary_category_name = next(
-        (link.category.name for link in ordered_categories if link.is_primary),
-        category_names[0] if category_names else None,
-    )
+    primary_category_name = _build_primary_category_name(contract)
     latest_public_version = contract.latest_published_version or (
         detail.versions[0] if detail.versions else None
     )
@@ -260,6 +274,14 @@ def load_public_contract_detail_snapshot(
             )
             for version in detail.versions
         ),
+        outgoing_related_contracts=_build_related_contract_summaries(
+            detail.relations.outgoing,
+            direction="outgoing",
+        ),
+        incoming_related_contracts=_build_related_contract_summaries(
+            detail.relations.incoming,
+            direction="incoming",
+        ),
         updated_at=_coerce_utc_datetime(contract.updated_at),
         star_count=star_count,
         rating_count=rating_count,
@@ -309,6 +331,78 @@ def _build_contract_detail_author(contract) -> ContractDetailAuthorSummary:
         website_url=website_url,
         github_url=github_url,
         xian_profile_url=xian_profile_url,
+    )
+
+
+def _sorted_contract_category_links(contract: Contract):
+    return tuple(
+        sorted(
+            contract.category_links,
+            key=lambda link: (
+                link.sort_order,
+                link.category.sort_order,
+                link.category.name.lower(),
+                link.category.slug,
+            ),
+        )
+    )
+
+
+def _build_primary_category_name(contract: Contract) -> str | None:
+    ordered_categories = _sorted_contract_category_links(contract)
+    category_names = tuple(link.category.name for link in ordered_categories)
+    return next(
+        (link.category.name for link in ordered_categories if link.is_primary),
+        category_names[0] if category_names else None,
+    )
+
+
+def _build_related_contract_summaries(
+    relations: tuple[ContractRelation, ...],
+    *,
+    direction: str,
+) -> tuple[ContractDetailRelatedContractSummary, ...]:
+    if direction == "outgoing":
+        return tuple(
+            _build_related_contract_summary(
+                related_contract=relation.target_contract,
+                relation_type=relation.relation_type,
+            )
+            for relation in relations
+        )
+    if direction == "incoming":
+        return tuple(
+            _build_related_contract_summary(
+                related_contract=relation.source_contract,
+                relation_type=relation.relation_type,
+            )
+            for relation in relations
+        )
+    raise ValueError(f"Unsupported relation direction: {direction}")
+
+
+def _build_related_contract_summary(
+    *,
+    related_contract: Contract,
+    relation_type: ContractRelationType,
+) -> ContractDetailRelatedContractSummary:
+    author = _build_contract_detail_author(related_contract)
+    latest_version = related_contract.latest_published_version
+
+    return ContractDetailRelatedContractSummary(
+        slug=related_contract.slug,
+        display_name=related_contract.display_name,
+        contract_name=related_contract.contract_name,
+        short_summary=related_contract.short_summary,
+        relation_type=relation_type,
+        relation_label=_format_relation_type_label(relation_type),
+        author_name=author.display_name,
+        primary_category_name=_build_primary_category_name(related_contract),
+        latest_version_label=(
+            f"Latest {latest_version.semantic_version}"
+            if latest_version is not None
+            else "No public version"
+        ),
     )
 
 
@@ -568,10 +662,22 @@ def _coerce_optional_lint_count(value: object) -> int | None:
         return None
 
 
+def _format_relation_type_label(relation_type: ContractRelationType) -> str:
+    labels = {
+        ContractRelationType.DEPENDS_ON: "Depends on",
+        ContractRelationType.COMPANION: "Companion",
+        ContractRelationType.EXAMPLE_FOR: "Example for",
+        ContractRelationType.EXTENDS: "Extends",
+        ContractRelationType.SUPERSEDES: "Supersedes",
+    }
+    return labels[relation_type]
+
+
 __all__ = [
     "ContractDetailAuthorSummary",
     "ContractDetailLintFinding",
     "ContractDetailLintSummary",
+    "ContractDetailRelatedContractSummary",
     "ContractDetailSnapshot",
     "ContractDetailVersionDiffSummary",
     "ContractDetailVersionSummary",

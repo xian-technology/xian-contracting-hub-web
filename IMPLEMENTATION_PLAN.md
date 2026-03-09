@@ -42,7 +42,7 @@
 - [x] 4.6 — Build the version selector, changelog display, and version-status indicators.
 - [x] 4.7 — Build the diff viewer for comparing the selected version against the previous version.
 - [x] 4.8 — Build the lint results panel that summarizes pass/warn/fail status and exposes detailed issues.
-- [ ] 4.9 — Build the related-contracts section with typed relation labels and direct navigation.
+- [x] 4.9 — Build the related-contracts section with typed relation labels and direct navigation.
 - [ ] 4.10 — Add Playwright coverage for anonymous browsing, searching, filtering, contract detail loading, version switching, and diff viewing.
 
 ## Phase 5: Authenticated User and Community Features

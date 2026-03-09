@@ -12,6 +12,8 @@ from contracting_hub.models import (
     Contract,
     ContractCategoryLink,
     ContractNetwork,
+    ContractRelation,
+    ContractRelationType,
     ContractVersion,
     LintStatus,
     Profile,
@@ -386,6 +388,215 @@ def test_load_public_contract_detail_snapshot_builds_diff_from_previous_visible_
     assert "draft" not in snapshot.selected_version_diff.unified_diff
     assert "published" in snapshot.selected_version_diff.unified_diff
     assert "released" in snapshot.selected_version_diff.unified_diff
+
+
+def test_load_public_contract_detail_snapshot_includes_visible_related_contracts_only() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        author = User(email="alice@example.com", password_hash="hashed-password")
+        author.profile = Profile(username="alice", display_name="Alice Builder")
+        example_author = User(email="bob@example.com", password_hash="hashed-password")
+        example_author.profile = Profile(username="bob", display_name="Bob Example")
+        draft_author = User(email="carol@example.com", password_hash="hashed-password")
+        draft_author.profile = Profile(username="carol", display_name="Carol Draft")
+
+        treasury = Category(slug="treasury", name="Treasury", sort_order=10)
+        guides = Category(slug="guides", name="Guides", sort_order=20)
+
+        contract = Contract(
+            slug="escrow",
+            contract_name="con_escrow",
+            display_name="Escrow",
+            short_summary="Curated escrow primitives for Xian treasury flows.",
+            long_description="Protects multi-party settlements.",
+            author=author,
+            status=PublicationStatus.PUBLISHED,
+            created_at=_timestamp(1),
+            updated_at=_timestamp(6),
+        )
+        contract_release = ContractVersion(
+            contract=contract,
+            semantic_version="1.2.0",
+            status=PublicationStatus.PUBLISHED,
+            source_code="def seed():\n    return 'escrow'\n",
+            source_hash_sha256="1" * 64,
+            published_at=_timestamp(5),
+            created_at=_timestamp(5),
+            updated_at=_timestamp(5),
+        )
+        contract.latest_published_version = contract_release
+
+        companion = Contract(
+            slug="vault",
+            contract_name="con_vault",
+            display_name="Vault",
+            short_summary="Shared treasury settlement helpers.",
+            long_description="Supports treasury release flows.",
+            author_label="Treasury Team",
+            status=PublicationStatus.PUBLISHED,
+            created_at=_timestamp(2),
+            updated_at=_timestamp(5),
+        )
+        companion_release = ContractVersion(
+            contract=companion,
+            semantic_version="0.8.0",
+            status=PublicationStatus.PUBLISHED,
+            source_code="def seed():\n    return 'vault'\n",
+            source_hash_sha256="2" * 64,
+            published_at=_timestamp(4),
+            created_at=_timestamp(4),
+            updated_at=_timestamp(4),
+        )
+        companion.latest_published_version = companion_release
+
+        example = Contract(
+            slug="escrow-example",
+            contract_name="con_escrow_example",
+            display_name="Escrow Example",
+            short_summary="Reference walkthrough for escrow consumers.",
+            long_description="Shows one end-to-end escrow integration.",
+            author=example_author,
+            status=PublicationStatus.PUBLISHED,
+            created_at=_timestamp(3),
+            updated_at=_timestamp(6),
+        )
+        example_release = ContractVersion(
+            contract=example,
+            semantic_version="0.3.0",
+            status=PublicationStatus.PUBLISHED,
+            source_code="def seed():\n    return 'example'\n",
+            source_hash_sha256="3" * 64,
+            published_at=_timestamp(5),
+            created_at=_timestamp(5),
+            updated_at=_timestamp(5),
+        )
+        example.latest_published_version = example_release
+
+        hidden_outgoing = Contract(
+            slug="draft-helper",
+            contract_name="con_draft_helper",
+            display_name="Draft Helper",
+            short_summary="Hidden draft dependency.",
+            long_description="This draft relation should not leak publicly.",
+            author=draft_author,
+            status=PublicationStatus.DRAFT,
+            created_at=_timestamp(4),
+            updated_at=_timestamp(6),
+        )
+        hidden_outgoing_release = ContractVersion(
+            contract=hidden_outgoing,
+            semantic_version="0.1.0",
+            status=PublicationStatus.DRAFT,
+            source_code="def seed():\n    return 'draft helper'\n",
+            source_hash_sha256="4" * 64,
+            created_at=_timestamp(6),
+            updated_at=_timestamp(6),
+        )
+
+        hidden_incoming = Contract(
+            slug="draft-example",
+            contract_name="con_draft_example",
+            display_name="Draft Example",
+            short_summary="Hidden draft incoming reference.",
+            long_description="This draft incoming relation should not leak publicly.",
+            status=PublicationStatus.DRAFT,
+            created_at=_timestamp(4),
+            updated_at=_timestamp(6),
+        )
+        hidden_incoming_release = ContractVersion(
+            contract=hidden_incoming,
+            semantic_version="0.2.0",
+            status=PublicationStatus.DRAFT,
+            source_code="def seed():\n    return 'draft example'\n",
+            source_hash_sha256="5" * 64,
+            created_at=_timestamp(6),
+            updated_at=_timestamp(6),
+        )
+
+        session.add_all(
+            [
+                treasury,
+                guides,
+                author,
+                example_author,
+                draft_author,
+                contract,
+                contract_release,
+                companion,
+                companion_release,
+                example,
+                example_release,
+                hidden_outgoing,
+                hidden_outgoing_release,
+                hidden_incoming,
+                hidden_incoming_release,
+                ContractCategoryLink(
+                    contract=contract,
+                    category=treasury,
+                    is_primary=True,
+                    sort_order=0,
+                ),
+                ContractCategoryLink(
+                    contract=companion,
+                    category=treasury,
+                    is_primary=True,
+                    sort_order=0,
+                ),
+                ContractCategoryLink(
+                    contract=example,
+                    category=guides,
+                    is_primary=True,
+                    sort_order=0,
+                ),
+            ]
+        )
+        session.flush()
+        session.add_all(
+            [
+                ContractRelation(
+                    source_contract=contract,
+                    target_contract=companion,
+                    relation_type=ContractRelationType.COMPANION,
+                ),
+                ContractRelation(
+                    source_contract=contract,
+                    target_contract=hidden_outgoing,
+                    relation_type=ContractRelationType.DEPENDS_ON,
+                ),
+                ContractRelation(
+                    source_contract=example,
+                    target_contract=contract,
+                    relation_type=ContractRelationType.EXAMPLE_FOR,
+                ),
+                ContractRelation(
+                    source_contract=hidden_incoming,
+                    target_contract=contract,
+                    relation_type=ContractRelationType.SUPERSEDES,
+                ),
+            ]
+        )
+        session.commit()
+
+        snapshot = load_public_contract_detail_snapshot(session=session, slug="escrow")
+
+    assert [relation.slug for relation in snapshot.outgoing_related_contracts] == ["vault"]
+    assert snapshot.outgoing_related_contracts[0].relation_type is ContractRelationType.COMPANION
+    assert snapshot.outgoing_related_contracts[0].relation_label == "Companion"
+    assert snapshot.outgoing_related_contracts[0].contract_name == "con_vault"
+    assert snapshot.outgoing_related_contracts[0].author_name == "Treasury Team"
+    assert snapshot.outgoing_related_contracts[0].primary_category_name == "Treasury"
+    assert snapshot.outgoing_related_contracts[0].latest_version_label == "Latest 0.8.0"
+
+    assert [relation.slug for relation in snapshot.incoming_related_contracts] == ["escrow-example"]
+    assert snapshot.incoming_related_contracts[0].relation_type is (
+        ContractRelationType.EXAMPLE_FOR
+    )
+    assert snapshot.incoming_related_contracts[0].relation_label == "Example for"
+    assert snapshot.incoming_related_contracts[0].display_name == "Escrow Example"
+    assert snapshot.incoming_related_contracts[0].author_name == "Bob Example"
+    assert snapshot.incoming_related_contracts[0].primary_category_name == "Guides"
+    assert snapshot.incoming_related_contracts[0].latest_version_label == "Latest 0.3.0"
 
 
 def test_load_public_contract_detail_snapshot_hides_non_public_contracts() -> None:

@@ -11,6 +11,7 @@ from contracting_hub.components import (
     contract_lint_results_panel,
     contract_metadata_badge,
     contract_rating_summary,
+    contract_related_contracts,
     contract_source_viewer,
     contract_version_diff_viewer,
     contract_version_history,
@@ -344,6 +345,19 @@ def _version_history() -> rx.Component:
     )
 
 
+def _related_contracts_section() -> rx.Component:
+    return contract_related_contracts(
+        total_count_label=ContractDetailState.related_contract_count_label,
+        outgoing_count_label=ContractDetailState.outgoing_related_contract_count_label,
+        incoming_count_label=ContractDetailState.incoming_related_contract_count_label,
+        outgoing_relations=ContractDetailState.outgoing_related_contracts,
+        incoming_relations=ContractDetailState.incoming_related_contracts,
+        has_outgoing_relations=ContractDetailState.has_outgoing_related_contracts,
+        has_incoming_relations=ContractDetailState.has_incoming_related_contracts,
+        custom_attrs={"data-testid": "contract-related-contracts"},
+    )
+
+
 def _loading_state() -> rx.Component:
     return page_section(
         rx.vstack(
@@ -400,6 +414,7 @@ def index() -> rx.Component:
                 ContractDetailState.is_ready,
                 rx.vstack(
                     _detail_header(),
+                    _related_contracts_section(),
                     _version_history(),
                     _lint_results_panel(),
                     _diff_viewer(),

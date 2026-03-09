@@ -45,6 +45,19 @@ class LintFindingPayload(TypedDict):
     location_label: str
 
 
+class RelatedContractPayload(TypedDict):
+    """Serialized related-contract entry stored in detail-page state."""
+
+    relation_label: str
+    href: str
+    display_name: str
+    contract_name: str
+    short_summary: str
+    author_label: str
+    primary_category_label: str
+    latest_version_label: str
+
+
 class ContractDetailState(rx.State):
     """Route-driven state for the public contract detail header."""
 
@@ -81,7 +94,12 @@ class ContractDetailState(rx.State):
     selected_version_diff_hunk_count: int = 0
     selected_version_diff_context_lines: int = 3
     available_versions: list[VersionHistoryPayload] = []
+    outgoing_related_contracts: list[RelatedContractPayload] = []
+    incoming_related_contracts: list[RelatedContractPayload] = []
     version_count_label: str = "0 public versions"
+    related_contract_count_label: str = "0 public links"
+    outgoing_related_contract_count_label: str = "0 outgoing links"
+    incoming_related_contract_count_label: str = "0 incoming links"
     published_label: str = "Pending"
     updated_label: str = "Pending"
     star_count: str = "0"
@@ -181,6 +199,16 @@ class ContractDetailState(rx.State):
             and self.selected_version_diff_has_changes
             and bool(self.selected_version_diff_unified_text.strip())
         )
+
+    @rx.var
+    def has_outgoing_related_contracts(self) -> bool:
+        """Return whether the current contract exposes outgoing public links."""
+        return bool(self.outgoing_related_contracts)
+
+    @rx.var
+    def has_incoming_related_contracts(self) -> bool:
+        """Return whether public contracts point back to the current entry."""
+        return bool(self.incoming_related_contracts)
 
     @rx.var
     def selected_version_lint_issue_count_label(self) -> str:
@@ -311,7 +339,27 @@ class ContractDetailState(rx.State):
         self.selected_version_diff_hunk_count = snapshot.selected_version_diff.hunk_count
         self.selected_version_diff_context_lines = snapshot.selected_version_diff.context_lines
         self.available_versions = _serialize_available_versions(snapshot)
+        self.outgoing_related_contracts = _serialize_related_contracts(
+            snapshot.outgoing_related_contracts
+        )
+        self.incoming_related_contracts = _serialize_related_contracts(
+            snapshot.incoming_related_contracts
+        )
         self.version_count_label = _format_version_count_label(len(snapshot.available_versions))
+        total_related_contracts = len(snapshot.outgoing_related_contracts) + len(
+            snapshot.incoming_related_contracts
+        )
+        self.related_contract_count_label = _format_related_contract_count_label(
+            total_related_contracts
+        )
+        self.outgoing_related_contract_count_label = _format_relation_group_count_label(
+            len(snapshot.outgoing_related_contracts),
+            direction="outgoing",
+        )
+        self.incoming_related_contract_count_label = _format_relation_group_count_label(
+            len(snapshot.incoming_related_contracts),
+            direction="incoming",
+        )
         self.published_label = format_contract_calendar_date(snapshot.selected_version_published_at)
         self.updated_label = format_contract_calendar_date(snapshot.updated_at)
         self.header_context_label = (
@@ -377,7 +425,12 @@ class ContractDetailState(rx.State):
         self.selected_version_diff_hunk_count = 0
         self.selected_version_diff_context_lines = 3
         self.available_versions = []
+        self.outgoing_related_contracts = []
+        self.incoming_related_contracts = []
         self.version_count_label = "0 public versions"
+        self.related_contract_count_label = "0 public links"
+        self.outgoing_related_contract_count_label = "0 outgoing links"
+        self.incoming_related_contract_count_label = "0 incoming links"
         self.published_label = "Pending"
         self.updated_label = "Pending"
         self.star_count = "0"
@@ -444,6 +497,24 @@ def _serialize_lint_findings(snapshot: ContractDetailSnapshot) -> list[LintFindi
     ]
 
 
+def _serialize_related_contracts(
+    relations,
+) -> list[RelatedContractPayload]:
+    return [
+        {
+            "relation_label": relation.relation_label,
+            "href": build_contract_detail_path(relation.slug),
+            "display_name": relation.display_name,
+            "contract_name": relation.contract_name,
+            "short_summary": relation.short_summary,
+            "author_label": relation.author_name,
+            "primary_category_label": relation.primary_category_name or "Uncategorized",
+            "latest_version_label": relation.latest_version_label,
+        }
+        for relation in relations
+    ]
+
+
 def _status_label(status: PublicationStatus | None) -> str:
     if status is None:
         return "Pending"
@@ -483,6 +554,17 @@ def _format_version_count_label(version_count: int) -> str:
     if version_count == 1:
         return "1 public version"
     return f"{version_count} public versions"
+
+
+def _format_related_contract_count_label(relation_count: int) -> str:
+    if relation_count == 1:
+        return "1 public link"
+    return f"{relation_count} public links"
+
+
+def _format_relation_group_count_label(relation_count: int, *, direction: str) -> str:
+    noun = "link" if relation_count == 1 else "links"
+    return f"{relation_count} {direction} {noun}"
 
 
 def _lint_status_label(status: LintStatus | None) -> str:
