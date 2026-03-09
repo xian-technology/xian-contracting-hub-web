@@ -14,15 +14,21 @@ def test_rxconfig_uses_resolved_database_settings(rxconfig_module: dict[str, obj
 
 
 def test_database_engine_enables_sqlite_foreign_keys() -> None:
+    settings = get_settings()
     engine = get_engine()
 
-    assert engine.url.render_as_string(hide_password=False) == get_settings().database_url
+    assert engine.url.render_as_string(hide_password=False) == settings.database_url
 
     with engine.connect() as connection:
         pragma_value = connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one()
 
     assert pragma_value == 1
     assert ping_database() is True
+    assert settings.uploads_dir.is_dir()
+    assert settings.avatar_upload_dir.is_dir()
+    if settings.sqlite_database_path is not None:
+        assert settings.sqlite_database_path.parent.is_dir()
+        assert settings.sqlite_database_path.exists()
 
 
 def test_migration_scaffold_uses_project_layout() -> None:

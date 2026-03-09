@@ -8,7 +8,7 @@
 - [x] 1.5 — Define the playground integration adapter contract and document the current Xian playground ID flow, expected payload shape, and error semantics.
 - [x] 1.6 — Add local file-storage plumbing for user avatars and other managed uploads with size/type validation hooks.
 - [x] 1.7 — Set up pytest, pytest-cov, pytest-timeout, pytest-playwright, shared fixtures, test markers, and browser installation instructions.
-- [ ] 1.8 — Add smoke tests for app startup, configuration loading, database initialization, and rendering the shared layout shell.
+- [x] 1.8 — Add smoke tests for app startup, configuration loading, database initialization, and rendering the shared layout shell.
 
 ## Phase 2: Core Contract Domain and Data Layer
 - [ ] 2.1 — Implement database models for users, profiles, contracts, contract versions, categories, category links, relations, stars, ratings, playground targets, deployment history, and admin audit logs.
