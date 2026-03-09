@@ -32,6 +32,8 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
     register_module = importlib.import_module("contracting_hub.pages.register")
     profile_settings_module = importlib.import_module("contracting_hub.pages.profile_settings")
     deployment_history_module = importlib.import_module("contracting_hub.pages.deployment_history")
+    admin_contracts_module = importlib.import_module("contracting_hub.admin.contracts_index")
+    admin_contract_editor_module = importlib.import_module("contracting_hub.admin.contract_editor")
     meta_module = importlib.import_module("contracting_hub.utils.meta")
     return (
         (home_module.ROUTE, home_module.index, meta_module.APP_NAME, home_module.ON_LOAD),
@@ -82,6 +84,24 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
             deployment_history_module.index,
             f"Deployment history | {meta_module.APP_NAME}",
             deployment_history_module.ON_LOAD,
+        ),
+        (
+            admin_contracts_module.ROUTE,
+            admin_contracts_module.index,
+            f"Admin Contracts | {meta_module.APP_NAME}",
+            admin_contracts_module.ON_LOAD,
+        ),
+        (
+            admin_contract_editor_module.NEW_ROUTE,
+            admin_contract_editor_module.new_contract,
+            f"Create Contract | {meta_module.APP_NAME}",
+            admin_contract_editor_module.ON_LOAD,
+        ),
+        (
+            admin_contract_editor_module.EDIT_ROUTE,
+            admin_contract_editor_module.edit_contract,
+            f"Edit Contract | {meta_module.APP_NAME}",
+            admin_contract_editor_module.ON_LOAD,
         ),
     )
 

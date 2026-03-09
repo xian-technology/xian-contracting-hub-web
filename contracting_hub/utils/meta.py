@@ -10,6 +10,9 @@ LOGIN_ROUTE = "/login"
 REGISTER_ROUTE = "/register"
 PROFILE_SETTINGS_ROUTE = "/settings/profile"
 DEPLOYMENT_HISTORY_ROUTE = "/settings/deployments"
+ADMIN_CONTRACTS_ROUTE = "/admin/contracts"
+ADMIN_CONTRACT_CREATE_ROUTE = "/admin/contracts/new"
+ADMIN_CONTRACT_EDIT_ROUTE = "/admin/contracts/[slug]/edit"
 CONTRACT_DETAIL_ROUTE = "/contracts/[slug]"
 DEVELOPER_PROFILE_ROUTE = "/developers/[username]"
 HOME_BADGE_TEXT = "Xian Ecosystem"
@@ -41,7 +44,18 @@ def build_developer_profile_path(username: str | None) -> str:
     return f"/developers/{quote(normalized_username)}"
 
 
+def build_admin_contract_edit_path(slug: str | None) -> str:
+    """Build the canonical admin-editor URL for one contract slug."""
+    normalized_slug = str(slug or "").strip().lower()
+    if not normalized_slug:
+        return ADMIN_CONTRACTS_ROUTE
+    return f"/admin/contracts/{quote(normalized_slug)}/edit"
+
+
 __all__ = [
+    "ADMIN_CONTRACTS_ROUTE",
+    "ADMIN_CONTRACT_CREATE_ROUTE",
+    "ADMIN_CONTRACT_EDIT_ROUTE",
     "APP_NAME",
     "BROWSE_ROUTE",
     "CONTRACT_DETAIL_ROUTE",
@@ -53,6 +67,7 @@ __all__ = [
     "LOGIN_ROUTE",
     "PROFILE_SETTINGS_ROUTE",
     "REGISTER_ROUTE",
+    "build_admin_contract_edit_path",
     "build_developer_profile_path",
     "HOME_TAGLINE",
     "build_contract_detail_path",

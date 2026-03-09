@@ -56,7 +56,7 @@
 - [x] 5.8 — Add Playwright tests for register/login/logout, profile updates, star/rate flows, deployment attempts, deployment history, and leaderboard navigation.
 
 ## Phase 6: Admin Workspace and Content Operations
-- [ ] 6.1 — Build the admin contract index with filters, status tabs, and quick actions for create, edit, publish, archive, and delete.
+- [x] 6.1 — Build the admin contract index with filters, status tabs, and quick actions for create, edit, publish, archive, and delete.
 - [ ] 6.2 — Build the admin contract editor for metadata, taxonomy, tags, featured state, and author assignment.
 - [ ] 6.3 — Build the admin version manager for source input, changelog entry, lint preview, diff preview, and publish controls.
 - [ ] 6.4 — Build the admin relation manager for adding, editing, and removing typed links between contracts.
