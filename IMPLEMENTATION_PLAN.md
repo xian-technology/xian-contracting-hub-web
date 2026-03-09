@@ -39,7 +39,7 @@
 - [x] 4.3 — Build reusable contract card, metadata badge, and rating summary components used across lists and detail views.
 - [x] 4.4 — Build the contract detail header with author information, category data, stars, ratings, and primary actions.
 - [x] 4.5 — Build the syntax-highlighted Python code viewer with copy and download actions.
-- [ ] 4.6 — Build the version selector, changelog display, and version-status indicators.
+- [x] 4.6 — Build the version selector, changelog display, and version-status indicators.
 - [ ] 4.7 — Build the diff viewer for comparing the selected version against the previous version.
 - [ ] 4.8 — Build the lint results panel that summarizes pass/warn/fail status and exposes detailed issues.
 - [ ] 4.9 — Build the related-contracts section with typed relation labels and direct navigation.

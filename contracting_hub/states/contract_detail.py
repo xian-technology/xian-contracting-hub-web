@@ -14,7 +14,7 @@ from contracting_hub.services import (
     load_public_contract_detail_snapshot_safe,
 )
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
-from contracting_hub.utils.meta import BROWSE_ROUTE
+from contracting_hub.utils.meta import BROWSE_ROUTE, build_contract_detail_path
 
 
 class AuthorLinkPayload(TypedDict):
@@ -22,6 +22,18 @@ class AuthorLinkPayload(TypedDict):
 
     label: str
     href: str
+
+
+class VersionHistoryPayload(TypedDict):
+    """Serialized public version metadata stored in state."""
+
+    semantic_version: str
+    href: str
+    status_label: str
+    status_color_scheme: str
+    published_label: str
+    is_selected: bool
+    is_latest_public: bool
 
 
 class ContractDetailState(rx.State):
@@ -40,6 +52,10 @@ class ContractDetailState(rx.State):
     version_status_label: str = ""
     version_status_color_scheme: str = "gray"
     selected_version_source_code: str = ""
+    selected_version_changelog: str = ""
+    selected_version_is_latest_public: bool = False
+    available_versions: list[VersionHistoryPayload] = []
+    version_count_label: str = "0 public versions"
     published_label: str = "Pending"
     updated_label: str = "Pending"
     star_count: str = "0"
@@ -122,6 +138,11 @@ class ContractDetailState(rx.State):
         return bool(self.selected_version_source_code)
 
     @rx.var
+    def has_selected_version_changelog(self) -> bool:
+        """Return whether the selected public version exposes release notes."""
+        return bool(self.selected_version_changelog)
+
+    @rx.var
     def source_line_count_label(self) -> str:
         """Return a human-readable source-code line count."""
         return _format_line_count(_count_source_lines(self.selected_version_source_code))
@@ -143,7 +164,10 @@ class ContractDetailState(rx.State):
     def load_page(self) -> None:
         """Load one public contract snapshot from the current route params."""
         params = self.router.page.params
-        snapshot = load_public_contract_detail_snapshot_safe(slug=params.get("slug"))
+        snapshot = load_public_contract_detail_snapshot_safe(
+            slug=params.get("slug"),
+            semantic_version=params.get("version"),
+        )
         self._apply_snapshot(snapshot)
 
     def _apply_snapshot(self, snapshot: ContractDetailSnapshot) -> None:
@@ -165,6 +189,10 @@ class ContractDetailState(rx.State):
         self.version_status_label = _status_label(snapshot.selected_version_status)
         self.version_status_color_scheme = _status_color_scheme(snapshot.selected_version_status)
         self.selected_version_source_code = snapshot.selected_version_source_code
+        self.selected_version_changelog = snapshot.selected_version_changelog or ""
+        self.selected_version_is_latest_public = snapshot.selected_version_is_latest_public
+        self.available_versions = _serialize_available_versions(snapshot)
+        self.version_count_label = _format_version_count_label(len(snapshot.available_versions))
         self.published_label = format_contract_calendar_date(snapshot.selected_version_published_at)
         self.updated_label = format_contract_calendar_date(snapshot.updated_at)
         self.header_context_label = (
@@ -210,6 +238,10 @@ class ContractDetailState(rx.State):
         self.version_status_label = ""
         self.version_status_color_scheme = "gray"
         self.selected_version_source_code = ""
+        self.selected_version_changelog = ""
+        self.selected_version_is_latest_public = False
+        self.available_versions = []
+        self.version_count_label = "0 public versions"
         self.published_label = "Pending"
         self.updated_label = "Pending"
         self.star_count = "0"
@@ -241,6 +273,27 @@ def _serialize_author_links(snapshot: ContractDetailSnapshot) -> list[AuthorLink
     if snapshot.author.xian_profile_url:
         links.append({"label": "Xian", "href": snapshot.author.xian_profile_url})
     return links
+
+
+def _serialize_available_versions(snapshot: ContractDetailSnapshot) -> list[VersionHistoryPayload]:
+    if not snapshot.slug:
+        return []
+
+    return [
+        {
+            "semantic_version": version.semantic_version,
+            "href": build_contract_detail_path(
+                snapshot.slug,
+                semantic_version=None if version.is_latest_public else version.semantic_version,
+            ),
+            "status_label": _status_label(version.status),
+            "status_color_scheme": _status_color_scheme(version.status),
+            "published_label": format_contract_calendar_date(version.published_at),
+            "is_selected": version.semantic_version == snapshot.selected_version,
+            "is_latest_public": version.is_latest_public,
+        }
+        for version in snapshot.available_versions
+    ]
 
 
 def _status_label(status: PublicationStatus | None) -> str:
@@ -276,6 +329,12 @@ def _format_line_count(line_count: int) -> str:
     if line_count == 1:
         return "1 line"
     return f"{line_count} lines"
+
+
+def _format_version_count_label(version_count: int) -> str:
+    if version_count == 1:
+        return "1 public version"
+    return f"{version_count} public versions"
 
 
 def _build_source_download_filename(

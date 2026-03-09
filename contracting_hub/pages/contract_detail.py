@@ -11,6 +11,7 @@ from contracting_hub.components import (
     contract_metadata_badge,
     contract_rating_summary,
     contract_source_viewer,
+    contract_version_history,
     page_section,
 )
 from contracting_hub.states import ContractDetailState
@@ -293,6 +294,21 @@ def _source_viewer() -> rx.Component:
     )
 
 
+def _version_history() -> rx.Component:
+    return contract_version_history(
+        versions=ContractDetailState.available_versions,
+        version_count_label=ContractDetailState.version_count_label,
+        selected_version=ContractDetailState.version_label,
+        selected_version_status_label=ContractDetailState.version_status_label,
+        selected_version_status_color_scheme=ContractDetailState.version_status_color_scheme,
+        selected_version_published_label=ContractDetailState.published_label,
+        selected_version_changelog=ContractDetailState.selected_version_changelog,
+        has_selected_version_changelog=ContractDetailState.has_selected_version_changelog,
+        selected_version_is_latest_public=ContractDetailState.selected_version_is_latest_public,
+        custom_attrs={"data-testid": "contract-version-history"},
+    )
+
+
 def _loading_state() -> rx.Component:
     return page_section(
         rx.vstack(
@@ -349,6 +365,7 @@ def index() -> rx.Component:
                 ContractDetailState.is_ready,
                 rx.vstack(
                     _detail_header(),
+                    _version_history(),
                     _source_viewer(),
                     align="start",
                     gap="var(--hub-space-7)",

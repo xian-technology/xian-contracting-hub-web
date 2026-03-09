@@ -9,8 +9,9 @@ import sqlalchemy as sa
 from sqlmodel import Session
 
 from contracting_hub.database import session_scope
-from contracting_hub.models import ContractNetwork, PublicationStatus
+from contracting_hub.models import ContractNetwork, ContractVersion, PublicationStatus
 from contracting_hub.repositories import ContractRepository, RatingRepository, StarRepository
+from contracting_hub.services.contract_metadata import validate_semantic_version
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,17 @@ class ContractDetailAuthorSummary:
     website_url: str | None
     github_url: str | None
     xian_profile_url: str | None
+
+
+@dataclass(frozen=True)
+class ContractDetailVersionSummary:
+    """Public version metadata rendered in the detail-page selector."""
+
+    semantic_version: str
+    status: PublicationStatus
+    published_at: datetime | None
+    changelog: str | None
+    is_latest_public: bool
 
 
 @dataclass(frozen=True)
@@ -48,7 +60,10 @@ class ContractDetailSnapshot:
     selected_version: str | None
     selected_version_status: PublicationStatus | None
     selected_version_source_code: str
+    selected_version_changelog: str | None
     selected_version_published_at: datetime | None
+    selected_version_is_latest_public: bool
+    available_versions: tuple[ContractDetailVersionSummary, ...]
     updated_at: datetime | None
     star_count: int
     rating_count: int
@@ -92,7 +107,10 @@ def build_empty_contract_detail_snapshot(*, slug: str | None = None) -> Contract
         selected_version=None,
         selected_version_status=None,
         selected_version_source_code="",
+        selected_version_changelog=None,
         selected_version_published_at=None,
+        selected_version_is_latest_public=False,
+        available_versions=(),
         updated_at=None,
         star_count=0,
         rating_count=0,
@@ -104,6 +122,7 @@ def load_public_contract_detail_snapshot(
     *,
     session: Session,
     slug: str | None,
+    semantic_version: str | None = None,
 ) -> ContractDetailSnapshot:
     """Load one published contract into a header-ready detail snapshot."""
     normalized_slug = normalize_contract_detail_slug(slug)
@@ -139,8 +158,13 @@ def load_public_contract_detail_snapshot(
         (link.category.name for link in ordered_categories if link.is_primary),
         category_names[0] if category_names else None,
     )
-    selected_version = contract.latest_published_version or (
+    latest_public_version = contract.latest_published_version or (
         detail.versions[0] if detail.versions else None
+    )
+    selected_version = _resolve_selected_version(
+        versions=detail.versions,
+        latest_public_version=latest_public_version,
+        semantic_version=normalize_contract_detail_version(semantic_version),
     )
 
     return ContractDetailSnapshot(
@@ -165,8 +189,20 @@ def load_public_contract_detail_snapshot(
         ),
         selected_version_status=selected_version.status if selected_version is not None else None,
         selected_version_source_code=selected_version.source_code if selected_version else "",
+        selected_version_changelog=selected_version.changelog if selected_version else None,
         selected_version_published_at=_coerce_utc_datetime(
             selected_version.published_at if selected_version is not None else None
+        ),
+        selected_version_is_latest_public=_version_is_latest_public(
+            version=selected_version,
+            latest_public_version=latest_public_version,
+        ),
+        available_versions=tuple(
+            _build_contract_detail_version_summary(
+                version=version,
+                latest_public_version=latest_public_version,
+            )
+            for version in detail.versions
         ),
         updated_at=_coerce_utc_datetime(contract.updated_at),
         star_count=star_count,
@@ -178,12 +214,17 @@ def load_public_contract_detail_snapshot(
 def load_public_contract_detail_snapshot_safe(
     *,
     slug: str | None,
+    semantic_version: str | None = None,
 ) -> ContractDetailSnapshot:
     """Load one public contract detail while tolerating an unmigrated database."""
     normalized_slug = normalize_contract_detail_slug(slug)
     try:
         with session_scope() as session:
-            return load_public_contract_detail_snapshot(session=session, slug=normalized_slug)
+            return load_public_contract_detail_snapshot(
+                session=session,
+                slug=normalized_slug,
+                semantic_version=semantic_version,
+            )
     except (sa.exc.OperationalError, sa.exc.ProgrammingError):
         return build_empty_contract_detail_snapshot(slug=normalized_slug)
 
@@ -215,6 +256,62 @@ def _build_contract_detail_author(contract) -> ContractDetailAuthorSummary:
     )
 
 
+def normalize_contract_detail_version(semantic_version: str | None) -> str | None:
+    """Normalize a requested public version without surfacing validation errors."""
+    if semantic_version is None:
+        return None
+    try:
+        return validate_semantic_version(semantic_version)
+    except ValueError:
+        return None
+
+
+def _resolve_selected_version(
+    *,
+    versions: tuple[ContractVersion, ...],
+    latest_public_version: ContractVersion | None,
+    semantic_version: str | None,
+) -> ContractVersion | None:
+    if semantic_version is not None:
+        for version in versions:
+            if version.semantic_version == semantic_version:
+                return version
+
+    if latest_public_version is not None:
+        return latest_public_version
+    return versions[0] if versions else None
+
+
+def _build_contract_detail_version_summary(
+    *,
+    version: ContractVersion,
+    latest_public_version: ContractVersion | None,
+) -> ContractDetailVersionSummary:
+    return ContractDetailVersionSummary(
+        semantic_version=version.semantic_version,
+        status=version.status,
+        published_at=_coerce_utc_datetime(version.published_at),
+        changelog=version.changelog,
+        is_latest_public=_version_is_latest_public(
+            version=version,
+            latest_public_version=latest_public_version,
+        ),
+    )
+
+
+def _version_is_latest_public(
+    *,
+    version: ContractVersion | None,
+    latest_public_version: ContractVersion | None,
+) -> bool:
+    if version is None or latest_public_version is None:
+        return False
+
+    if version.id is not None and latest_public_version.id is not None:
+        return version.id == latest_public_version.id
+    return version.semantic_version == latest_public_version.semantic_version
+
+
 def _coerce_utc_datetime(value: datetime | None) -> datetime | None:
     if value is None:
         return None
@@ -226,8 +323,10 @@ def _coerce_utc_datetime(value: datetime | None) -> datetime | None:
 __all__ = [
     "ContractDetailAuthorSummary",
     "ContractDetailSnapshot",
+    "ContractDetailVersionSummary",
     "build_empty_contract_detail_snapshot",
     "load_public_contract_detail_snapshot",
     "load_public_contract_detail_snapshot_safe",
     "normalize_contract_detail_slug",
+    "normalize_contract_detail_version",
 ]

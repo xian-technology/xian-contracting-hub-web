@@ -54,10 +54,12 @@ from contracting_hub.services.contract_browse import (
 from contracting_hub.services.contract_detail import (
     ContractDetailAuthorSummary,
     ContractDetailSnapshot,
+    ContractDetailVersionSummary,
     build_empty_contract_detail_snapshot,
     load_public_contract_detail_snapshot,
     load_public_contract_detail_snapshot_safe,
     normalize_contract_detail_slug,
+    normalize_contract_detail_version,
 )
 from contracting_hub.services.contract_diffs import (
     VISIBLE_DIFF_STATUSES,
@@ -224,6 +226,7 @@ __all__ = [
     "ContractBrowseSummary",
     "ContractDetailAuthorSummary",
     "ContractDetailSnapshot",
+    "ContractDetailVersionSummary",
     "DEFAULT_AUTH_SESSION_TTL",
     "DEFAULT_CONTRACT_BROWSE_PAGE_SIZE",
     "DEFAULT_DEVELOPER_ACTIVITY_WINDOW_DAYS",
@@ -337,6 +340,7 @@ __all__ = [
     "normalize_contract_browse_sort",
     "normalize_contract_browse_tag",
     "normalize_contract_detail_slug",
+    "normalize_contract_detail_version",
     "normalize_email",
     "normalize_ad_hoc_playground_id",
     "normalize_contract_rating_note",

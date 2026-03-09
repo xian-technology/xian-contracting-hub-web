@@ -90,16 +90,28 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
             created_at=_timestamp(5),
             updated_at=_timestamp(5),
         )
+        deprecated_version = ContractVersion(
+            contract=contract,
+            semantic_version="1.1.0",
+            status=PublicationStatus.DEPRECATED,
+            source_code="def seed():\n    return 'legacy escrow'\n",
+            source_hash_sha256="b" * 64,
+            changelog="Legacy settlement release.",
+            published_at=_timestamp(4),
+            created_at=_timestamp(4),
+            updated_at=_timestamp(4),
+        )
         draft_version = ContractVersion(
             contract=contract,
             semantic_version="1.3.0",
             status=PublicationStatus.DRAFT,
             source_code="def seed():\n    return 'draft'\n",
-            source_hash_sha256="b" * 64,
+            source_hash_sha256="c" * 64,
             changelog="Draft follow-up.",
             created_at=_timestamp(6),
             updated_at=_timestamp(6),
         )
+        published_version.previous_version = deprecated_version
         draft_version.previous_version = published_version
         contract.latest_published_version = published_version
 
@@ -112,6 +124,7 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
                 operator,
                 contract,
                 published_version,
+                deprecated_version,
                 draft_version,
                 ContractCategoryLink(
                     contract=contract,
@@ -160,9 +173,88 @@ def test_load_public_contract_detail_snapshot_returns_header_ready_metadata() ->
     assert snapshot.selected_version == "1.2.0"
     assert snapshot.selected_version_status is PublicationStatus.PUBLISHED
     assert snapshot.selected_version_source_code == "def seed():\n    return 'escrow'\n"
+    assert snapshot.selected_version_changelog == "Add settlement timeouts."
+    assert snapshot.selected_version_is_latest_public is True
+    assert [version.semantic_version for version in snapshot.available_versions] == [
+        "1.2.0",
+        "1.1.0",
+    ]
+    assert snapshot.available_versions[0].is_latest_public is True
+    assert snapshot.available_versions[1].status is PublicationStatus.DEPRECATED
     assert snapshot.star_count == 3
     assert snapshot.rating_count == 2
     assert snapshot.average_rating == pytest.approx(4.5)
+
+
+def test_load_public_contract_detail_snapshot_selects_requested_visible_version() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        contract = Contract(
+            slug="escrow",
+            contract_name="con_escrow",
+            display_name="Escrow",
+            short_summary="Curated escrow primitives for Xian treasury flows.",
+            long_description="Protects multi-party settlements.",
+            status=PublicationStatus.PUBLISHED,
+            created_at=_timestamp(1),
+            updated_at=_timestamp(6),
+        )
+        current_version = ContractVersion(
+            contract=contract,
+            semantic_version="1.2.0",
+            status=PublicationStatus.PUBLISHED,
+            source_code="def seed():\n    return 'escrow'\n",
+            source_hash_sha256="d" * 64,
+            changelog="Current public release.",
+            published_at=_timestamp(5),
+            created_at=_timestamp(5),
+            updated_at=_timestamp(5),
+        )
+        previous_version = ContractVersion(
+            contract=contract,
+            semantic_version="1.1.0",
+            status=PublicationStatus.DEPRECATED,
+            source_code="def seed():\n    return 'legacy escrow'\n",
+            source_hash_sha256="e" * 64,
+            changelog="Legacy release.",
+            published_at=_timestamp(4),
+            created_at=_timestamp(4),
+            updated_at=_timestamp(4),
+        )
+        draft_version = ContractVersion(
+            contract=contract,
+            semantic_version="1.3.0",
+            status=PublicationStatus.DRAFT,
+            source_code="def seed():\n    return 'draft escrow'\n",
+            source_hash_sha256="f" * 64,
+            changelog="Draft follow-up.",
+            created_at=_timestamp(6),
+            updated_at=_timestamp(6),
+        )
+        current_version.previous_version = previous_version
+        draft_version.previous_version = current_version
+        contract.latest_published_version = current_version
+
+        session.add_all([contract, current_version, previous_version, draft_version])
+        session.commit()
+
+        snapshot = load_public_contract_detail_snapshot(
+            session=session,
+            slug="escrow",
+            semantic_version="1.1.0",
+        )
+
+    assert snapshot.found is True
+    assert snapshot.selected_version == "1.1.0"
+    assert snapshot.selected_version_status is PublicationStatus.DEPRECATED
+    assert snapshot.selected_version_source_code == "def seed():\n    return 'legacy escrow'\n"
+    assert snapshot.selected_version_changelog == "Legacy release."
+    assert snapshot.selected_version_is_latest_public is False
+    assert [version.semantic_version for version in snapshot.available_versions] == [
+        "1.2.0",
+        "1.1.0",
+    ]
 
 
 def test_load_public_contract_detail_snapshot_hides_non_public_contracts() -> None:
