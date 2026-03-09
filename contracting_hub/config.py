@@ -129,6 +129,8 @@ class AppSettings:
     bootstrap_admin_username: str | None
     bootstrap_admin_display_name: str | None
     bootstrap_admin_password_hash: str
+    playground_deep_link_base_url: str | None
+    playground_callback_url: str | None
     alembic_config_path: Path
     migrations_dir: Path
 
@@ -214,6 +216,12 @@ def load_settings(
         )
         or DEFAULT_BOOTSTRAP_ADMIN_PASSWORD_HASH
     )
+    playground_deep_link_base_url = _read_optional_text(
+        merged_environment.get("CONTRACTING_HUB_PLAYGROUND_DEEP_LINK_BASE_URL")
+    )
+    playground_callback_url = _read_optional_text(
+        merged_environment.get("CONTRACTING_HUB_PLAYGROUND_CALLBACK_URL")
+    )
     database_url_override = merged_environment.get("REFLEX_DB_URL") or merged_environment.get(
         "CONTRACTING_HUB_DB_URL"
     )
@@ -249,6 +257,8 @@ def load_settings(
         bootstrap_admin_username=bootstrap_admin_username,
         bootstrap_admin_display_name=bootstrap_admin_display_name,
         bootstrap_admin_password_hash=bootstrap_admin_password_hash,
+        playground_deep_link_base_url=playground_deep_link_base_url,
+        playground_callback_url=playground_callback_url,
         alembic_config_path=resolved_project_root / "alembic.ini",
         migrations_dir=resolved_project_root / "migrations",
     )

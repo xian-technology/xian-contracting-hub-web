@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from hashlib import sha256
 from typing import Any, Mapping, Protocol
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from contracting_hub.models.base import utc_now
 
 PLAYGROUND_DEPLOYMENT_CHANNEL = "contracting_hub"
+DEFAULT_PLAYGROUND_PAYLOAD_QUERY_PARAM = "payload"
 
 
 class PlaygroundTransport(StrEnum):
@@ -178,7 +181,112 @@ class PlaygroundAdapter(Protocol):
         """Send a deployment request to the configured playground integration."""
 
 
+@dataclass(frozen=True)
+class DeepLinkPlaygroundAdapter:
+    """Concrete deep-link adapter that encodes the normalized request in the redirect URL."""
+
+    base_url: str | None
+    payload_query_param: str = DEFAULT_PLAYGROUND_PAYLOAD_QUERY_PARAM
+    name: str = "deep_link_playground"
+    capabilities: PlaygroundAdapterCapabilities = field(
+        default_factory=lambda: PlaygroundAdapterCapabilities(
+            transport=PlaygroundTransport.DEEP_LINK,
+            supports_redirects=True,
+            supports_request_tracking=False,
+        )
+    )
+
+    def submit_deployment(
+        self,
+        request: PlaygroundDeploymentRequest,
+    ) -> PlaygroundDeploymentResult:
+        """Build a playground redirect URL that carries the normalized request payload."""
+        normalized_base_url = _normalize_deep_link_base_url(self.base_url)
+        normalized_playground_id = request.normalized_playground_id
+        if not normalized_playground_id:
+            raise PlaygroundAdapterError(
+                PlaygroundAdapterErrorCode.INVALID_PLAYGROUND_ID,
+                "Playground ID is required for deployment handoff.",
+                details={"field": "playground_id"},
+            )
+        if not request.contract.name.strip():
+            raise PlaygroundAdapterError(
+                PlaygroundAdapterErrorCode.INVALID_CONTRACT_NAME,
+                "Contract name is required for deployment handoff.",
+                details={"field": "contract.name"},
+            )
+        if not request.contract.version.strip():
+            raise PlaygroundAdapterError(
+                PlaygroundAdapterErrorCode.INVALID_VERSION,
+                "Contract version is required for deployment handoff.",
+                details={"field": "contract.version"},
+            )
+        if not request.contract.source_code.strip():
+            raise PlaygroundAdapterError(
+                PlaygroundAdapterErrorCode.INVALID_SOURCE,
+                "Contract source code is required for deployment handoff.",
+                details={"field": "contract.source_code"},
+            )
+
+        request_payload = request.as_payload()
+        redirect_url = _build_deep_link_redirect_url(
+            base_url=normalized_base_url,
+            payload_query_param=self.payload_query_param,
+            request_payload=request_payload,
+        )
+        return PlaygroundDeploymentResult(
+            status=PlaygroundDispatchStatus.REDIRECT_REQUIRED,
+            transport=PlaygroundTransport.DEEP_LINK,
+            message="Open the playground redirect.",
+            request_payload=request_payload,
+            redirect_url=redirect_url,
+        )
+
+
+def _normalize_deep_link_base_url(base_url: str | None) -> str:
+    normalized_base_url = (base_url or "").strip()
+    parsed_url = urlsplit(normalized_base_url)
+    if normalized_base_url and parsed_url.scheme:
+        return normalized_base_url
+
+    raise PlaygroundAdapterError(
+        PlaygroundAdapterErrorCode.ADAPTER_MISCONFIGURED,
+        "Playground deep-link base URL is not configured.",
+        details={"field": "base_url"},
+    )
+
+
+def _build_deep_link_redirect_url(
+    *,
+    base_url: str,
+    payload_query_param: str,
+    request_payload: Mapping[str, Any],
+) -> str:
+    parsed_url = urlsplit(base_url)
+    serialized_payload = _serialize_request_payload(request_payload)
+    query_items = [
+        (key, value)
+        for key, value in parse_qsl(parsed_url.query, keep_blank_values=True)
+        if key != payload_query_param
+    ]
+    query_items.append((payload_query_param, serialized_payload))
+    return urlunsplit(parsed_url._replace(query=urlencode(query_items)))
+
+
+def _serialize_request_payload(request_payload: Mapping[str, Any]) -> str:
+    try:
+        return json.dumps(request_payload, separators=(",", ":"), sort_keys=True)
+    except (TypeError, ValueError) as error:
+        raise PlaygroundAdapterError(
+            PlaygroundAdapterErrorCode.UNKNOWN,
+            "The deployment payload could not be encoded for redirect handoff.",
+            details={"reason": str(error)},
+        ) from error
+
+
 __all__ = [
+    "DEFAULT_PLAYGROUND_PAYLOAD_QUERY_PARAM",
+    "DeepLinkPlaygroundAdapter",
     "PLAYGROUND_DEPLOYMENT_CHANNEL",
     "PlaygroundAdapter",
     "PlaygroundAdapterCapabilities",

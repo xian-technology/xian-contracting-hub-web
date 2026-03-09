@@ -25,6 +25,8 @@ def test_load_settings_uses_local_sqlite_defaults(tmp_path: Path) -> None:
     assert settings.bootstrap_admin_username == "admin"
     assert settings.bootstrap_admin_display_name == "Local Admin"
     assert settings.bootstrap_admin_password_hash == "!bootstrap-admin-auth-pending!"
+    assert settings.playground_deep_link_base_url is None
+    assert settings.playground_callback_url is None
     assert settings.alembic_config_path == tmp_path / "alembic.ini"
     assert settings.migrations_dir == tmp_path / "migrations"
 
@@ -53,6 +55,8 @@ def test_environment_variables_override_dotenv_values(tmp_path: Path) -> None:
             "CONTRACTING_HUB_BOOTSTRAP_ADMIN_USERNAME": "opsadmin",
             "CONTRACTING_HUB_BOOTSTRAP_ADMIN_DISPLAY_NAME": "Ops Admin",
             "CONTRACTING_HUB_BOOTSTRAP_ADMIN_PASSWORD_HASH": "hashed-admin",
+            "CONTRACTING_HUB_PLAYGROUND_DEEP_LINK_BASE_URL": "https://playground.local/deploy",
+            "CONTRACTING_HUB_PLAYGROUND_CALLBACK_URL": "https://hub.local/callback",
         },
     )
 
@@ -72,6 +76,8 @@ def test_environment_variables_override_dotenv_values(tmp_path: Path) -> None:
     assert settings.bootstrap_admin_username == "opsadmin"
     assert settings.bootstrap_admin_display_name == "Ops Admin"
     assert settings.bootstrap_admin_password_hash == "hashed-admin"
+    assert settings.playground_deep_link_base_url == "https://playground.local/deploy"
+    assert settings.playground_callback_url == "https://hub.local/callback"
 
 
 def test_blank_bootstrap_admin_identity_disables_local_admin_seed(tmp_path: Path) -> None:

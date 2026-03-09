@@ -1,7 +1,9 @@
 """Integration adapters for external services and tooling."""
 
 from contracting_hub.integrations.playground import (
+    DEFAULT_PLAYGROUND_PAYLOAD_QUERY_PARAM,
     PLAYGROUND_DEPLOYMENT_CHANNEL,
+    DeepLinkPlaygroundAdapter,
     PlaygroundAdapter,
     PlaygroundAdapterCapabilities,
     PlaygroundAdapterError,
@@ -39,6 +41,8 @@ from contracting_hub.integrations.xian_linter import (
 )
 
 __all__ = [
+    "DEFAULT_PLAYGROUND_PAYLOAD_QUERY_PARAM",
+    "DeepLinkPlaygroundAdapter",
     "PLAYGROUND_DEPLOYMENT_CHANNEL",
     "PlaygroundAdapter",
     "PlaygroundAdapterCapabilities",
