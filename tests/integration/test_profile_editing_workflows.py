@@ -181,3 +181,53 @@ def test_replace_and_remove_profile_avatar_manage_files_and_profile_state(
 
     assert cleared_profile.avatar_path is None
     assert not second_avatar_path.exists()
+
+
+def test_replace_profile_avatar_rolls_back_new_uploads_when_commit_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = load_settings(project_root=tmp_path, environ={}, env_file=tmp_path / ".env")
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        user = register_user(
+            session=session,
+            email="alice@example.com",
+            username="alice",
+            password="correct horse battery staple",
+        )
+
+        original_profile = replace_profile_avatar(
+            session=session,
+            user_id=user.id,
+            filename="Alice Portrait.png",
+            content=b"first-avatar",
+            content_type="image/png",
+            settings=settings,
+        )
+        assert original_profile.avatar_path is not None
+        original_avatar_path = settings.uploads_dir / original_profile.avatar_path
+
+        def failing_commit() -> None:
+            raise RuntimeError("database unavailable")
+
+        monkeypatch.setattr(session, "commit", failing_commit)
+
+        with pytest.raises(RuntimeError, match="database unavailable"):
+            replace_profile_avatar(
+                session=session,
+                user_id=user.id,
+                filename="Alice Portrait 2.png",
+                content=b"second-avatar",
+                content_type="image/png",
+                settings=settings,
+            )
+
+        stored_profile = session.exec(select(Profile).where(Profile.user_id == user.id)).one()
+        stored_files = sorted(path for path in settings.uploads_dir.rglob("*") if path.is_file())
+
+    assert stored_profile.avatar_path == original_profile.avatar_path
+    assert original_avatar_path.is_file()
+    assert original_avatar_path.read_bytes() == b"first-avatar"
+    assert stored_files == [original_avatar_path]

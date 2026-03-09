@@ -31,7 +31,7 @@
 - [x] 3.6 — Implement saved playground target CRUD and validation rules for playground IDs.
 - [x] 3.7 — Implement the deployment adapter using the agreed playground integration contract, plus deployment history recording and failure capture.
 - [x] 3.8 — Implement developer KPI aggregation services for contract counts, star totals, weighted rating, deployment counts, and recent activity windows.
-- [ ] 3.9 — Write backend tests for auth flows, profile updates, star/rating behavior, playground target management, deployments, and leaderboard aggregations.
+- [x] 3.9 — Write backend tests for auth flows, profile updates, star/rating behavior, playground target management, deployments, and leaderboard aggregations.
 
 ## Phase 4: Public Discovery and Contract UX
 - [ ] 4.1 — Build the public home page with featured, trending, recently updated, and recently deployed sections.

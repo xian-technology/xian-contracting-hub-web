@@ -221,6 +221,35 @@ def test_deploy_contract_version_uses_ad_hoc_playground_ids_and_default_adapter(
     )
 
 
+def test_deploy_contract_version_allows_blank_ad_hoc_id_with_saved_target() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        user_id, version_id, target_id = _seed_contract_graph(session)
+
+        result = deploy_contract_version(
+            session=session,
+            user_id=user_id,
+            contract_slug="escrow",
+            semantic_version="1.2.0",
+            playground_target_id=target_id,
+            playground_id="   ",
+            adapter=RedirectAdapter(),
+        )
+
+        deployment = session.exec(
+            select(DeploymentHistory).where(DeploymentHistory.id == result.deployment_id)
+        ).one()
+
+    assert result.status is DeploymentStatus.REDIRECT_REQUIRED
+    assert result.playground_id == "target-123"
+    assert result.playground_target_id == target_id
+    assert deployment.contract_version_id == version_id
+    assert deployment.playground_id == "target-123"
+    assert deployment.playground_target_id == target_id
+    assert deployment.request_payload["playground_id"] == "target-123"
+
+
 def test_deploy_contract_version_rejects_draft_versions_without_recording_history() -> None:
     engine = _build_engine()
 

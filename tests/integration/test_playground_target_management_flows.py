@@ -107,6 +107,48 @@ def test_update_playground_target_changes_fields_and_default_selection() -> None
     assert [target.is_default for target in stored_targets] == [True, False]
 
 
+def test_update_playground_target_promotes_another_target_when_default_is_unset() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        user = register_user(
+            session=session,
+            email="alice@example.com",
+            username="alice",
+            password="correct horse battery staple",
+        )
+        assert user.id is not None
+
+        first_target = create_playground_target(
+            session=session,
+            user_id=user.id,
+            label="Sandbox",
+            playground_id="target-123",
+        )
+        second_target = create_playground_target(
+            session=session,
+            user_id=user.id,
+            label="Backup",
+            playground_id="backup-456",
+        )
+        assert first_target.id is not None
+        assert second_target.id is not None
+
+        updated_target = update_playground_target(
+            session=session,
+            user_id=user.id,
+            target_id=first_target.id,
+            label="Sandbox",
+            playground_id="target-123",
+            is_default=False,
+        )
+        stored_targets = list_playground_targets(session=session, user_id=user.id)
+
+    assert updated_target.is_default is False
+    assert [target.playground_id for target in stored_targets] == ["backup-456", "target-123"]
+    assert [target.is_default for target in stored_targets] == [True, False]
+
+
 def test_delete_playground_target_promotes_another_saved_target() -> None:
     engine = _build_engine()
 
