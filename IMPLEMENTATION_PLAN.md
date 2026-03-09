@@ -12,7 +12,7 @@
 
 ## Phase 2: Core Contract Domain and Data Layer
 - [x] 2.1 — Implement database models for users, profiles, contracts, contract versions, categories, category links, relations, stars, ratings, playground targets, deployment history, and admin audit logs.
-- [ ] 2.2 — Create and verify the initial migrations for the full schema, including indexes and uniqueness constraints.
+- [x] 2.2 — Create and verify the initial migrations for the full schema, including indexes and uniqueness constraints.
 - [ ] 2.3 — Seed the initial category taxonomy and any required admin bootstrap data for local development.
 - [ ] 2.4 — Implement repository methods for contract listing, contract detail loading, published-version lookup, and relation traversal.
 - [ ] 2.5 — Implement metadata validation rules for contract names, slugs, semantic versions, publish states, and relation types.
