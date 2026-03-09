@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Iterable
 
 import sqlalchemy as sa
@@ -14,13 +15,22 @@ from contracting_hub.models import (
     ContractCategoryLink,
     ContractRelation,
     ContractVersion,
+    DeploymentHistory,
+    DeploymentStatus,
     PublicationStatus,
+    Rating,
+    Star,
     User,
 )
 
 PUBLIC_VISIBLE_STATUSES: tuple[PublicationStatus, ...] = (
     PublicationStatus.PUBLISHED,
     PublicationStatus.DEPRECATED,
+)
+PUBLIC_HOME_PAGE_DEPLOYMENT_STATUSES: tuple[DeploymentStatus, ...] = (
+    DeploymentStatus.PENDING,
+    DeploymentStatus.ACCEPTED,
+    DeploymentStatus.REDIRECT_REQUIRED,
 )
 CONTRACT_SEARCH_INDEX_TABLE_NAME = "contract_search_index"
 
@@ -48,6 +58,18 @@ class ContractSearchResult:
 
     contract: Contract
     rank: float
+
+
+@dataclass(frozen=True)
+class ContractHighlightRecord:
+    """Contract summary plus aggregate metrics for homepage-style cards."""
+
+    contract: Contract
+    star_count: int
+    rating_count: int
+    average_rating: float | None
+    deployment_count: int
+    latest_deployment_at: datetime | None
 
 
 class ContractRepository:
@@ -211,6 +233,52 @@ class ContractRepository:
         rows = self._session.execute(statement, {"match_query": match_query}).all()
         return [ContractSearchResult(contract=row[0], rank=float(row[1])) for row in rows]
 
+    def list_featured_contract_highlights(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[ContractHighlightRecord]:
+        """Return featured public contracts for the homepage spotlight section."""
+        return self._list_contract_highlights(
+            featured=True,
+            limit=limit,
+            ordering="featured",
+        )
+
+    def list_trending_contract_highlights(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[ContractHighlightRecord]:
+        """Return public contracts ordered by aggregate engagement signals."""
+        return self._list_contract_highlights(
+            limit=limit,
+            ordering="trending",
+        )
+
+    def list_recently_updated_contract_highlights(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[ContractHighlightRecord]:
+        """Return public contracts ordered by the latest catalog update timestamp."""
+        return self._list_contract_highlights(
+            limit=limit,
+            ordering="recently_updated",
+        )
+
+    def list_recently_deployed_contract_highlights(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[ContractHighlightRecord]:
+        """Return public contracts ordered by their latest visible deployment."""
+        return self._list_contract_highlights(
+            limit=limit,
+            require_deployments=True,
+            ordering="recently_deployed",
+        )
+
     def traverse_relations(
         self,
         contract_slug: str,
@@ -305,12 +373,158 @@ class ContractRepository:
             statement = statement.where(ContractVersion.status.in_(PUBLIC_VISIBLE_STATUSES))
         return tuple(self._session.exec(statement).all())
 
+    def _list_contract_highlights(
+        self,
+        *,
+        ordering: str,
+        featured: bool | None = None,
+        require_deployments: bool = False,
+        limit: int | None = None,
+    ) -> list[ContractHighlightRecord]:
+        star_metrics = _build_contract_star_metrics_subquery()
+        rating_metrics = _build_contract_rating_metrics_subquery()
+        deployment_metrics = _build_contract_deployment_metrics_subquery()
+
+        star_count = sa.func.coalesce(star_metrics.c.star_count, 0).label("star_count")
+        rating_count = sa.func.coalesce(rating_metrics.c.rating_count, 0).label("rating_count")
+        average_rating = rating_metrics.c.average_rating.label("average_rating")
+        deployment_count = sa.func.coalesce(deployment_metrics.c.deployment_count, 0).label(
+            "deployment_count"
+        )
+        latest_deployment_at = deployment_metrics.c.latest_deployment_at.label(
+            "latest_deployment_at"
+        )
+
+        statement = (
+            select(
+                Contract,
+                star_count,
+                rating_count,
+                average_rating,
+                deployment_count,
+                latest_deployment_at,
+            )
+            .options(*_contract_summary_load_options())
+            .outerjoin(star_metrics, star_metrics.c.contract_id == Contract.id)
+            .outerjoin(rating_metrics, rating_metrics.c.contract_id == Contract.id)
+            .outerjoin(deployment_metrics, deployment_metrics.c.contract_id == Contract.id)
+        )
+        statement = _apply_public_contract_visibility(statement, Contract)
+
+        if featured is not None:
+            statement = statement.where(Contract.featured.is_(featured))
+        if require_deployments:
+            statement = statement.where(deployment_count > 0)
+        statement = statement.order_by(
+            *self._contract_highlight_ordering(
+                ordering=ordering,
+                star_count=star_count,
+                rating_count=rating_count,
+                average_rating=average_rating,
+                deployment_count=deployment_count,
+                latest_deployment_at=latest_deployment_at,
+            )
+        )
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        rows = self._session.execute(statement).all()
+        return [
+            ContractHighlightRecord(
+                contract=row[0],
+                star_count=int(row[1]),
+                rating_count=int(row[2]),
+                average_rating=float(row[3]) if row[3] is not None else None,
+                deployment_count=int(row[4]),
+                latest_deployment_at=row[5],
+            )
+            for row in rows
+        ]
+
+    def _contract_highlight_ordering(
+        self,
+        *,
+        ordering: str,
+        star_count: sa.ColumnElement[object],
+        rating_count: sa.ColumnElement[object],
+        average_rating: sa.ColumnElement[object],
+        deployment_count: sa.ColumnElement[object],
+        latest_deployment_at: sa.ColumnElement[object],
+    ) -> tuple[sa.ColumnElement[object], ...]:
+        if ordering == "featured":
+            return (
+                Contract.updated_at.desc(),
+                star_count.desc(),
+                Contract.display_name.asc(),
+            )
+        if ordering == "trending":
+            return (
+                star_count.desc(),
+                deployment_count.desc(),
+                sa.func.coalesce(average_rating, 0.0).desc(),
+                rating_count.desc(),
+                Contract.updated_at.desc(),
+                Contract.display_name.asc(),
+            )
+        if ordering == "recently_updated":
+            return (
+                Contract.updated_at.desc(),
+                star_count.desc(),
+                Contract.display_name.asc(),
+            )
+        if ordering == "recently_deployed":
+            return (
+                latest_deployment_at.desc(),
+                deployment_count.desc(),
+                Contract.updated_at.desc(),
+                Contract.display_name.asc(),
+            )
+        raise ValueError(f"Unsupported contract highlight ordering: {ordering}")
+
 
 def _contract_summary_load_options() -> tuple[object, ...]:
     return (
         selectinload(Contract.author).selectinload(User.profile),
         selectinload(Contract.latest_published_version),
         selectinload(Contract.category_links).selectinload(ContractCategoryLink.category),
+    )
+
+
+def _build_contract_star_metrics_subquery() -> sa.Subquery:
+    return (
+        sa.select(
+            Star.contract_id.label("contract_id"),
+            sa.func.count(Star.id).label("star_count"),
+        )
+        .group_by(Star.contract_id)
+        .subquery()
+    )
+
+
+def _build_contract_rating_metrics_subquery() -> sa.Subquery:
+    return (
+        sa.select(
+            Rating.contract_id.label("contract_id"),
+            sa.func.count(Rating.id).label("rating_count"),
+            sa.func.avg(Rating.score).label("average_rating"),
+        )
+        .group_by(Rating.contract_id)
+        .subquery()
+    )
+
+
+def _build_contract_deployment_metrics_subquery() -> sa.Subquery:
+    return (
+        sa.select(
+            ContractVersion.contract_id.label("contract_id"),
+            sa.func.count(DeploymentHistory.id).label("deployment_count"),
+            sa.func.max(DeploymentHistory.initiated_at).label("latest_deployment_at"),
+        )
+        .select_from(DeploymentHistory)
+        .join(ContractVersion, ContractVersion.id == DeploymentHistory.contract_version_id)
+        .where(DeploymentHistory.status.in_(PUBLIC_HOME_PAGE_DEPLOYMENT_STATUSES))
+        .group_by(ContractVersion.contract_id)
+        .subquery()
     )
 
 
@@ -363,8 +577,10 @@ def _version_ordering_clause() -> tuple[sa.ColumnElement[object], ...]:
 __all__ = [
     "CONTRACT_SEARCH_INDEX_TABLE_NAME",
     "ContractDetailRecord",
+    "ContractHighlightRecord",
     "ContractRelationTraversal",
     "ContractRepository",
     "ContractSearchResult",
+    "PUBLIC_HOME_PAGE_DEPLOYMENT_STATUSES",
     "PUBLIC_VISIBLE_STATUSES",
 ]

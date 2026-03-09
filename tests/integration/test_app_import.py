@@ -40,6 +40,10 @@ def test_home_page_uses_the_shared_shell(app_module: dict[str, object]) -> None:
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert APP_NAME in rendered_text
     assert HOME_TAGLINE in rendered_text
+    assert "Featured Contracts" in rendered_text
+    assert "Trending Now" in rendered_text
+    assert "Recently Updated" in rendered_text
+    assert "Recently Deployed" in rendered_text
     assert "Curated repository scaffolding for Xian smart contracts." in rendered_text
     assert "Designed for search, diffs, lint feedback, and deployments." in rendered_text
     for pillar in SHELL_PILLARS:

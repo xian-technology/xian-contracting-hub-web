@@ -34,7 +34,7 @@
 - [x] 3.9 — Write backend tests for auth flows, profile updates, star/rating behavior, playground target management, deployments, and leaderboard aggregations.
 
 ## Phase 4: Public Discovery and Contract UX
-- [ ] 4.1 — Build the public home page with featured, trending, recently updated, and recently deployed sections.
+- [x] 4.1 — Build the public home page with featured, trending, recently updated, and recently deployed sections.
 - [ ] 4.2 — Build the browse page with search input, category/tag filters, sorting controls, pagination, and URL-synced query state.
 - [ ] 4.3 — Build reusable contract card, metadata badge, and rating summary components used across lists and detail views.
 - [ ] 4.4 — Build the contract detail header with author information, category data, stars, ratings, and primary actions.
