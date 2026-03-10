@@ -63,6 +63,11 @@ def test_browse_page_renders_filters_sort_controls_and_public_shell() -> None:
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"browse-filters"' in prop for prop in rendered_props)
     assert any('"data-testid":"browse-results-loading"' in prop for prop in rendered_props)
+    assert any('htmlFor:"browse-query"' in prop for prop in rendered_props)
+    assert any('id:"browse-query"' in prop for prop in rendered_props)
+    assert any('id:"browse-category"' in prop for prop in rendered_props)
+    assert any('id:"browse-tag"' in prop for prop in rendered_props)
+    assert any('id:"browse-sort"' in prop for prop in rendered_props)
     assert "Browse Contracts" in rendered_text
     assert "Browse Controls" in rendered_text
     assert "Apply filters" in rendered_text

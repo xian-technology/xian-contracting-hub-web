@@ -23,6 +23,14 @@ from contracting_hub.utils.meta import CONTRACT_DETAIL_ROUTE, PROFILE_SETTINGS_R
 ROUTE = CONTRACT_DETAIL_ROUTE
 ON_LOAD = [AuthState.sync_auth_state, ContractDetailState.load_page]
 
+DEPLOYMENT_TRIGGER_ID = "contract-deployment-trigger"
+DEPLOYMENT_VERSION_FIELD_ID = "contract-deployment-version"
+DEPLOYMENT_MODE_FIELD_ID = "contract-deployment-target-mode"
+DEPLOYMENT_SAVED_TARGET_FIELD_ID = "contract-deployment-saved-target"
+DEPLOYMENT_AD_HOC_FIELD_ID = "contract-deployment-playground-id"
+DEPLOYMENT_DIALOG_TITLE_ID = "contract-deployment-dialog-title"
+DEPLOYMENT_DIALOG_DESCRIPTION_ID = "contract-deployment-dialog-description"
+
 
 def _status_badge(label, color_scheme) -> rx.Component:
     return rx.badge(
@@ -35,9 +43,19 @@ def _status_badge(label, color_scheme) -> rx.Component:
     )
 
 
-def _field_label(label: str) -> rx.Component:
-    return rx.text(
+def _field_label(label: str, *, field_id: str | None = None) -> rx.Component:
+    if field_id is None:
+        return rx.text(
+            label,
+            font_size="0.75rem",
+            font_weight="600",
+            text_transform="uppercase",
+            letter_spacing="0.08em",
+            color="var(--hub-color-text-muted)",
+        )
+    return rx.el.label(
         label,
+        html_for=field_id,
         font_size="0.75rem",
         font_weight="600",
         text_transform="uppercase",
@@ -46,13 +64,15 @@ def _field_label(label: str) -> rx.Component:
     )
 
 
-def _field_error(message) -> rx.Component:
+def _field_error(message, *, error_id: str) -> rx.Component:
     return rx.cond(
         message != "",
         rx.text(
             message,
+            id=error_id,
             color="tomato",
             font_size="0.9rem",
+            custom_attrs={"role": "alert"},
         ),
     )
 
@@ -283,7 +303,11 @@ def _feedback_banner(message, *, tone: str, test_id: str) -> rx.Component:
             border=border,
             border_radius="var(--hub-radius-md)",
             background=background,
-            custom_attrs={"data-testid": test_id},
+            custom_attrs={
+                "aria-live": "polite" if tone == "success" else "assertive",
+                "data-testid": test_id,
+                "role": "status" if tone == "success" else "alert",
+            },
         ),
     )
 
@@ -291,23 +315,25 @@ def _feedback_banner(message, *, tone: str, test_id: str) -> rx.Component:
 def _star_button() -> rx.Component:
     starred_button = rx.button(
         ContractDetailState.star_button_label,
+        id="contract-star-toggle",
         type="button",
         size="3",
         variant="solid",
         color_scheme="bronze",
         on_click=ContractDetailState.toggle_star,
         disabled=ContractDetailState.star_pending,
-        custom_attrs={"data-testid": "contract-star-toggle"},
+        custom_attrs={"aria-pressed": True, "data-testid": "contract-star-toggle"},
     )
     default_button = rx.button(
         ContractDetailState.star_button_label,
+        id="contract-star-toggle",
         type="button",
         size="3",
         variant="soft",
         color_scheme="gray",
         on_click=ContractDetailState.toggle_star,
         disabled=ContractDetailState.star_pending,
-        custom_attrs={"data-testid": "contract-star-toggle"},
+        custom_attrs={"aria-pressed": False, "data-testid": "contract-star-toggle"},
     )
     return rx.cond(
         ContractDetailState.starred_by_current_user,
@@ -325,7 +351,11 @@ def _rating_button(score: int) -> rx.Component:
         color_scheme="bronze",
         on_click=ContractDetailState.submit_rating(score),
         disabled=ContractDetailState.rating_pending,
-        custom_attrs={"data-testid": f"contract-rating-option-{score}"},
+        custom_attrs={
+            "aria-label": f"Rate {score} out of 5",
+            "aria-pressed": True,
+            "data-testid": f"contract-rating-option-{score}",
+        },
     )
     unselected_button = rx.button(
         str(score),
@@ -335,7 +365,11 @@ def _rating_button(score: int) -> rx.Component:
         color_scheme="gray",
         on_click=ContractDetailState.submit_rating(score),
         disabled=ContractDetailState.rating_pending,
-        custom_attrs={"data-testid": f"contract-rating-option-{score}"},
+        custom_attrs={
+            "aria-label": f"Rate {score} out of 5",
+            "aria-pressed": False,
+            "data-testid": f"contract-rating-option-{score}",
+        },
     )
     return rx.cond(
         ContractDetailState.current_user_rating_score == score,
@@ -407,38 +441,47 @@ def _engagement_panel() -> rx.Component:
                 background="rgba(255, 252, 246, 0.84)",
             ),
             rx.box(
-                rx.vstack(
-                    rx.text(
+                rx.el.fieldset(
+                    rx.el.legend(
                         "Rate this release",
                         font_weight="600",
                         color="var(--hub-color-text)",
                     ),
-                    rx.flex(
-                        _rating_button(1),
-                        _rating_button(2),
-                        _rating_button(3),
-                        _rating_button(4),
-                        _rating_button(5),
-                        wrap="wrap",
-                        gap="var(--hub-space-2)",
+                    rx.vstack(
+                        rx.flex(
+                            _rating_button(1),
+                            _rating_button(2),
+                            _rating_button(3),
+                            _rating_button(4),
+                            _rating_button(5),
+                            wrap="wrap",
+                            gap="var(--hub-space-2)",
+                            width="100%",
+                        ),
+                        rx.cond(
+                            ContractDetailState.is_authenticated,
+                            rx.text(
+                                ContractDetailState.current_user_rating_label,
+                                color="var(--hub-color-text-muted)",
+                                font_size="0.9rem",
+                            ),
+                            rx.text(
+                                ContractDetailState.engagement_login_copy,
+                                color="var(--hub-color-text-muted)",
+                                font_size="0.9rem",
+                            ),
+                        ),
+                        align="start",
+                        gap="var(--hub-space-3)",
                         width="100%",
                     ),
-                    rx.cond(
-                        ContractDetailState.is_authenticated,
-                        rx.text(
-                            ContractDetailState.current_user_rating_label,
-                            color="var(--hub-color-text-muted)",
-                            font_size="0.9rem",
-                        ),
-                        rx.text(
-                            ContractDetailState.engagement_login_copy,
-                            color="var(--hub-color-text-muted)",
-                            font_size="0.9rem",
-                        ),
-                    ),
-                    align="start",
-                    gap="var(--hub-space-3)",
-                    width="100%",
+                    style={
+                        "border": "none",
+                        "margin": "0",
+                        "minWidth": "0",
+                        "padding": "0",
+                        "width": "100%",
+                    },
                 ),
                 width="100%",
                 padding="var(--hub-space-4)",
@@ -487,6 +530,7 @@ def _header_actions() -> rx.Component:
                 ContractDetailState.is_authenticated,
                 rx.button(
                     "Deploy version",
+                    id=DEPLOYMENT_TRIGGER_ID,
                     type="button",
                     size="3",
                     variant="solid",
@@ -496,6 +540,7 @@ def _header_actions() -> rx.Component:
                 ),
                 rx.button(
                     "Log in to deploy",
+                    id=DEPLOYMENT_TRIGGER_ID,
                     type="button",
                     size="3",
                     variant="solid",
@@ -721,20 +766,28 @@ def _deployment_result_card() -> rx.Component:
 
 def _ad_hoc_target_input() -> rx.Component:
     return rx.vstack(
-        _field_label("Playground ID"),
+        _field_label("Playground ID", field_id=DEPLOYMENT_AD_HOC_FIELD_ID),
         _surface_input(
+            id=DEPLOYMENT_AD_HOC_FIELD_ID,
             name="playground_id",
             value=ContractDetailState.deployment_ad_hoc_playground_id,
             on_change=ContractDetailState.set_deployment_ad_hoc_playground_id,
             placeholder="sandbox-alpha",
             required=True,
+            custom_attrs={
+                "aria-describedby": "contract-deployment-playground-id-error",
+                "aria-invalid": ContractDetailState.deployment_playground_id_error != "",
+            },
         ),
         rx.text(
             "Ad hoc playground IDs are trimmed but otherwise treated as opaque values.",
             color="var(--hub-color-text-muted)",
             font_size="0.9rem",
         ),
-        _field_error(ContractDetailState.deployment_playground_id_error),
+        _field_error(
+            ContractDetailState.deployment_playground_id_error,
+            error_id="contract-deployment-playground-id-error",
+        ),
         align="start",
         gap="var(--hub-space-2)",
         width="100%",
@@ -743,7 +796,7 @@ def _ad_hoc_target_input() -> rx.Component:
 
 def _deployment_target_controls() -> rx.Component:
     saved_target_select = rx.vstack(
-        _field_label("Saved target"),
+        _field_label("Saved target", field_id=DEPLOYMENT_SAVED_TARGET_FIELD_ID),
         rx.el.select(
             rx.foreach(
                 ContractDetailState.deployment_saved_targets,
@@ -752,10 +805,15 @@ def _deployment_target_controls() -> rx.Component:
                     value=target["id"].to(str),
                 ),
             ),
+            id=DEPLOYMENT_SAVED_TARGET_FIELD_ID,
             name="playground_target_id",
             value=ContractDetailState.deployment_saved_target_id,
             on_change=ContractDetailState.set_deployment_saved_target_id,
             style=_select_style(),
+            custom_attrs={
+                "aria-describedby": "contract-deployment-saved-target-error",
+                "aria-invalid": ContractDetailState.deployment_saved_target_error != "",
+            },
         ),
         rx.text(
             ContractDetailState.deployment_target_count_label,
@@ -768,7 +826,10 @@ def _deployment_target_controls() -> rx.Component:
             color="var(--hub-color-accent-strong)",
             text_decoration="underline",
         ),
-        _field_error(ContractDetailState.deployment_saved_target_error),
+        _field_error(
+            ContractDetailState.deployment_saved_target_error,
+            error_id="contract-deployment-saved-target-error",
+        ),
         align="start",
         gap="var(--hub-space-2)",
         width="100%",
@@ -776,10 +837,11 @@ def _deployment_target_controls() -> rx.Component:
     return rx.cond(
         ContractDetailState.has_deployment_saved_targets,
         rx.vstack(
-            _field_label("Target source"),
+            _field_label("Target source", field_id=DEPLOYMENT_MODE_FIELD_ID),
             rx.el.select(
                 rx.el.option("Saved target", value="saved"),
                 rx.el.option("Ad hoc ID", value="ad_hoc"),
+                id=DEPLOYMENT_MODE_FIELD_ID,
                 name="target_mode",
                 value=ContractDetailState.deployment_target_mode,
                 on_change=ContractDetailState.set_deployment_target_mode,
@@ -833,11 +895,13 @@ def _deployment_drawer() -> rx.Component:
                         font_family="var(--hub-font-display)",
                         letter_spacing="-0.05em",
                         color="var(--hub-color-text)",
+                        id=DEPLOYMENT_DIALOG_TITLE_ID,
                     ),
                     rx.text(
                         "Use a saved playground target or paste an ad hoc ID, then "
                         "record the deployment handoff.",
                         color="var(--hub-color-text-muted)",
+                        id=DEPLOYMENT_DIALOG_DESCRIPTION_ID,
                     ),
                     align="start",
                     gap="var(--hub-space-2)",
@@ -864,7 +928,7 @@ def _deployment_drawer() -> rx.Component:
             rx.form(
                 rx.vstack(
                     rx.vstack(
-                        _field_label("Version"),
+                        _field_label("Version", field_id=DEPLOYMENT_VERSION_FIELD_ID),
                         rx.el.select(
                             rx.foreach(
                                 ContractDetailState.available_versions,
@@ -873,12 +937,20 @@ def _deployment_drawer() -> rx.Component:
                                     value=version["semantic_version"],
                                 ),
                             ),
+                            id=DEPLOYMENT_VERSION_FIELD_ID,
                             name="semantic_version",
                             value=ContractDetailState.deployment_version,
                             on_change=ContractDetailState.set_deployment_version,
                             style=_select_style(),
+                            custom_attrs={
+                                "aria-describedby": "contract-deployment-version-error",
+                                "aria-invalid": ContractDetailState.deployment_version_error != "",
+                            },
                         ),
-                        _field_error(ContractDetailState.deployment_version_error),
+                        _field_error(
+                            ContractDetailState.deployment_version_error,
+                            error_id="contract-deployment-version-error",
+                        ),
                         align="start",
                         gap="var(--hub-space-2)",
                         width="100%",
@@ -927,6 +999,13 @@ def _deployment_drawer() -> rx.Component:
         border_left=rx.breakpoints(initial="none", md="1px solid var(--hub-color-line)"),
         box_shadow="var(--hub-shadow-panel)",
         overflow_y="auto",
+        tab_index=-1,
+        custom_attrs={
+            "aria-describedby": DEPLOYMENT_DIALOG_DESCRIPTION_ID,
+            "aria-labelledby": DEPLOYMENT_DIALOG_TITLE_ID,
+            "aria-modal": "true",
+            "role": "dialog",
+        },
     )
     return rx.cond(
         ContractDetailState.deployment_drawer_open,

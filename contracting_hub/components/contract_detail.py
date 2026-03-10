@@ -70,6 +70,7 @@ def contract_detail_header(
                     align="start",
                     gap="var(--hub-space-4)",
                     width="100%",
+                    min_width="0",
                 ),
                 author_panel,
                 columns=rx.breakpoints(initial="1", xl="2"),
@@ -88,13 +89,14 @@ def contract_detail_header(
             width="100%",
         ),
         width="100%",
-        padding="var(--hub-space-8)",
+        padding=rx.breakpoints(initial="var(--hub-space-5)", md="var(--hub-space-8)"),
         border="1px solid var(--hub-color-line)",
         border_radius="var(--hub-radius-lg)",
         background=(
             "linear-gradient(180deg, rgba(255, 252, 246, 0.96) 0%, rgba(248, 241, 230, 0.92) 100%)"
         ),
         box_shadow="var(--hub-shadow-panel)",
+        min_width="0",
         **props,
     )
 

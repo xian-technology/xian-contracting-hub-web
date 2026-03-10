@@ -495,7 +495,7 @@ class ContractDetailState(rx.State):
         self.post_login_path = self.current_detail_path
         return rx.redirect(LOGIN_ROUTE, replace=True)
 
-    def open_deployment_drawer(self) -> rx.event.EventSpec | None:
+    def open_deployment_drawer(self):
         """Open the deployment drawer for the current authenticated user."""
         self._apply_user_snapshot(self._resolve_user_from_cookie())
         if self.current_user_id is None:
@@ -503,13 +503,15 @@ class ContractDetailState(rx.State):
         self._load_deployment_targets()
         self._reset_deployment_form(reset_result=True)
         self.deployment_drawer_open = True
-        return None
+        yield
+        return rx.set_focus("contract-deployment-version")
 
-    def close_deployment_drawer(self) -> None:
+    def close_deployment_drawer(self) -> rx.event.EventSpec | None:
         """Close the deployment drawer when no submission is in progress."""
         if self.deployment_pending:
-            return
+            return None
         self.deployment_drawer_open = False
+        return rx.set_focus("contract-deployment-trigger")
 
     def set_deployment_version(self, value: str) -> None:
         """Update the selected deployment version."""

@@ -31,16 +31,21 @@ SORT_OPTIONS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _filter_field(label: str, control: rx.Component) -> rx.Component:
+def _filter_label(label: str, *, control_id: str) -> rx.Component:
+    return rx.el.label(
+        label,
+        html_for=control_id,
+        font_size="0.78rem",
+        font_weight="600",
+        text_transform="uppercase",
+        letter_spacing="0.08em",
+        color="var(--hub-color-text-muted)",
+    )
+
+
+def _filter_field(label: str, control: rx.Component, *, control_id: str) -> rx.Component:
     return rx.vstack(
-        rx.text(
-            label,
-            font_size="0.78rem",
-            font_weight="600",
-            text_transform="uppercase",
-            letter_spacing="0.08em",
-            color="var(--hub-color-text-muted)",
-        ),
+        _filter_label(label, control_id=control_id),
         control,
         align="start",
         gap="var(--hub-space-2)",
@@ -49,6 +54,13 @@ def _filter_field(label: str, control: rx.Component) -> rx.Component:
 
 
 def _browse_filters() -> rx.Component:
+    fieldset_style = {
+        "border": "none",
+        "margin": "0",
+        "padding": "0",
+        "minWidth": "0",
+        "width": "100%",
+    }
     return page_section(
         rx.vstack(
             rx.vstack(
@@ -78,96 +90,111 @@ def _browse_filters() -> rx.Component:
                 width="100%",
             ),
             rx.form(
-                rx.vstack(
-                    _filter_field(
-                        "Search",
-                        rx.input(
-                            name="query",
-                            value=BrowseState.search_query,
-                            on_change=BrowseState.set_search_query,
-                            placeholder="Search by name, author, tag, or category",
-                            size="3",
-                            variant="surface",
-                            width="100%",
-                        ),
-                    ),
-                    _filter_field(
-                        "Category",
-                        rx.el.select(
-                            rx.el.option("All categories", value=""),
-                            rx.foreach(
-                                BrowseState.category_options,
-                                lambda option: rx.el.option(
-                                    option["label"],
-                                    " (",
-                                    option["count"],
-                                    ")",
-                                    value=option["value"],
-                                ),
-                            ),
-                            name="category",
-                            value=BrowseState.selected_category,
-                            on_change=BrowseState.set_selected_category,
-                            style=_select_style(),
-                        ),
-                    ),
-                    _filter_field(
-                        "Tag",
-                        rx.el.select(
-                            rx.el.option("All tags", value=""),
-                            rx.foreach(
-                                BrowseState.tag_options,
-                                lambda option: rx.el.option(
-                                    option["label"],
-                                    " (",
-                                    option["count"],
-                                    ")",
-                                    value=option["value"],
-                                ),
-                            ),
-                            name="tag",
-                            value=BrowseState.selected_tag,
-                            on_change=BrowseState.set_selected_tag,
-                            style=_select_style(),
-                        ),
-                    ),
-                    _filter_field(
-                        "Sort",
-                        rx.el.select(
-                            *[rx.el.option(label, value=value) for value, label in SORT_OPTIONS],
-                            name="sort",
-                            value=BrowseState.selected_sort,
-                            on_change=BrowseState.set_selected_sort,
-                            style=_select_style(),
-                        ),
-                    ),
-                    rx.flex(
-                        rx.button(
-                            "Apply filters",
-                            type="submit",
-                            size="3",
-                            variant="solid",
-                            width=rx.breakpoints(initial="100%", sm="auto"),
-                        ),
-                        rx.link(
-                            rx.button(
-                                "Clear",
-                                type="button",
+                rx.el.fieldset(
+                    rx.el.legend("Catalog filters", class_name="hub-visually-hidden"),
+                    rx.vstack(
+                        _filter_field(
+                            "Search",
+                            rx.input(
+                                id="browse-query",
+                                name="query",
+                                value=BrowseState.search_query,
+                                on_change=BrowseState.set_search_query,
+                                placeholder="Search by name, author, tag, or category",
                                 size="3",
-                                variant="soft",
+                                variant="surface",
+                                width="100%",
+                            ),
+                            control_id="browse-query",
+                        ),
+                        _filter_field(
+                            "Category",
+                            rx.el.select(
+                                rx.el.option("All categories", value=""),
+                                rx.foreach(
+                                    BrowseState.category_options,
+                                    lambda option: rx.el.option(
+                                        option["label"],
+                                        " (",
+                                        option["count"],
+                                        ")",
+                                        value=option["value"],
+                                    ),
+                                ),
+                                id="browse-category",
+                                name="category",
+                                value=BrowseState.selected_category,
+                                on_change=BrowseState.set_selected_category,
+                                style=_select_style(),
+                            ),
+                            control_id="browse-category",
+                        ),
+                        _filter_field(
+                            "Tag",
+                            rx.el.select(
+                                rx.el.option("All tags", value=""),
+                                rx.foreach(
+                                    BrowseState.tag_options,
+                                    lambda option: rx.el.option(
+                                        option["label"],
+                                        " (",
+                                        option["count"],
+                                        ")",
+                                        value=option["value"],
+                                    ),
+                                ),
+                                id="browse-tag",
+                                name="tag",
+                                value=BrowseState.selected_tag,
+                                on_change=BrowseState.set_selected_tag,
+                                style=_select_style(),
+                            ),
+                            control_id="browse-tag",
+                        ),
+                        _filter_field(
+                            "Sort",
+                            rx.el.select(
+                                *[
+                                    rx.el.option(label, value=value)
+                                    for value, label in SORT_OPTIONS
+                                ],
+                                id="browse-sort",
+                                name="sort",
+                                value=BrowseState.selected_sort,
+                                on_change=BrowseState.set_selected_sort,
+                                style=_select_style(),
+                            ),
+                            control_id="browse-sort",
+                        ),
+                        rx.flex(
+                            rx.button(
+                                "Apply filters",
+                                type="submit",
+                                size="3",
+                                variant="solid",
                                 width=rx.breakpoints(initial="100%", sm="auto"),
                             ),
-                            href=BrowseState.clear_filters_href,
-                            text_decoration="none",
-                            width=rx.breakpoints(initial="100%", sm="auto"),
+                            rx.link(
+                                rx.button(
+                                    "Clear",
+                                    type="button",
+                                    size="3",
+                                    variant="soft",
+                                    width=rx.breakpoints(initial="100%", sm="auto"),
+                                ),
+                                href=BrowseState.clear_filters_href,
+                                text_decoration="none",
+                                width=rx.breakpoints(initial="100%", sm="auto"),
+                            ),
+                            direction=rx.breakpoints(initial="column", sm="row"),
+                            width="100%",
+                            gap="var(--hub-space-3)",
                         ),
-                        direction=rx.breakpoints(initial="column", sm="row"),
+                        align="start",
+                        gap="var(--hub-space-4)",
                         width="100%",
-                        gap="var(--hub-space-3)",
                     ),
-                    align="start",
-                    gap="var(--hub-space-4)",
-                    width="100%",
+                    style=fieldset_style,
                 ),
                 on_submit=BrowseState.apply_filters,
                 width="100%",

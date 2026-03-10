@@ -59,6 +59,15 @@ def _redirect_path(event) -> str | None:
     return None
 
 
+def _focus_ref(event) -> str | None:
+    if event is None:
+        return None
+    for key, value in event.args:
+        if key._js_expr == "ref":
+            return value._var_value
+    return None
+
+
 @contextmanager
 def _fake_session_scope():
     yield object()
@@ -114,15 +123,18 @@ def test_open_deployment_drawer_loads_saved_targets_for_authenticated_users(monk
         ],
     )
 
-    event = state.open_deployment_drawer()
+    updates = state.open_deployment_drawer()
 
-    assert event is None
+    assert next(updates) is None
     assert state.deployment_drawer_open is True
     assert state.deployment_version == "2.0.0"
     assert state.deployment_target_mode == "saved"
     assert state.deployment_saved_target_id == "9"
     assert state.deployment_target_count_label == "1 saved target"
     assert state.deployment_saved_targets[0]["playground_id"] == "sandbox-main"
+    with pytest.raises(StopIteration) as stop:
+        next(updates)
+    assert _focus_ref(stop.value.value) == "ref_contract_deployment_version"
 
 
 def test_submit_deployment_records_redirect_results_and_refreshes_saved_targets(
@@ -287,3 +299,13 @@ def test_submit_deployment_maps_service_errors_to_field_messages(monkeypatch) ->
     assert state.deployment_pending is False
     assert state.deployment_playground_id_error == "Enter a playground ID to continue."
     assert state.deployment_result_message == ""
+
+
+def test_close_deployment_drawer_returns_focus_to_trigger() -> None:
+    state = _build_state("/contracts/escrow")
+    state.deployment_drawer_open = True
+
+    event = state.close_deployment_drawer()
+
+    assert state.deployment_drawer_open is False
+    assert _focus_ref(event) == "ref_contract_deployment_trigger"

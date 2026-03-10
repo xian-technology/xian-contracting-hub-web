@@ -20,7 +20,10 @@ def _field(
     error_message,
     input_type: str = "text",
 ) -> rx.Component:
+    field_id = f"login-{name}"
+    error_id = f"{field_id}-error"
     props: dict[str, object] = {
+        "id": field_id,
         "name": name,
         "type": input_type,
         "placeholder": placeholder,
@@ -28,11 +31,16 @@ def _field(
         "variant": "surface",
         "width": "100%",
         "required": True,
+        "custom_attrs": {
+            "aria-describedby": error_id,
+            "aria-invalid": error_message != "",
+        },
     }
 
     return rx.vstack(
-        rx.text(
+        rx.el.label(
             label,
+            html_for=field_id,
             font_size="0.78rem",
             font_weight="600",
             text_transform="uppercase",
@@ -44,8 +52,10 @@ def _field(
             error_message != "",
             rx.text(
                 error_message,
+                id=error_id,
                 color="tomato",
                 font_size="0.9rem",
+                custom_attrs={"role": "alert"},
             ),
         ),
         align="start",
@@ -68,6 +78,7 @@ def _error_banner(message) -> rx.Component:
             border="1px solid rgba(191, 61, 48, 0.22)",
             border_radius="var(--hub-radius-md)",
             background="rgba(255, 244, 242, 0.95)",
+            custom_attrs={"role": "alert"},
         ),
     )
 
@@ -142,6 +153,13 @@ def _benefits_panel() -> rx.Component:
 
 
 def _login_form() -> rx.Component:
+    fieldset_style = {
+        "border": "none",
+        "margin": "0",
+        "padding": "0",
+        "minWidth": "0",
+        "width": "100%",
+    }
     return rx.box(
         rx.vstack(
             rx.heading(
@@ -150,6 +168,7 @@ def _login_form() -> rx.Component:
                 font_family="var(--hub-font-display)",
                 letter_spacing="-0.05em",
                 color="var(--hub-color-text)",
+                id="login-form-title",
             ),
             rx.text(
                 "Use your email and password to restore your session.",
@@ -157,44 +176,48 @@ def _login_form() -> rx.Component:
             ),
             _error_banner(AuthState.login_form_error),
             rx.form(
-                rx.vstack(
-                    _field(
-                        label="Email",
-                        name="email",
-                        placeholder="alice@example.com",
-                        error_message=AuthState.login_email_error,
-                        input_type="email",
-                    ),
-                    _field(
-                        label="Password",
-                        name="password",
-                        placeholder="Enter your password",
-                        error_message=AuthState.login_password_error,
-                        input_type="password",
-                    ),
-                    rx.button(
-                        "Log in",
-                        type="submit",
-                        size="3",
+                rx.el.fieldset(
+                    rx.el.legend("Log in credentials", class_name="hub-visually-hidden"),
+                    rx.vstack(
+                        _field(
+                            label="Email",
+                            name="email",
+                            placeholder="alice@example.com",
+                            error_message=AuthState.login_email_error,
+                            input_type="email",
+                        ),
+                        _field(
+                            label="Password",
+                            name="password",
+                            placeholder="Enter your password",
+                            error_message=AuthState.login_password_error,
+                            input_type="password",
+                        ),
+                        rx.button(
+                            "Log in",
+                            type="submit",
+                            size="3",
+                            width="100%",
+                        ),
+                        rx.text(
+                            "Need an account?",
+                            color="var(--hub-color-text-muted)",
+                        ),
+                        rx.link(
+                            "Create one",
+                            href=REGISTER_ROUTE,
+                            color="var(--hub-color-accent-strong)",
+                            text_decoration="underline",
+                        ),
+                        align="start",
+                        gap="var(--hub-space-4)",
                         width="100%",
                     ),
-                    rx.text(
-                        "Need an account?",
-                        color="var(--hub-color-text-muted)",
-                    ),
-                    rx.link(
-                        "Create one",
-                        href=REGISTER_ROUTE,
-                        color="var(--hub-color-accent-strong)",
-                        text_decoration="underline",
-                    ),
-                    align="start",
-                    gap="var(--hub-space-4)",
-                    width="100%",
+                    style=fieldset_style,
                 ),
                 on_submit=AuthState.submit_login,
                 width="100%",
-                custom_attrs={"data-testid": "login-form"},
+                custom_attrs={"aria-labelledby": "login-form-title", "data-testid": "login-form"},
             ),
             align="start",
             gap="var(--hub-space-4)",

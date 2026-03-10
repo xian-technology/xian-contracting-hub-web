@@ -1,0 +1,51 @@
+.hub-skip-link {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  transform: translateY(-220%);
+  transition: transform 160ms ease;
+  z-index: 120;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--hub-color-accent);
+  border-radius: var(--hub-radius-pill);
+  background: var(--hub-color-surface-strong);
+  color: var(--hub-color-text);
+  font-family: var(--hub-font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.1;
+  box-shadow: var(--hub-shadow-panel);
+}
+
+.hub-skip-link:focus,
+.hub-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+.hub-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex="-1"], [tabindex="0"]):focus-visible {
+  outline: 3px solid var(--hub-color-highlight);
+  outline-offset: 3px;
+}
+
+#main-content {
+  scroll-margin-top: 6.5rem;
+}
+
+@media (max-width: 640px) {
+  .hub-skip-link {
+    right: 1rem;
+    left: 1rem;
+  }
+}

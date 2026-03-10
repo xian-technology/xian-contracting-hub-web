@@ -66,6 +66,9 @@ def test_login_page_renders_form_shell_and_session_navigation() -> None:
     assert any('"data-testid":"login-page"' in prop for prop in rendered_props)
     assert any('"data-testid":"login-form"' in prop for prop in rendered_props)
     assert any('"data-testid":"session-navigation"' in prop for prop in rendered_props)
+    assert any('htmlFor:"login-email"' in prop for prop in rendered_props)
+    assert any('id:"login-email"' in prop for prop in rendered_props)
+    assert any('id:"login-password"' in prop for prop in rendered_props)
     assert "Log in" in rendered_text
     assert "Welcome back" in rendered_text
     assert "Create one" in rendered_text
@@ -80,6 +83,10 @@ def test_registration_page_renders_form_shell_and_identity_copy() -> None:
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"register-page"' in prop for prop in rendered_props)
     assert any('"data-testid":"register-form"' in prop for prop in rendered_props)
+    assert any('htmlFor:"register-username"' in prop for prop in rendered_props)
+    assert any('id:"register-username"' in prop for prop in rendered_props)
+    assert any('id:"register-email"' in prop for prop in rendered_props)
+    assert any('id:"register-password"' in prop for prop in rendered_props)
     assert "Create account" in rendered_text
     assert "Create your account" in rendered_text
     assert "Username" in rendered_text

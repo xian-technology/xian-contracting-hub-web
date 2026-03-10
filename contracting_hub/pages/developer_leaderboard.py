@@ -40,11 +40,13 @@ def _control_field(
     label: str,
     control: rx.Component,
     *,
+    control_id: str,
     helper: str | None = None,
 ) -> rx.Component:
     children: list[rx.Component] = [
-        rx.text(
+        rx.el.label(
             label,
+            html_for=control_id,
             font_size="0.78rem",
             font_weight="600",
             text_transform="uppercase",
@@ -85,6 +87,13 @@ def _select_style() -> dict[str, str]:
 
 
 def _leaderboard_filters() -> rx.Component:
+    fieldset_style = {
+        "border": "none",
+        "margin": "0",
+        "padding": "0",
+        "minWidth": "0",
+        "width": "100%",
+    }
     return page_section(
         rx.vstack(
             rx.vstack(
@@ -114,71 +123,87 @@ def _leaderboard_filters() -> rx.Component:
                 width="100%",
             ),
             rx.form(
-                rx.vstack(
-                    _control_field(
-                        "Sort by",
-                        rx.el.select(
-                            *[rx.el.option(label, value=value) for value, label in SORT_OPTIONS],
-                            name="sort",
-                            value=DeveloperLeaderboardState.selected_sort,
-                            on_change=DeveloperLeaderboardState.set_selected_sort,
-                            style=_select_style(),
+                rx.el.fieldset(
+                    rx.el.legend("Developer ranking filters", class_name="hub-visually-hidden"),
+                    rx.vstack(
+                        _control_field(
+                            "Sort by",
+                            rx.el.select(
+                                *[
+                                    rx.el.option(label, value=value)
+                                    for value, label in SORT_OPTIONS
+                                ],
+                                id="leaderboard-sort",
+                                name="sort",
+                                value=DeveloperLeaderboardState.selected_sort,
+                                on_change=DeveloperLeaderboardState.set_selected_sort,
+                                style=_select_style(),
+                            ),
+                            control_id="leaderboard-sort",
                         ),
-                    ),
-                    _control_field(
-                        "Timeframe",
-                        rx.el.select(
-                            *[
-                                rx.el.option(label, value=value)
-                                for value, label in TIMEFRAME_OPTIONS
-                            ],
-                            name="timeframe",
-                            value=DeveloperLeaderboardState.selected_timeframe,
-                            on_change=DeveloperLeaderboardState.set_selected_timeframe,
-                            style=_select_style(),
+                        _control_field(
+                            "Timeframe",
+                            rx.el.select(
+                                *[
+                                    rx.el.option(label, value=value)
+                                    for value, label in TIMEFRAME_OPTIONS
+                                ],
+                                id="leaderboard-timeframe",
+                                name="timeframe",
+                                value=DeveloperLeaderboardState.selected_timeframe,
+                                on_change=DeveloperLeaderboardState.set_selected_timeframe,
+                                style=_select_style(),
+                            ),
+                            control_id="leaderboard-timeframe",
                         ),
-                    ),
-                    _control_field(
-                        "Recent window",
-                        rx.el.select(
-                            *[rx.el.option(label, value=value) for value, label in WINDOW_OPTIONS],
-                            name="window",
-                            value=DeveloperLeaderboardState.selected_window_days,
-                            on_change=DeveloperLeaderboardState.set_selected_window_days,
-                            style=_select_style(),
+                        _control_field(
+                            "Recent window",
+                            rx.el.select(
+                                *[
+                                    rx.el.option(label, value=value)
+                                    for value, label in WINDOW_OPTIONS
+                                ],
+                                id="leaderboard-window",
+                                name="window",
+                                value=DeveloperLeaderboardState.selected_window_days,
+                                on_change=DeveloperLeaderboardState.set_selected_window_days,
+                                style=_select_style(),
+                            ),
+                            control_id="leaderboard-window",
+                            helper=(
+                                "Used for recent filters, recent-activity ranking, "
+                                "and activity context."
+                            ),
                         ),
-                        helper=(
-                            "Used for recent filters, recent-activity ranking, "
-                            "and activity context."
-                        ),
-                    ),
-                    rx.flex(
-                        rx.button(
-                            "Apply ranking",
-                            type="submit",
-                            size="3",
-                            variant="solid",
-                            width=rx.breakpoints(initial="100%", sm="auto"),
-                        ),
-                        rx.link(
+                        rx.flex(
                             rx.button(
-                                "Reset",
-                                type="button",
+                                "Apply ranking",
+                                type="submit",
                                 size="3",
-                                variant="soft",
+                                variant="solid",
                                 width=rx.breakpoints(initial="100%", sm="auto"),
                             ),
-                            href=DeveloperLeaderboardState.clear_filters_href,
-                            text_decoration="none",
-                            width=rx.breakpoints(initial="100%", sm="auto"),
+                            rx.link(
+                                rx.button(
+                                    "Reset",
+                                    type="button",
+                                    size="3",
+                                    variant="soft",
+                                    width=rx.breakpoints(initial="100%", sm="auto"),
+                                ),
+                                href=DeveloperLeaderboardState.clear_filters_href,
+                                text_decoration="none",
+                                width=rx.breakpoints(initial="100%", sm="auto"),
+                            ),
+                            direction=rx.breakpoints(initial="column", sm="row"),
+                            gap="var(--hub-space-3)",
+                            width="100%",
                         ),
-                        direction=rx.breakpoints(initial="column", sm="row"),
-                        gap="var(--hub-space-3)",
+                        align="start",
+                        gap="var(--hub-space-4)",
                         width="100%",
                     ),
-                    align="start",
-                    gap="var(--hub-space-4)",
-                    width="100%",
+                    style=fieldset_style,
                 ),
                 on_submit=DeveloperLeaderboardState.apply_filters,
                 width="100%",

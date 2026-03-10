@@ -21,6 +21,18 @@ SHELL_PILLARS = (
     "Immutable versions",
     "Playground deploys",
 )
+MAIN_CONTENT_ID = "main-content"
+
+
+def _skip_to_content_button() -> rx.Component:
+    """Render the keyboard-visible shortcut to the main content landmark."""
+    return rx.el.button(
+        "Skip to main content",
+        type="button",
+        class_name="hub-skip-link",
+        on_click=[rx.scroll_to(MAIN_CONTENT_ID), rx.set_focus(MAIN_CONTENT_ID)],
+        custom_attrs={"data-testid": "skip-to-content"},
+    )
 
 
 def _brand_lockup() -> rx.Component:
@@ -99,31 +111,34 @@ def _header_badges() -> rx.Component:
 
 def _shell_navigation() -> rx.Component:
     """Render the shared public navigation links."""
-    return rx.flex(
-        rx.link(
-            "Home",
-            href=HOME_ROUTE,
-            text_decoration="none",
-            color="var(--hub-color-text)",
-            font_weight="600",
+    return rx.el.nav(
+        rx.flex(
+            rx.link(
+                "Home",
+                href=HOME_ROUTE,
+                text_decoration="none",
+                color="var(--hub-color-text)",
+                font_weight="600",
+            ),
+            rx.link(
+                "Browse",
+                href=BROWSE_ROUTE,
+                text_decoration="none",
+                color="var(--hub-color-text)",
+                font_weight="600",
+            ),
+            rx.link(
+                "Developers",
+                href=DEVELOPER_LEADERBOARD_ROUTE,
+                text_decoration="none",
+                color="var(--hub-color-text)",
+                font_weight="600",
+            ),
+            gap="var(--hub-space-4)",
+            wrap="wrap",
+            justify=rx.breakpoints(initial="start", md="end"),
         ),
-        rx.link(
-            "Browse",
-            href=BROWSE_ROUTE,
-            text_decoration="none",
-            color="var(--hub-color-text)",
-            font_weight="600",
-        ),
-        rx.link(
-            "Developers",
-            href=DEVELOPER_LEADERBOARD_ROUTE,
-            text_decoration="none",
-            color="var(--hub-color-text)",
-            font_weight="600",
-        ),
-        gap="var(--hub-space-4)",
-        wrap="wrap",
-        justify=rx.breakpoints(initial="start", md="end"),
+        custom_attrs={"aria-label": "Primary"},
     )
 
 
@@ -199,14 +214,14 @@ def _authenticated_session_navigation(auth_state: type[AuthState]) -> rx.Compone
 
 def _session_navigation(auth_state: type[AuthState]) -> rx.Component:
     """Render session-aware navigation controls inside the shell header."""
-    return rx.box(
+    return rx.el.nav(
         rx.cond(
             auth_state.is_authenticated,
             _authenticated_session_navigation(auth_state),
             _guest_session_navigation(),
         ),
         width=rx.breakpoints(initial="100%", md="auto"),
-        custom_attrs={"data-testid": "session-navigation"},
+        custom_attrs={"aria-label": "Account", "data-testid": "session-navigation"},
     )
 
 
@@ -281,7 +296,7 @@ def _page_intro(
 
 def _shell_header(auth_state: type[AuthState]) -> rx.Component:
     """Render the persistent application header."""
-    return rx.box(
+    return rx.el.header(
         _shell_frame(
             rx.flex(
                 _brand_lockup(),
@@ -314,12 +329,13 @@ def _shell_header(auth_state: type[AuthState]) -> rx.Component:
         position="sticky",
         top="0",
         z_index="10",
+        custom_attrs={"role": "banner"},
     )
 
 
 def _shell_footer() -> rx.Component:
     """Render the shared shell footer."""
-    return rx.box(
+    return rx.el.footer(
         _shell_frame(
             rx.flex(
                 rx.text(
@@ -340,6 +356,7 @@ def _shell_footer() -> rx.Component:
         ),
         width="100%",
         padding="var(--hub-space-6) var(--hub-layout-gutter) var(--hub-space-7)",
+        custom_attrs={"role": "contentinfo"},
     )
 
 
@@ -358,6 +375,7 @@ def app_shell(
     content_children.extend(children)
 
     return rx.box(
+        _skip_to_content_button(),
         rx.box(
             position="absolute",
             inset="0",
@@ -371,7 +389,7 @@ def app_shell(
         ),
         rx.flex(
             _shell_header(auth_state),
-            rx.box(
+            rx.el.main(
                 _shell_frame(
                     rx.vstack(
                         *content_children,
@@ -384,6 +402,8 @@ def app_shell(
                 padding="var(--hub-space-8) var(--hub-layout-gutter)",
                 position="relative",
                 z_index="1",
+                id=MAIN_CONTENT_ID,
+                tab_index=-1,
             ),
             _shell_footer(),
             direction="column",

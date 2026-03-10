@@ -22,7 +22,14 @@ def _field(
     required: bool = True,
     helper_text: str | None = None,
 ) -> rx.Component:
+    field_id = f"register-{name}"
+    helper_id = f"{field_id}-helper"
+    error_id = f"{field_id}-error"
+    described_by = " ".join(
+        value for value in (helper_id if helper_text is not None else "", error_id) if value
+    )
     props: dict[str, object] = {
+        "id": field_id,
         "name": name,
         "type": input_type,
         "placeholder": placeholder,
@@ -30,11 +37,16 @@ def _field(
         "variant": "surface",
         "width": "100%",
         "required": required,
+        "custom_attrs": {
+            "aria-describedby": described_by,
+            "aria-invalid": error_message != "",
+        },
     }
 
     children: list[rx.Component] = [
-        rx.text(
+        rx.el.label(
             label,
+            html_for=field_id,
             font_size="0.78rem",
             font_weight="600",
             text_transform="uppercase",
@@ -47,6 +59,7 @@ def _field(
         children.append(
             rx.text(
                 helper_text,
+                id=helper_id,
                 font_size="0.9rem",
                 color="var(--hub-color-text-muted)",
             )
@@ -56,8 +69,10 @@ def _field(
             error_message != "",
             rx.text(
                 error_message,
+                id=error_id,
                 color="tomato",
                 font_size="0.9rem",
+                custom_attrs={"role": "alert"},
             ),
         )
     )
@@ -84,6 +99,7 @@ def _error_banner(message) -> rx.Component:
             border="1px solid rgba(191, 61, 48, 0.22)",
             border_radius="var(--hub-radius-md)",
             background="rgba(255, 244, 242, 0.95)",
+            custom_attrs={"role": "alert"},
         ),
     )
 
@@ -138,6 +154,13 @@ def _identity_panel() -> rx.Component:
 
 
 def _registration_form() -> rx.Component:
+    fieldset_style = {
+        "border": "none",
+        "margin": "0",
+        "padding": "0",
+        "minWidth": "0",
+        "width": "100%",
+    }
     return rx.box(
         rx.vstack(
             rx.heading(
@@ -146,6 +169,7 @@ def _registration_form() -> rx.Component:
                 font_family="var(--hub-font-display)",
                 letter_spacing="-0.05em",
                 color="var(--hub-color-text)",
+                id="register-form-title",
             ),
             rx.text(
                 "Registration signs you in immediately so the authenticated shell is ready.",
@@ -153,60 +177,69 @@ def _registration_form() -> rx.Component:
             ),
             _error_banner(AuthState.register_form_error),
             rx.form(
-                rx.vstack(
-                    _field(
-                        label="Username",
-                        name="username",
-                        placeholder="alice_validator",
-                        error_message=AuthState.register_username_error,
-                        helper_text="Use lowercase letters, numbers, or underscores.",
-                    ),
-                    _field(
-                        label="Email",
-                        name="email",
-                        placeholder="alice@example.com",
-                        error_message=AuthState.register_email_error,
-                        input_type="email",
-                    ),
-                    _field(
-                        label="Display name",
-                        name="display_name",
-                        placeholder="Alice Validator",
-                        error_message="",
-                        required=False,
-                        helper_text="Optional, but useful when you publish public author metadata.",
-                    ),
-                    _field(
-                        label="Password",
-                        name="password",
-                        placeholder="Choose a secure password",
-                        error_message=AuthState.register_password_error,
-                        input_type="password",
-                        helper_text="Must be at least 8 characters long.",
-                    ),
-                    rx.button(
-                        "Create account",
-                        type="submit",
-                        size="3",
+                rx.el.fieldset(
+                    rx.el.legend("Registration details", class_name="hub-visually-hidden"),
+                    rx.vstack(
+                        _field(
+                            label="Username",
+                            name="username",
+                            placeholder="alice_validator",
+                            error_message=AuthState.register_username_error,
+                            helper_text="Use lowercase letters, numbers, or underscores.",
+                        ),
+                        _field(
+                            label="Email",
+                            name="email",
+                            placeholder="alice@example.com",
+                            error_message=AuthState.register_email_error,
+                            input_type="email",
+                        ),
+                        _field(
+                            label="Display name",
+                            name="display_name",
+                            placeholder="Alice Validator",
+                            error_message="",
+                            required=False,
+                            helper_text=(
+                                "Optional, but useful when you publish public author metadata."
+                            ),
+                        ),
+                        _field(
+                            label="Password",
+                            name="password",
+                            placeholder="Choose a secure password",
+                            error_message=AuthState.register_password_error,
+                            input_type="password",
+                            helper_text="Must be at least 8 characters long.",
+                        ),
+                        rx.button(
+                            "Create account",
+                            type="submit",
+                            size="3",
+                            width="100%",
+                        ),
+                        rx.text(
+                            "Already registered?",
+                            color="var(--hub-color-text-muted)",
+                        ),
+                        rx.link(
+                            "Log in",
+                            href=LOGIN_ROUTE,
+                            color="var(--hub-color-accent-strong)",
+                            text_decoration="underline",
+                        ),
+                        align="start",
+                        gap="var(--hub-space-4)",
                         width="100%",
                     ),
-                    rx.text(
-                        "Already registered?",
-                        color="var(--hub-color-text-muted)",
-                    ),
-                    rx.link(
-                        "Log in",
-                        href=LOGIN_ROUTE,
-                        color="var(--hub-color-accent-strong)",
-                        text_decoration="underline",
-                    ),
-                    align="start",
-                    gap="var(--hub-space-4)",
-                    width="100%",
+                    style=fieldset_style,
                 ),
                 on_submit=AuthState.submit_registration,
                 width="100%",
-                custom_attrs={"data-testid": "register-form"},
+                custom_attrs={
+                    "aria-labelledby": "register-form-title",
+                    "data-testid": "register-form",
+                },
             ),
             align="start",
             gap="var(--hub-space-4)",

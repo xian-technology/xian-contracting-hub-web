@@ -21,9 +21,10 @@ AVATAR_ACCEPT = {
 }
 
 
-def _field_label(label: str) -> rx.Component:
-    return rx.text(
+def _field_label(label: str, *, field_id: str) -> rx.Component:
+    return rx.el.label(
         label,
+        html_for=field_id,
         font_size="0.78rem",
         font_weight="600",
         text_transform="uppercase",
@@ -93,17 +94,23 @@ def _message_banner(message, *, tone: str) -> rx.Component:
             border=border,
             border_radius="var(--hub-radius-md)",
             background=background,
+            custom_attrs={
+                "aria-live": "polite" if tone == "success" else "assertive",
+                "role": "status" if tone == "success" else "alert",
+            },
         ),
     )
 
 
-def _field_error(message) -> rx.Component:
+def _field_error(message, *, error_id: str) -> rx.Component:
     return rx.cond(
         message != "",
         rx.text(
             message,
+            id=error_id,
             color="tomato",
             font_size="0.9rem",
+            custom_attrs={"role": "alert"},
         ),
     )
 
@@ -111,26 +118,34 @@ def _field_error(message) -> rx.Component:
 def _profile_field(
     *,
     label: str,
+    field_id: str,
     control: rx.Component,
     error_message,
     helper_text: str | None = None,
 ) -> rx.Component:
-    children: list[rx.Component] = [_field_label(label), control]
+    helper_id = f"{field_id}-helper"
+    error_id = f"{field_id}-error"
+    children: list[rx.Component] = [_field_label(label, field_id=field_id), control]
     if helper_text is not None:
         children.append(
             rx.text(
                 helper_text,
+                id=helper_id,
                 font_size="0.9rem",
                 color="var(--hub-color-text-muted)",
             )
         )
-    children.append(_field_error(error_message))
+    children.append(_field_error(error_message, error_id=error_id))
     return rx.vstack(
         *children,
         align="start",
         gap="var(--hub-space-2)",
         width="100%",
     )
+
+
+def _field_described_by(*ids: str) -> str:
+    return " ".join(value for value in ids if value)
 
 
 def _avatar_card() -> rx.Component:
@@ -206,7 +221,10 @@ def _avatar_card() -> rx.Component:
                 border_radius="var(--hub-radius-md)",
                 background="rgba(255, 249, 239, 0.74)",
                 cursor="pointer",
-                custom_attrs={"data-testid": "avatar-upload"},
+                custom_attrs={
+                    "aria-label": "Upload profile avatar",
+                    "data-testid": "avatar-upload",
+                },
             ),
             rx.cond(
                 ProfileSettingsState.has_avatar,
@@ -239,23 +257,38 @@ def _profile_form() -> rx.Component:
             rx.grid(
                 _profile_field(
                     label="Username",
+                    field_id="profile-username",
                     control=_surface_input(
+                        id="profile-username",
                         name="username",
                         value=ProfileSettingsState.profile_username,
                         on_change=ProfileSettingsState.set_profile_username,
                         placeholder="alice_validator",
                         required=True,
+                        custom_attrs={
+                            "aria-describedby": _field_described_by(
+                                "profile-username-helper",
+                                "profile-username-error",
+                            ),
+                            "aria-invalid": ProfileSettingsState.profile_username_error != "",
+                        },
                     ),
                     error_message=ProfileSettingsState.profile_username_error,
                     helper_text="Use lowercase letters, numbers, or underscores.",
                 ),
                 _profile_field(
                     label="Display name",
+                    field_id="profile-display-name",
                     control=_surface_input(
+                        id="profile-display-name",
                         name="display_name",
                         value=ProfileSettingsState.profile_display_name,
                         on_change=ProfileSettingsState.set_profile_display_name,
                         placeholder="Alice Validator",
+                        custom_attrs={
+                            "aria-describedby": "profile-display-name-error",
+                            "aria-invalid": ProfileSettingsState.profile_display_name_error != "",
+                        },
                     ),
                     error_message=ProfileSettingsState.profile_display_name_error,
                 ),
@@ -265,35 +298,53 @@ def _profile_form() -> rx.Component:
             ),
             _profile_field(
                 label="Bio",
+                field_id="profile-bio",
                 control=_surface_text_area(
+                    id="profile-bio",
                     name="bio",
                     value=ProfileSettingsState.profile_bio,
                     on_change=ProfileSettingsState.set_profile_bio,
                     placeholder="Tell developers what you build on Xian.",
                     rows="5",
+                    custom_attrs={
+                        "aria-describedby": "profile-bio-error",
+                        "aria-invalid": ProfileSettingsState.profile_bio_error != "",
+                    },
                 ),
                 error_message=ProfileSettingsState.profile_bio_error,
             ),
             rx.grid(
                 _profile_field(
                     label="Website URL",
+                    field_id="profile-website-url",
                     control=_surface_input(
+                        id="profile-website-url",
                         name="website_url",
                         type="url",
                         value=ProfileSettingsState.profile_website_url,
                         on_change=ProfileSettingsState.set_profile_website_url,
                         placeholder="https://example.com",
+                        custom_attrs={
+                            "aria-describedby": "profile-website-url-error",
+                            "aria-invalid": ProfileSettingsState.profile_website_url_error != "",
+                        },
                     ),
                     error_message=ProfileSettingsState.profile_website_url_error,
                 ),
                 _profile_field(
                     label="GitHub URL",
+                    field_id="profile-github-url",
                     control=_surface_input(
+                        id="profile-github-url",
                         name="github_url",
                         type="url",
                         value=ProfileSettingsState.profile_github_url,
                         on_change=ProfileSettingsState.set_profile_github_url,
                         placeholder="https://github.com/alice",
+                        custom_attrs={
+                            "aria-describedby": "profile-github-url-error",
+                            "aria-invalid": ProfileSettingsState.profile_github_url_error != "",
+                        },
                     ),
                     error_message=ProfileSettingsState.profile_github_url_error,
                 ),
@@ -303,12 +354,18 @@ def _profile_form() -> rx.Component:
             ),
             _profile_field(
                 label="Xian profile URL",
+                field_id="profile-xian-profile-url",
                 control=_surface_input(
+                    id="profile-xian-profile-url",
                     name="xian_profile_url",
                     type="url",
                     value=ProfileSettingsState.profile_xian_profile_url,
                     on_change=ProfileSettingsState.set_profile_xian_profile_url,
                     placeholder="https://xian.org/u/alice",
+                    custom_attrs={
+                        "aria-describedby": "profile-xian-profile-url-error",
+                        "aria-invalid": ProfileSettingsState.profile_xian_profile_url_error != "",
+                    },
                 ),
                 error_message=ProfileSettingsState.profile_xian_profile_url_error,
             ),
@@ -485,23 +542,42 @@ def _playground_targets_panel() -> rx.Component:
                         rx.vstack(
                             _profile_field(
                                 label="Label",
+                                field_id="playground-target-label",
                                 control=_surface_input(
+                                    id="playground-target-label",
                                     name="label",
                                     value=ProfileSettingsState.playground_target_label,
                                     on_change=ProfileSettingsState.set_playground_target_label,
                                     placeholder="Sandbox primary",
                                     required=True,
+                                    custom_attrs={
+                                        "aria-describedby": "playground-target-label-error",
+                                        "aria-invalid": (
+                                            ProfileSettingsState.playground_target_label_error != ""
+                                        ),
+                                    },
                                 ),
                                 error_message=ProfileSettingsState.playground_target_label_error,
                             ),
                             _profile_field(
                                 label="Playground ID",
+                                field_id="playground-target-playground-id",
                                 control=_surface_input(
+                                    id="playground-target-playground-id",
                                     name="playground_id",
                                     value=ProfileSettingsState.playground_target_playground_id,
                                     on_change=ProfileSettingsState.set_playground_target_playground_id,
                                     placeholder="sandbox-alpha",
                                     required=True,
+                                    custom_attrs={
+                                        "aria-describedby": (
+                                            "playground-target-playground-id-error"
+                                        ),
+                                        "aria-invalid": (
+                                            ProfileSettingsState.playground_target_playground_id_error
+                                            != ""
+                                        ),
+                                    },
                                 ),
                                 error_message=(
                                     ProfileSettingsState.playground_target_playground_id_error
@@ -509,13 +585,18 @@ def _playground_targets_panel() -> rx.Component:
                             ),
                             _profile_field(
                                 label="Default target",
+                                field_id="playground-target-default",
                                 control=rx.el.select(
                                     rx.el.option("No", value="no"),
                                     rx.el.option("Yes", value="yes"),
+                                    id="playground-target-default",
                                     name="is_default",
                                     value=ProfileSettingsState.playground_target_default_choice,
                                     on_change=ProfileSettingsState.set_playground_target_default_choice,
                                     style=_select_style(),
+                                    custom_attrs={
+                                        "aria-describedby": "playground-target-default-error"
+                                    },
                                 ),
                                 error_message="",
                             ),

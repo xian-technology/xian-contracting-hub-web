@@ -64,6 +64,10 @@ def test_developer_leaderboard_page_renders_public_sections() -> None:
     assert any('"data-testid":"developer-leaderboard-page"' in prop for prop in rendered_props)
     assert any('"data-testid":"developer-leaderboard-filters"' in prop for prop in rendered_props)
     assert any('"data-testid":"developer-leaderboard-loading"' in prop for prop in rendered_props)
+    assert any('htmlFor:"leaderboard-sort"' in prop for prop in rendered_props)
+    assert any('id:"leaderboard-sort"' in prop for prop in rendered_props)
+    assert any('id:"leaderboard-timeframe"' in prop for prop in rendered_props)
+    assert any('id:"leaderboard-window"' in prop for prop in rendered_props)
     assert "Developer Leaderboard" in rendered_text
     assert "Leaderboard controls" in rendered_text
     assert "Loading developer rankings" in rendered_text

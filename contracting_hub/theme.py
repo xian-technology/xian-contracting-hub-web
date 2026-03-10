@@ -67,6 +67,7 @@ APP_STYLESHEETS = [
         "family=IBM+Plex+Sans:wght@400;500;600;700&"
         "family=Space+Grotesk:wght@500;700&display=swap"
     ),
+    "/accessibility.css",
 ]
 
 
