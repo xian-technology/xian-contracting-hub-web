@@ -33,6 +33,9 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
     profile_settings_module = importlib.import_module("contracting_hub.pages.profile_settings")
     deployment_history_module = importlib.import_module("contracting_hub.pages.deployment_history")
     admin_contracts_module = importlib.import_module("contracting_hub.admin.contracts_index")
+    admin_catalog_operations_module = importlib.import_module(
+        "contracting_hub.admin.catalog_operations"
+    )
     admin_contract_editor_module = importlib.import_module("contracting_hub.admin.contract_editor")
     admin_contract_versions_module = importlib.import_module(
         "contracting_hub.admin.contract_versions"
@@ -96,6 +99,12 @@ def _load_pages() -> tuple[tuple[str, object, str, object | None], ...]:
             admin_contracts_module.index,
             f"Admin Contracts | {meta_module.APP_NAME}",
             admin_contracts_module.ON_LOAD,
+        ),
+        (
+            admin_catalog_operations_module.ROUTE,
+            admin_catalog_operations_module.index,
+            f"Admin Catalog Operations | {meta_module.APP_NAME}",
+            admin_catalog_operations_module.ON_LOAD,
         ),
         (
             admin_contract_editor_module.NEW_ROUTE,

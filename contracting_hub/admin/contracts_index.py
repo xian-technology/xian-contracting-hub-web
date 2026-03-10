@@ -7,7 +7,11 @@ import reflex as rx
 from contracting_hub.components import app_shell, contract_metadata_badge, page_section
 from contracting_hub.states.admin_contracts import AdminContractsState
 from contracting_hub.states.auth import AuthState
-from contracting_hub.utils.meta import ADMIN_CONTRACT_CREATE_ROUTE, ADMIN_CONTRACTS_ROUTE
+from contracting_hub.utils.meta import (
+    ADMIN_CONTRACT_CREATE_ROUTE,
+    ADMIN_CONTRACTS_ROUTE,
+    ADMIN_OPERATIONS_ROUTE,
+)
 
 ROUTE = ADMIN_CONTRACTS_ROUTE
 ON_LOAD = [AuthState.guard_admin_route, AdminContractsState.load_page]
@@ -138,12 +142,23 @@ def _filters_panel() -> rx.Component:
                     gap="var(--hub-space-3)",
                     width="100%",
                 ),
-                rx.link(
-                    rx.button("Create contract", size="3"),
-                    href=ADMIN_CONTRACT_CREATE_ROUTE,
-                    text_decoration="none",
+                rx.flex(
+                    rx.link(
+                        rx.button("Catalog operations", size="3", variant="soft"),
+                        href=ADMIN_OPERATIONS_ROUTE,
+                        text_decoration="none",
+                        width=rx.breakpoints(initial="100%", sm="auto"),
+                    ),
+                    rx.link(
+                        rx.button("Create contract", size="3"),
+                        href=ADMIN_CONTRACT_CREATE_ROUTE,
+                        text_decoration="none",
+                        width=rx.breakpoints(initial="100%", sm="auto"),
+                        custom_attrs={"data-testid": "admin-contract-create-trigger"},
+                    ),
+                    direction=rx.breakpoints(initial="column", sm="row"),
+                    gap="var(--hub-space-3)",
                     width=rx.breakpoints(initial="100%", sm="auto"),
-                    custom_attrs={"data-testid": "admin-contract-create-trigger"},
                 ),
                 direction=rx.breakpoints(initial="column", lg="row"),
                 align=rx.breakpoints(initial="start", lg="center"),

@@ -11,6 +11,7 @@ REGISTER_ROUTE = "/register"
 PROFILE_SETTINGS_ROUTE = "/settings/profile"
 DEPLOYMENT_HISTORY_ROUTE = "/settings/deployments"
 ADMIN_CONTRACTS_ROUTE = "/admin/contracts"
+ADMIN_OPERATIONS_ROUTE = "/admin/operations"
 ADMIN_CONTRACT_CREATE_ROUTE = "/admin/contracts/new"
 ADMIN_CONTRACT_EDIT_ROUTE = "/admin/contracts/[slug]/edit"
 ADMIN_CONTRACT_VERSIONS_ROUTE = "/admin/contracts/[slug]/versions"
@@ -75,6 +76,7 @@ __all__ = [
     "ADMIN_CONTRACT_CREATE_ROUTE",
     "ADMIN_CONTRACT_EDIT_ROUTE",
     "ADMIN_CONTRACT_RELATIONS_ROUTE",
+    "ADMIN_OPERATIONS_ROUTE",
     "ADMIN_CONTRACT_VERSIONS_ROUTE",
     "APP_NAME",
     "BROWSE_ROUTE",
