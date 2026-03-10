@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Iterable
+from unittest.mock import patch
 
 
 class XianLinterIntegrationErrorCode(StrEnum):
@@ -76,7 +78,13 @@ def lint_contract_source(
     """Run xian-linter synchronously and normalize its findings."""
     lint_code_inline = _load_lint_callable()
     try:
-        raw_findings = lint_code_inline(source_code, whitelist_patterns=whitelist_patterns)
+        raw_findings = _invoke_lint_callable(
+            lint_code_inline,
+            source_code,
+            whitelist_patterns=tuple(whitelist_patterns)
+            if whitelist_patterns is not None
+            else None,
+        )
     except Exception as error:  # pragma: no cover - defensive adapter boundary
         raise XianLinterIntegrationError(
             XianLinterIntegrationErrorCode.EXECUTION_FAILED,
@@ -97,6 +105,26 @@ def _load_lint_callable():
             details={"error": str(error)},
         ) from error
     return lint_code_inline
+
+
+def _invoke_lint_callable(
+    lint_code_inline,
+    source_code: str,
+    *,
+    whitelist_patterns: tuple[str, ...] | None,
+):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return lint_code_inline(
+            source_code,
+            whitelist_patterns=whitelist_patterns,
+        )
+    with patch("asyncio.events._get_running_loop", return_value=None):
+        return lint_code_inline(
+            source_code,
+            whitelist_patterns=whitelist_patterns,
+        )
 
 
 def _normalize_lint_finding(finding: Any) -> XianLintFinding:

@@ -31,8 +31,10 @@ from contracting_hub.models import (
     Rating,
     Star,
     User,
+    UserRole,
 )
 from contracting_hub.services import create_contract_version
+from contracting_hub.services.auth import hash_password
 
 
 @pytest.fixture(scope="session")
@@ -138,6 +140,18 @@ def _seed_public_catalog(session: Session) -> None:
         created_at=_timestamp(4),
         updated_at=_timestamp(6),
     )
+    archived_vault = Contract(
+        slug="archived-vault",
+        contract_name="con_archived_vault",
+        display_name="Archived Vault",
+        short_summary="Previously public treasury helper.",
+        long_description="Archived treasury flow that can be restored from the admin index.",
+        author_label="Core Team",
+        status=PublicationStatus.ARCHIVED,
+        tags=["treasury", "archive"],
+        created_at=_timestamp(1),
+        updated_at=_timestamp(5),
+    )
     draft_escrow = Contract(
         slug="draft-escrow",
         contract_name="con_draft_escrow",
@@ -162,10 +176,12 @@ def _seed_public_catalog(session: Session) -> None:
             escrow,
             escrow_tools,
             vault,
+            archived_vault,
             draft_escrow,
             ContractCategoryLink(contract=escrow, category=defi, is_primary=True),
             ContractCategoryLink(contract=escrow_tools, category=tooling, is_primary=True),
             ContractCategoryLink(contract=vault, category=security, is_primary=True),
+            ContractCategoryLink(contract=archived_vault, category=security, is_primary=True),
             ContractCategoryLink(contract=draft_escrow, category=defi, is_primary=True),
         ]
     )
@@ -213,6 +229,14 @@ def _seed_public_catalog(session: Session) -> None:
     )
     create_contract_version(
         session=session,
+        contract_slug="archived-vault",
+        semantic_version="0.9.0",
+        source_code="@export\ndef archived_vault_marker():\n    return 'archived-vault'\n",
+        changelog="Previous public archived release.",
+        status=PublicationStatus.PUBLISHED,
+    )
+    create_contract_version(
+        session=session,
         contract_slug="draft-escrow",
         semantic_version="0.1.0",
         source_code="@export\ndef hidden_draft_canary():\n    return 'draft'\n",
@@ -239,6 +263,17 @@ def _seed_public_catalog(session: Session) -> None:
             ),
         ]
     )
+    session.commit()
+
+
+def _seed_admin_account(session: Session) -> None:
+    admin = User(
+        email="admin@example.com",
+        password_hash=hash_password("secret-password"),
+        role=UserRole.ADMIN,
+    )
+    admin.profile = Profile(username="admin", display_name="Catalog Admin")
+    session.add(admin)
     session.commit()
 
 
@@ -315,6 +350,7 @@ def live_server_url(project_root: Path, tmp_path_factory: pytest.TempPathFactory
 
     with Session(engine) as session:
         _seed_public_catalog(session)
+        _seed_admin_account(session)
     engine.dispose()
 
     port = _find_free_port()

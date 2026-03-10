@@ -61,7 +61,7 @@
 - [x] 6.3 — Build the admin version manager for source input, changelog entry, lint preview, diff preview, and publish controls.
 - [x] 6.4 — Build the admin relation manager for adding, editing, and removing typed links between contracts.
 - [x] 6.5 — Build admin views for category management, basic featured-content curation, and audit-log inspection.
-- [ ] 6.6 — Add integration and Playwright tests for admin CRUD, publish/archive rules, version creation, relation editing, and access control.
+- [x] 6.6 — Add integration and Playwright tests for admin CRUD, publish/archive rules, version creation, relation editing, and access control.
 
 ## Phase 7: Hardening, Coverage, and Release Readiness
 - [ ] 7.1 — Add comprehensive loading, empty, validation, and failure states across public, authenticated, and admin screens.
