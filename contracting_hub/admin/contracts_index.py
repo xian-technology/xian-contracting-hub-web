@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, contract_metadata_badge, page_section
+from contracting_hub.components import (
+    app_shell,
+    contract_metadata_badge,
+    page_error_state,
+    page_loading_state,
+    page_section,
+)
 from contracting_hub.states.admin_contracts import AdminContractsState
 from contracting_hub.states.auth import AuthState
 from contracting_hub.utils.meta import (
@@ -422,50 +428,80 @@ def _empty_state() -> rx.Component:
 def index() -> rx.Component:
     """Render the admin contract index."""
     return app_shell(
-        page_section(
-            rx.vstack(
-                _filters_panel(),
-                rx.box(
-                    rx.vstack(
-                        rx.flex(
-                            rx.heading(
-                                "Catalog contracts",
-                                size="5",
-                                font_family="var(--hub-font-display)",
-                                color="var(--hub-color-text)",
+        rx.box(
+            rx.cond(
+                AdminContractsState.is_loading,
+                page_loading_state(
+                    title="Loading admin contract index",
+                    body=(
+                        "Preparing lifecycle tabs, filters, and catalog rows "
+                        "for the admin workspace."
+                    ),
+                    test_id="admin-contract-loading",
+                ),
+                rx.cond(
+                    AdminContractsState.has_load_error,
+                    page_error_state(
+                        title="Admin contract index could not be loaded",
+                        body=AdminContractsState.load_error_message,
+                        test_id="admin-contract-error",
+                        action=rx.link(
+                            rx.button("Retry admin workspace", size="3", variant="soft"),
+                            href=ADMIN_CONTRACTS_ROUTE,
+                            text_decoration="none",
+                        ),
+                    ),
+                    page_section(
+                        rx.vstack(
+                            _filters_panel(),
+                            rx.box(
+                                rx.vstack(
+                                    rx.flex(
+                                        rx.heading(
+                                            "Catalog contracts",
+                                            size="5",
+                                            font_family="var(--hub-font-display)",
+                                            color="var(--hub-color-text)",
+                                        ),
+                                        rx.text(
+                                            AdminContractsState.result_count_label,
+                                            font_family="var(--hub-font-mono)",
+                                            color="var(--hub-color-text-muted)",
+                                        ),
+                                        direction=rx.breakpoints(initial="column", sm="row"),
+                                        align=rx.breakpoints(initial="start", sm="center"),
+                                        justify="between",
+                                        gap="var(--hub-space-3)",
+                                        width="100%",
+                                    ),
+                                    rx.cond(
+                                        AdminContractsState.has_results,
+                                        rx.vstack(
+                                            rx.foreach(
+                                                AdminContractsState.contract_rows,
+                                                _contract_row,
+                                            ),
+                                            align="start",
+                                            gap="var(--hub-space-4)",
+                                            width="100%",
+                                        ),
+                                        _empty_state(),
+                                    ),
+                                    align="start",
+                                    gap="var(--hub-space-4)",
+                                    width="100%",
+                                ),
+                                width="100%",
+                                custom_attrs={"data-testid": "admin-contract-results"},
                             ),
-                            rx.text(
-                                AdminContractsState.result_count_label,
-                                font_family="var(--hub-font-mono)",
-                                color="var(--hub-color-text-muted)",
-                            ),
-                            direction=rx.breakpoints(initial="column", sm="row"),
-                            align=rx.breakpoints(initial="start", sm="center"),
-                            justify="between",
-                            gap="var(--hub-space-3)",
+                            align="start",
+                            gap="var(--hub-space-6)",
                             width="100%",
                         ),
-                        rx.cond(
-                            AdminContractsState.has_results,
-                            rx.vstack(
-                                rx.foreach(AdminContractsState.contract_rows, _contract_row),
-                                align="start",
-                                gap="var(--hub-space-4)",
-                                width="100%",
-                            ),
-                            _empty_state(),
-                        ),
-                        align="start",
-                        gap="var(--hub-space-4)",
-                        width="100%",
                     ),
-                    width="100%",
-                    custom_attrs={"data-testid": "admin-contract-results"},
                 ),
-                align="start",
-                gap="var(--hub-space-6)",
-                width="100%",
             ),
+            width="100%",
             custom_attrs={"data-testid": "admin-contract-page"},
         ),
         page_title="Admin contract index",

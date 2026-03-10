@@ -6,7 +6,7 @@ from typing import Literal
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import app_shell, page_error_state, page_loading_state, page_section
 from contracting_hub.states import AuthState, DeploymentHistoryState
 from contracting_hub.utils.meta import (
     BROWSE_ROUTE,
@@ -483,18 +483,43 @@ def _history_list() -> rx.Component:
             gap="var(--hub-space-4)",
             width="100%",
         ),
-        custom_attrs={"data-testid": "deployment-history-page"},
+        custom_attrs={"data-testid": "deployment-history-list-panel"},
     )
 
 
 def index() -> rx.Component:
     """Render the authenticated deployment history page."""
     return app_shell(
-        rx.vstack(
-            _saved_target_shortcuts(),
-            _history_list(),
+        rx.box(
+            rx.cond(
+                DeploymentHistoryState.is_loading,
+                page_loading_state(
+                    title="Loading deployment history",
+                    body="Preparing saved target shortcuts and recent playground handoffs.",
+                    test_id="deployment-history-loading",
+                ),
+                rx.cond(
+                    DeploymentHistoryState.has_load_error,
+                    page_error_state(
+                        title="Deployment history could not be loaded",
+                        body=DeploymentHistoryState.page_error_message,
+                        test_id="deployment-history-error",
+                        action=rx.link(
+                            rx.button("Retry deployment history", size="3", variant="soft"),
+                            href=DEPLOYMENT_HISTORY_ROUTE,
+                            text_decoration="none",
+                        ),
+                    ),
+                    rx.vstack(
+                        _saved_target_shortcuts(),
+                        _history_list(),
+                        width="100%",
+                        gap="var(--hub-space-6)",
+                    ),
+                ),
+            ),
             width="100%",
-            gap="var(--hub-space-6)",
+            custom_attrs={"data-testid": "deployment-history-page"},
         ),
         page_title="Deployment history",
         page_intro=(

@@ -62,11 +62,6 @@ def test_admin_catalog_operations_page_renders_workspace_sections() -> None:
     assert rendered["name"] == "RadixThemesBox"
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"admin-catalog-page"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-category-manager"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-featured-curation"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-audit-log"' in prop for prop in rendered_props)
+    assert any('"data-testid":"admin-catalog-loading"' in prop for prop in rendered_props)
     assert "Admin catalog operations" in rendered_text
-    assert "Category management" in rendered_text
-    assert "Featured-content curation" in rendered_text
-    assert "Audit-log inspection" in rendered_text
-    assert "No categories created yet" in rendered_text
+    assert "Loading catalog operations" in rendered_text

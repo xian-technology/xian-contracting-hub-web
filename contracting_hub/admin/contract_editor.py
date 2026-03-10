@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import app_shell, page_error_state, page_loading_state, page_section
 from contracting_hub.models import ContractNetwork
 from contracting_hub.states.admin_contract_editor import AdminContractEditorState
 from contracting_hub.states.auth import AuthState
@@ -761,19 +761,46 @@ def _missing_contract_state() -> rx.Component:
 
 def _editor_page() -> rx.Component:
     return app_shell(
-        rx.vstack(
-            page_section(_overview_card()),
-            page_section(
-                _message_banner(AdminContractEditorState.load_error_message, tone="error"),
-                rx.cond(
-                    AdminContractEditorState.show_missing_contract_state,
-                    _missing_contract_state(),
-                    _editor_form(),
+        rx.box(
+            rx.cond(
+                AdminContractEditorState.is_loading,
+                page_loading_state(
+                    title="Loading contract editor",
+                    body="Preparing metadata fields, taxonomy options, and author assignments.",
+                    test_id="admin-contract-editor-loading",
                 ),
-                custom_attrs={"data-testid": "admin-contract-editor-page"},
+                rx.cond(
+                    AdminContractEditorState.has_load_error,
+                    page_error_state(
+                        title="Contract editor could not be loaded",
+                        body=AdminContractEditorState.load_error_message,
+                        test_id="admin-contract-editor-error",
+                        action=rx.link(
+                            rx.button("Back to admin contracts", size="3", variant="soft"),
+                            href=ADMIN_CONTRACTS_ROUTE,
+                            text_decoration="none",
+                        ),
+                    ),
+                    rx.vstack(
+                        page_section(_overview_card()),
+                        page_section(
+                            _message_banner(
+                                AdminContractEditorState.load_error_message,
+                                tone="error",
+                            ),
+                            rx.cond(
+                                AdminContractEditorState.show_missing_contract_state,
+                                _missing_contract_state(),
+                                _editor_form(),
+                            ),
+                        ),
+                        gap="var(--hub-space-6)",
+                        width="100%",
+                    ),
+                ),
             ),
-            gap="var(--hub-space-6)",
             width="100%",
+            custom_attrs={"data-testid": "admin-contract-editor-page"},
         ),
         page_title=AdminContractEditorState.editor_heading,
         page_intro=AdminContractEditorState.editor_intro,

@@ -70,6 +70,7 @@ class AdminContractRelationManagerState(rx.State):
     current_user_email: str | None = None
     current_username: str | None = None
     current_display_name: str | None = None
+    load_state: str = "loading"
     contract_slug: str = ""
     contract_display_name: str = ""
     contract_name: str = ""
@@ -97,6 +98,16 @@ class AdminContractRelationManagerState(rx.State):
     def is_authenticated(self) -> bool:
         """Return whether the current browser has an active user session."""
         return self.current_user_id is not None
+
+    @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the relation-manager snapshot is loading."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the relation-manager route failed to load."""
+        return self.load_state == "error" and bool(self.load_error_message)
 
     @rx.var
     def current_identity_label(self) -> str:
@@ -189,9 +200,15 @@ class AdminContractRelationManagerState(rx.State):
     def load_page(self) -> None:
         """Load the admin relation manager from the current route params."""
         requested_slug = str(self.router.page.params.get("slug", "")).strip().lower()
+        self.load_state = "loading"
         self._clear_feedback()
         self._reset_form()
         self.sync_auth_state()
+        if self.current_user_id is None:
+            self.load_error_message = "Administrator access is required to manage relations."
+            self.load_state = "error"
+            return
+
         try:
             snapshot = load_admin_contract_relation_manager_snapshot_safe(
                 contract_slug=requested_slug or None
@@ -201,7 +218,19 @@ class AdminContractRelationManagerState(rx.State):
             snapshot = build_empty_admin_contract_relation_manager_snapshot(
                 contract_slug=requested_slug or None
             )
+            self._apply_snapshot(snapshot)
+            self.load_state = "ready"
+            return
+        except Exception as error:
+            self.load_error_message = str(error)
+            snapshot = build_empty_admin_contract_relation_manager_snapshot(
+                contract_slug=requested_slug or None
+            )
+            self._apply_snapshot(snapshot)
+            self.load_state = "error"
+            return
         self._apply_snapshot(snapshot)
+        self.load_state = "ready"
 
     def logout_current_user(self) -> rx.event.EventSpec:
         """Invalidate the current cookie-backed session from the admin shell."""

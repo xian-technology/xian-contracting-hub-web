@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import app_shell, page_error_state, page_loading_state, page_section
 from contracting_hub.models import ContractRelationType
 from contracting_hub.services.admin_contract_relations import (
     format_admin_contract_relation_type_label,
@@ -636,24 +636,48 @@ def _missing_contract_state() -> rx.Component:
 def index() -> rx.Component:
     """Render the admin contract-relation manager."""
     return app_shell(
-        page_section(
+        rx.box(
             rx.cond(
-                AdminContractRelationManagerState.show_missing_contract_state,
-                _missing_contract_state(),
-                rx.vstack(
-                    _overview_card(),
-                    _message_banner(
-                        AdminContractRelationManagerState.load_error_message,
-                        tone="error",
+                AdminContractRelationManagerState.is_loading,
+                page_loading_state(
+                    title="Loading relation manager",
+                    body="Preparing outgoing links, incoming context, and relation form options.",
+                    test_id="admin-contract-relation-loading",
+                ),
+                rx.cond(
+                    AdminContractRelationManagerState.has_load_error,
+                    page_error_state(
+                        title="Relation manager could not be loaded",
+                        body=AdminContractRelationManagerState.load_error_message,
+                        test_id="admin-contract-relation-error",
+                        action=rx.link(
+                            rx.button("Back to admin contracts", size="3", variant="soft"),
+                            href=ADMIN_CONTRACTS_ROUTE,
+                            text_decoration="none",
+                        ),
                     ),
-                    _relation_form(),
-                    _outgoing_relations_panel(),
-                    _incoming_relations_panel(),
-                    gap="var(--hub-space-6)",
-                    width="100%",
+                    page_section(
+                        rx.cond(
+                            AdminContractRelationManagerState.show_missing_contract_state,
+                            _missing_contract_state(),
+                            rx.vstack(
+                                _overview_card(),
+                                _message_banner(
+                                    AdminContractRelationManagerState.load_error_message,
+                                    tone="error",
+                                ),
+                                _relation_form(),
+                                _outgoing_relations_panel(),
+                                _incoming_relations_panel(),
+                                gap="var(--hub-space-6)",
+                                width="100%",
+                            ),
+                        ),
+                        gap="var(--hub-space-6)",
+                        width="100%",
+                    ),
                 ),
             ),
-            gap="var(--hub-space-6)",
             width="100%",
             custom_attrs={"data-testid": "admin-contract-relation-page"},
         ),

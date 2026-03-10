@@ -62,14 +62,5 @@ def test_admin_contract_relation_manager_page_renders_admin_sections() -> None:
     assert rendered["name"] == "RadixThemesBox"
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"admin-contract-relation-page"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-contract-relation-editor"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-contract-relation-form"' in prop for prop in rendered_props)
-    assert any(
-        '"data-testid":"admin-contract-relation-outgoing"' in prop for prop in rendered_props
-    )
-    assert any(
-        '"data-testid":"admin-contract-relation-incoming"' in prop for prop in rendered_props
-    )
-    assert "Relation manager" in rendered_text
-    assert "Outgoing relations" in rendered_text
-    assert "Incoming relations" in rendered_text
+    assert any('"data-testid":"admin-contract-relation-loading"' in prop for prop in rendered_props)
+    assert "Loading relation manager" in rendered_text

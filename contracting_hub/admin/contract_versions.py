@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import app_shell, page_error_state, page_loading_state, page_section
 from contracting_hub.states.admin_contract_versions import AdminContractVersionManagerState
 from contracting_hub.states.auth import AuthState
 from contracting_hub.utils.meta import ADMIN_CONTRACT_VERSIONS_ROUTE, ADMIN_CONTRACTS_ROUTE
@@ -891,33 +891,60 @@ def _missing_contract_state() -> rx.Component:
 def index() -> rx.Component:
     """Render the admin route for managing contract versions."""
     return app_shell(
-        rx.vstack(
-            page_section(_overview_card()),
-            page_section(
-                _message_banner(AdminContractVersionManagerState.load_error_message, tone="error"),
+        rx.box(
+            rx.cond(
+                AdminContractVersionManagerState.is_loading,
+                page_loading_state(
+                    title="Loading version manager",
+                    body="Preparing immutable version history, lint previews, and diff context.",
+                    test_id="admin-contract-version-loading",
+                ),
                 rx.cond(
-                    AdminContractVersionManagerState.show_missing_contract_state,
-                    _missing_contract_state(),
-                    rx.grid(
-                        rx.vstack(
-                            _editor_panel(),
-                            _lint_preview_panel(),
-                            _diff_preview_panel(),
-                            align="start",
-                            gap="var(--hub-space-5)",
-                            width="100%",
+                    AdminContractVersionManagerState.has_load_error,
+                    page_error_state(
+                        title="Version manager could not be loaded",
+                        body=AdminContractVersionManagerState.load_error_message,
+                        test_id="admin-contract-version-error",
+                        action=rx.link(
+                            rx.button("Back to admin contracts", size="3", variant="soft"),
+                            href=ADMIN_CONTRACTS_ROUTE,
+                            text_decoration="none",
                         ),
-                        _history_panel(),
-                        columns=rx.breakpoints(initial="1", xl="1.5fr 1fr"),
-                        gap="var(--hub-space-5)",
+                    ),
+                    rx.vstack(
+                        page_section(_overview_card()),
+                        page_section(
+                            _message_banner(
+                                AdminContractVersionManagerState.load_error_message,
+                                tone="error",
+                            ),
+                            rx.cond(
+                                AdminContractVersionManagerState.show_missing_contract_state,
+                                _missing_contract_state(),
+                                rx.grid(
+                                    rx.vstack(
+                                        _editor_panel(),
+                                        _lint_preview_panel(),
+                                        _diff_preview_panel(),
+                                        align="start",
+                                        gap="var(--hub-space-5)",
+                                        width="100%",
+                                    ),
+                                    _history_panel(),
+                                    columns=rx.breakpoints(initial="1", xl="1.5fr 1fr"),
+                                    gap="var(--hub-space-5)",
+                                    width="100%",
+                                    align_items="start",
+                                ),
+                            ),
+                        ),
+                        gap="var(--hub-space-6)",
                         width="100%",
-                        align_items="start",
                     ),
                 ),
-                custom_attrs={"data-testid": "admin-contract-version-page"},
             ),
-            gap="var(--hub-space-6)",
             width="100%",
+            custom_attrs={"data-testid": "admin-contract-version-page"},
         ),
         page_title=AdminContractVersionManagerState.page_heading,
         page_intro=AdminContractVersionManagerState.page_intro,

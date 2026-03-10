@@ -62,14 +62,5 @@ def test_admin_contract_version_manager_page_renders_admin_sections() -> None:
     assert rendered["name"] == "RadixThemesBox"
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"admin-contract-version-page"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-contract-version-editor"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-contract-version-history"' in prop for prop in rendered_props)
-    assert any(
-        '"data-testid":"admin-contract-version-lint-preview"' in prop for prop in rendered_props
-    )
-    assert any(
-        '"data-testid":"admin-contract-version-diff-preview"' in prop for prop in rendered_props
-    )
-    assert "Version manager" in rendered_text
-    assert "Persisted versions" in rendered_text
-    assert "New immutable snapshot" in rendered_text
+    assert any('"data-testid":"admin-contract-version-loading"' in prop for prop in rendered_props)
+    assert "Loading version manager" in rendered_text

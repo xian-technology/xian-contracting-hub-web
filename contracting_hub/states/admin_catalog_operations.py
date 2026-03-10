@@ -15,6 +15,7 @@ from contracting_hub.services.admin_catalog_operations import (
     AdminCatalogOperationsSnapshot,
     AdminCategoryManagementEntry,
     AdminFeaturedContractEntry,
+    build_empty_admin_catalog_operations_snapshot,
     create_admin_category,
     delete_admin_category,
     load_admin_catalog_operations_snapshot_safe,
@@ -90,6 +91,8 @@ class AdminCatalogOperationsState(rx.State):
     current_user_email: str | None = None
     current_username: str | None = None
     current_display_name: str | None = None
+    load_state: str = "loading"
+    load_error_message: str = ""
     category_slug_value: str = ""
     category_name_value: str = ""
     category_description_value: str = ""
@@ -114,6 +117,16 @@ class AdminCatalogOperationsState(rx.State):
     def is_authenticated(self) -> bool:
         """Return whether the current browser has an active user session."""
         return self.current_user_id is not None
+
+    @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the admin operations workspace is loading."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the admin operations workspace failed to load."""
+        return self.load_state == "error" and bool(self.load_error_message)
 
     @rx.var
     def current_identity_label(self) -> str:
@@ -176,10 +189,26 @@ class AdminCatalogOperationsState(rx.State):
 
     def load_page(self) -> None:
         """Load the admin operations workspace."""
+        self.load_state = "loading"
         self._clear_feedback()
         self._reset_category_form()
         self.sync_auth_state()
-        self._apply_snapshot(load_admin_catalog_operations_snapshot_safe())
+        if self.current_user_id is None:
+            self.load_error_message = "Administrator access is required to view this workspace."
+            self.load_state = "error"
+            return
+
+        try:
+            snapshot = load_admin_catalog_operations_snapshot_safe()
+        except Exception as error:
+            snapshot = build_empty_admin_catalog_operations_snapshot()
+            self._apply_snapshot(snapshot)
+            self.load_error_message = str(error)
+            self.load_state = "error"
+            return
+
+        self._apply_snapshot(snapshot)
+        self.load_state = "ready"
 
     def logout_current_user(self) -> rx.event.EventSpec:
         """Invalidate the current cookie-backed session from the admin shell."""
@@ -384,6 +413,7 @@ class AdminCatalogOperationsState(rx.State):
     def _clear_feedback(self) -> None:
         self._clear_category_feedback()
         self._clear_featured_feedback()
+        self.load_error_message = ""
 
     def _clear_category_feedback(self) -> None:
         self.category_success_message = ""

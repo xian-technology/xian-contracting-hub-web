@@ -65,8 +65,6 @@ def test_admin_contract_index_renders_admin_workspace_sections() -> None:
     assert rendered["name"] == "RadixThemesBox"
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"admin-contract-page"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-contract-filters"' in prop for prop in rendered_props)
-    assert any('"data-testid":"admin-contract-results"' in prop for prop in rendered_props)
+    assert any('"data-testid":"admin-contract-loading"' in prop for prop in rendered_props)
     assert "Admin contract index" in rendered_text
-    assert "Contract operations" in rendered_text
-    assert "No admin contracts found" in rendered_text
+    assert "Loading admin contract index" in rendered_text

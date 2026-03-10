@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, contract_rating_summary, page_section
+from contracting_hub.components import (
+    app_shell,
+    contract_rating_summary,
+    page_error_state,
+    page_loading_state,
+    page_section,
+)
 from contracting_hub.states import AuthState, DeveloperLeaderboardState
 from contracting_hub.utils.meta import DEVELOPER_LEADERBOARD_ROUTE
 
@@ -374,64 +380,97 @@ def _leaderboard_empty_state() -> rx.Component:
 
 
 def _leaderboard_results() -> rx.Component:
-    return page_section(
-        rx.vstack(
-            rx.flex(
-                rx.vstack(
-                    rx.badge(
-                        "Public ranking",
-                        radius="full",
-                        variant="soft",
-                        color_scheme="bronze",
-                        width="fit-content",
-                    ),
-                    rx.heading(
-                        DeveloperLeaderboardState.developer_count_label,
-                        size="6",
-                        font_family="var(--hub-font-display)",
-                        letter_spacing="-0.05em",
-                        color="var(--hub-color-text)",
-                    ),
-                    rx.text(
-                        DeveloperLeaderboardState.leaderboard_context,
-                        color="var(--hub-color-text-muted)",
-                        max_width="40rem",
-                    ),
-                    align="start",
-                    gap="var(--hub-space-3)",
-                    width="100%",
-                ),
-                rx.flex(
-                    _summary_chip("Sort", DeveloperLeaderboardState.selected_sort_label),
-                    _summary_chip("Timeframe", DeveloperLeaderboardState.selected_timeframe_label),
-                    _summary_chip("Recent window", DeveloperLeaderboardState.activity_window_label),
-                    wrap="wrap",
-                    gap="var(--hub-space-3)",
-                    justify=rx.breakpoints(initial="start", xl="end"),
-                ),
-                direction=rx.breakpoints(initial="column", xl="row"),
-                align=rx.breakpoints(initial="start", xl="center"),
-                justify="between",
-                gap="var(--hub-space-4)",
-                width="100%",
+    return rx.box(
+        rx.cond(
+            DeveloperLeaderboardState.is_loading,
+            page_loading_state(
+                title="Loading developer rankings",
+                body="Refreshing public author KPI totals and ranking context.",
+                test_id="developer-leaderboard-loading",
             ),
             rx.cond(
-                DeveloperLeaderboardState.has_entries,
-                rx.vstack(
-                    rx.foreach(
-                        DeveloperLeaderboardState.leaderboard_entries,
-                        _leaderboard_card,
+                DeveloperLeaderboardState.has_load_error,
+                page_error_state(
+                    title="Leaderboard data could not be loaded",
+                    body=DeveloperLeaderboardState.load_error_message,
+                    test_id="developer-leaderboard-error",
+                    action=rx.link(
+                        rx.button("Reset leaderboard filters", size="3", variant="soft"),
+                        href=DeveloperLeaderboardState.clear_filters_href,
+                        text_decoration="none",
                     ),
-                    width="100%",
-                    gap="var(--hub-space-4)",
                 ),
-                _leaderboard_empty_state(),
+                page_section(
+                    rx.vstack(
+                        rx.flex(
+                            rx.vstack(
+                                rx.badge(
+                                    "Public ranking",
+                                    radius="full",
+                                    variant="soft",
+                                    color_scheme="bronze",
+                                    width="fit-content",
+                                ),
+                                rx.heading(
+                                    DeveloperLeaderboardState.developer_count_label,
+                                    size="6",
+                                    font_family="var(--hub-font-display)",
+                                    letter_spacing="-0.05em",
+                                    color="var(--hub-color-text)",
+                                ),
+                                rx.text(
+                                    DeveloperLeaderboardState.leaderboard_context,
+                                    color="var(--hub-color-text-muted)",
+                                    max_width="40rem",
+                                ),
+                                align="start",
+                                gap="var(--hub-space-3)",
+                                width="100%",
+                            ),
+                            rx.flex(
+                                _summary_chip(
+                                    "Sort",
+                                    DeveloperLeaderboardState.selected_sort_label,
+                                ),
+                                _summary_chip(
+                                    "Timeframe",
+                                    DeveloperLeaderboardState.selected_timeframe_label,
+                                ),
+                                _summary_chip(
+                                    "Recent window",
+                                    DeveloperLeaderboardState.activity_window_label,
+                                ),
+                                wrap="wrap",
+                                gap="var(--hub-space-3)",
+                                justify=rx.breakpoints(initial="start", xl="end"),
+                            ),
+                            direction=rx.breakpoints(initial="column", xl="row"),
+                            align=rx.breakpoints(initial="start", xl="center"),
+                            justify="between",
+                            gap="var(--hub-space-4)",
+                            width="100%",
+                        ),
+                        rx.cond(
+                            DeveloperLeaderboardState.has_entries,
+                            rx.vstack(
+                                rx.foreach(
+                                    DeveloperLeaderboardState.leaderboard_entries,
+                                    _leaderboard_card,
+                                ),
+                                width="100%",
+                                gap="var(--hub-space-4)",
+                            ),
+                            _leaderboard_empty_state(),
+                        ),
+                        align="start",
+                        gap="var(--hub-space-5)",
+                        width="100%",
+                    ),
+                    custom_attrs={"data-testid": "developer-leaderboard-results"},
+                ),
             ),
-            align="start",
-            gap="var(--hub-space-5)",
-            width="100%",
         ),
-        custom_attrs={"data-testid": "developer-leaderboard-results"},
+        width="100%",
     )
 
 

@@ -63,7 +63,7 @@ def test_developer_leaderboard_page_renders_public_sections() -> None:
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"developer-leaderboard-page"' in prop for prop in rendered_props)
     assert any('"data-testid":"developer-leaderboard-filters"' in prop for prop in rendered_props)
-    assert any('"data-testid":"developer-leaderboard-results"' in prop for prop in rendered_props)
+    assert any('"data-testid":"developer-leaderboard-loading"' in prop for prop in rendered_props)
     assert "Developer Leaderboard" in rendered_text
     assert "Leaderboard controls" in rendered_text
-    assert "No ranked developers yet" in rendered_text
+    assert "Loading developer rankings" in rendered_text

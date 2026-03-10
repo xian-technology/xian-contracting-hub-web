@@ -11,6 +11,7 @@ from contracting_hub.services import (
     ContractBrowseSnapshot,
     ContractBrowseSummary,
     build_contract_browse_path,
+    build_empty_contract_browse_snapshot,
     load_public_contract_browse_snapshot_safe,
 )
 from contracting_hub.utils import build_contract_rating_display, format_contract_calendar_date
@@ -64,6 +65,8 @@ class BrowsePaginationPayload(TypedDict):
 class BrowseState(rx.State):
     """URL-driven state for the public browse page."""
 
+    load_state: str = "loading"
+    load_error_message: str = ""
     search_query: str = ""
     selected_category: str = ""
     selected_tag: str = ""
@@ -92,6 +95,16 @@ class BrowseState(rx.State):
         return bool(self.result_cards)
 
     @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the current browse route is resolving results."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the browse route failed to load cleanly."""
+        return self.load_state == "error" and bool(self.load_error_message)
+
+    @rx.var
     def has_active_filters(self) -> bool:
         """Return whether the current browse state has any active search filters."""
         return bool(self.active_filters)
@@ -99,14 +112,31 @@ class BrowseState(rx.State):
     def load_page(self) -> None:
         """Load the browse snapshot from the current router query params."""
         params = self.router.page.params
-        snapshot = load_public_contract_browse_snapshot_safe(
-            query=params.get("query"),
-            category_slug=params.get("category"),
-            tag=params.get("tag"),
-            sort=params.get("sort"),
-            page=params.get("page"),
-        )
+        self.load_state = "loading"
+        self.load_error_message = ""
+        try:
+            snapshot = load_public_contract_browse_snapshot_safe(
+                query=params.get("query"),
+                category_slug=params.get("category"),
+                tag=params.get("tag"),
+                sort=params.get("sort"),
+                page=params.get("page"),
+            )
+        except Exception as error:
+            snapshot = build_empty_contract_browse_snapshot(
+                query=params.get("query"),
+                category_slug=params.get("category"),
+                tag=params.get("tag"),
+                sort=params.get("sort"),
+                page=params.get("page"),
+            )
+            self._apply_snapshot(snapshot)
+            self.load_error_message = str(error)
+            self.load_state = "error"
+            return
+
         self._apply_snapshot(snapshot)
+        self.load_state = "ready"
 
     def set_search_query(self, value: str) -> None:
         """Update the current search input value."""

@@ -62,6 +62,8 @@ class ProfileSettingsState(rx.State):
     current_user_email: str | None = None
     current_username: str | None = None
     current_display_name: str | None = None
+    load_state: str = "loading"
+    load_error_message: str = ""
     profile_username: str = ""
     profile_display_name: str = ""
     profile_bio: str = ""
@@ -94,6 +96,16 @@ class ProfileSettingsState(rx.State):
     def is_authenticated(self) -> bool:
         """Return whether the current browser has an active user session."""
         return self.current_user_id is not None
+
+    @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the settings route is still loading the private snapshot."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the settings route failed to load."""
+        return self.load_state == "error" and bool(self.load_error_message)
 
     @rx.var
     def current_identity_label(self) -> str:
@@ -179,12 +191,30 @@ class ProfileSettingsState(rx.State):
 
     def load_page(self) -> rx.event.EventSpec | None:
         """Load the authenticated profile snapshot after the parent auth guard runs."""
+        self.load_state = "loading"
+        self.load_error_message = ""
         self._clear_profile_feedback()
         self._clear_avatar_feedback()
         self._clear_playground_target_feedback()
         self._apply_user_snapshot(self._resolve_user_from_cookie())
-        self._load_snapshot()
+        if self.current_user_id is None:
+            self.load_error_message = "Authentication is required to manage profile settings."
+            self.load_state = "error"
+            return None
+
+        try:
+            self._load_snapshot()
+        except ProfileServiceError as error:
+            self.load_error_message = str(error)
+            self.load_state = "error"
+            return None
+        except Exception as error:
+            self.load_error_message = str(error)
+            self.load_state = "error"
+            return None
+
         self._reset_playground_target_form()
+        self.load_state = "ready"
         return None
 
     def logout_current_user(self) -> rx.event.EventSpec:

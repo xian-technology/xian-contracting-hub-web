@@ -65,6 +65,7 @@ class AdminContractEditorState(rx.State):
     current_user_email: str | None = None
     current_username: str | None = None
     current_display_name: str | None = None
+    load_state: str = "loading"
     editor_mode: str = AdminContractEditorMode.CREATE.value
     editor_contract_id: int | None = None
     editing_contract_slug: str = ""
@@ -109,6 +110,16 @@ class AdminContractEditorState(rx.State):
     def is_authenticated(self) -> bool:
         """Return whether the current browser has an active user session."""
         return self.current_user_id is not None
+
+    @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the contract editor snapshot is loading."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the contract editor failed to load."""
+        return self.load_state == "error" and bool(self.load_error_message)
 
     @rx.var
     def current_identity_label(self) -> str:
@@ -209,8 +220,14 @@ class AdminContractEditorState(rx.State):
     def load_page(self) -> None:
         """Load the admin contract editor from the current route params."""
         requested_slug = str(self.router.page.params.get("slug", "")).strip().lower() or None
+        self.load_state = "loading"
         self._clear_feedback()
         self.sync_auth_state()
+        if self.current_user_id is None:
+            self.load_error_message = "Administrator access is required to edit contracts."
+            self.load_state = "error"
+            return
+
         try:
             snapshot = load_admin_contract_editor_snapshot_safe(contract_slug=requested_slug)
         except AdminContractEditorServiceError as error:
@@ -218,9 +235,18 @@ class AdminContractEditorState(rx.State):
             self._apply_snapshot(
                 build_empty_admin_contract_editor_snapshot(contract_slug=requested_slug)
             )
+            self.load_state = "ready"
+            return
+        except Exception as error:
+            self.load_error_message = str(error)
+            self._apply_snapshot(
+                build_empty_admin_contract_editor_snapshot(contract_slug=requested_slug)
+            )
+            self.load_state = "error"
             return
 
         self._apply_snapshot(snapshot)
+        self.load_state = "ready"
 
     def logout_current_user(self) -> rx.event.EventSpec:
         """Invalidate the current cookie-backed session from the admin shell."""

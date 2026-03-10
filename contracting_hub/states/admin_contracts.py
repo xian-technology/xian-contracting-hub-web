@@ -18,6 +18,7 @@ from contracting_hub.services.admin_contracts import (
     AdminContractStatusTab,
     archive_admin_contract,
     build_admin_contracts_path,
+    build_empty_admin_contract_index_snapshot,
     delete_admin_contract,
     load_admin_contract_index_snapshot_safe,
     publish_admin_contract,
@@ -82,6 +83,8 @@ class AdminContractsState(rx.State):
     current_user_email: str | None = None
     current_username: str | None = None
     current_display_name: str | None = None
+    load_state: str = "loading"
+    load_error_message: str = ""
     query: str = ""
     selected_status_filter: str = AdminContractStatusFilter.ALL.value
     selected_featured_filter: str = AdminContractFeaturedFilter.ALL.value
@@ -97,6 +100,16 @@ class AdminContractsState(rx.State):
     def is_authenticated(self) -> bool:
         """Return whether the current browser has an active user session."""
         return self.current_user_id is not None
+
+    @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the admin contract index is loading."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the admin contract index failed to load."""
+        return self.load_state == "error" and bool(self.load_error_message)
 
     @rx.var
     def current_identity_label(self) -> str:
@@ -134,15 +147,34 @@ class AdminContractsState(rx.State):
 
     def load_page(self) -> None:
         """Load the admin contract index from the current router query params."""
+        self.load_state = "loading"
         self._clear_feedback()
         self.sync_auth_state()
         params = self.router.page.params
-        snapshot = load_admin_contract_index_snapshot_safe(
-            query=params.get("query"),
-            status_filter=params.get("status"),
-            featured_filter=params.get("featured"),
-        )
+        if self.current_user_id is None:
+            self.load_error_message = "Administrator access is required to view this workspace."
+            self.load_state = "error"
+            return
+
+        try:
+            snapshot = load_admin_contract_index_snapshot_safe(
+                query=params.get("query"),
+                status_filter=params.get("status"),
+                featured_filter=params.get("featured"),
+            )
+        except Exception as error:
+            snapshot = build_empty_admin_contract_index_snapshot(
+                query=params.get("query"),
+                status_filter=params.get("status"),
+                featured_filter=params.get("featured"),
+            )
+            self._apply_snapshot(snapshot)
+            self.load_error_message = str(error)
+            self.load_state = "error"
+            return
+
         self._apply_snapshot(snapshot)
+        self.load_state = "ready"
 
     def logout_current_user(self) -> rx.event.EventSpec:
         """Invalidate the current cookie-backed session from the admin shell."""
@@ -267,6 +299,7 @@ class AdminContractsState(rx.State):
     def _clear_feedback(self) -> None:
         self.action_success_message = ""
         self.action_error_message = ""
+        self.load_error_message = ""
 
 
 def _serialize_status_tab(tab: AdminContractStatusTab) -> AdminContractStatusTabPayload:

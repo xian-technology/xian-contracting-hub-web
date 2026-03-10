@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, page_section
+from contracting_hub.components import app_shell, page_error_state, page_loading_state, page_section
 from contracting_hub.config import get_settings
 from contracting_hub.states import PROFILE_AVATAR_UPLOAD_ID, AuthState, ProfileSettingsState
 from contracting_hub.utils.meta import PROFILE_SETTINGS_ROUTE
@@ -604,15 +604,39 @@ def _profile_panel() -> rx.Component:
 def index() -> rx.Component:
     """Render the authenticated profile settings page."""
     return app_shell(
-        page_section(
-            rx.grid(
-                _profile_panel(),
-                _playground_targets_panel(),
-                columns=rx.breakpoints(initial="1", xl="2"),
-                gap="var(--hub-space-6)",
-                width="100%",
-                align_items="start",
+        rx.box(
+            rx.cond(
+                ProfileSettingsState.is_loading,
+                page_loading_state(
+                    title="Loading profile settings",
+                    body="Preparing your editable profile details and saved playground targets.",
+                    test_id="profile-settings-loading",
+                ),
+                rx.cond(
+                    ProfileSettingsState.has_load_error,
+                    page_error_state(
+                        title="Profile settings could not be loaded",
+                        body=ProfileSettingsState.load_error_message,
+                        test_id="profile-settings-error",
+                        action=rx.link(
+                            rx.button("Retry settings load", size="3", variant="soft"),
+                            href=PROFILE_SETTINGS_ROUTE,
+                            text_decoration="none",
+                        ),
+                    ),
+                    page_section(
+                        rx.grid(
+                            _profile_panel(),
+                            _playground_targets_panel(),
+                            columns=rx.breakpoints(initial="1", xl="2"),
+                            gap="var(--hub-space-6)",
+                            width="100%",
+                            align_items="start",
+                        ),
+                    ),
+                ),
             ),
+            width="100%",
             custom_attrs={"data-testid": "profile-settings-page"},
         ),
         page_title="Profile settings",

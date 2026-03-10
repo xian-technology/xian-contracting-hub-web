@@ -62,7 +62,6 @@ def test_deployment_history_page_renders_history_and_shortcuts() -> None:
     assert rendered["name"] == "RadixThemesBox"
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"deployment-history-page"' in prop for prop in rendered_props)
-    assert any('"data-testid":"deployment-history-shortcuts"' in prop for prop in rendered_props)
+    assert any('"data-testid":"deployment-history-loading"' in prop for prop in rendered_props)
     assert "Deployment history" in rendered_text
-    assert "Saved target shortcuts" in rendered_text
-    assert "Show all deployments" in rendered_text
+    assert "Loading deployment history" in rendered_text

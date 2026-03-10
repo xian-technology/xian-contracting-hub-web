@@ -10,6 +10,8 @@ from contracting_hub.components import (
     contract_card,
     contract_metadata_badge,
     contract_rating_summary,
+    page_error_state,
+    page_loading_state,
     page_section,
 )
 from contracting_hub.states import AuthState, BrowseState
@@ -374,72 +376,96 @@ def _pagination_controls() -> rx.Component:
 
 
 def _browse_results() -> rx.Component:
-    return page_section(
-        rx.vstack(
-            rx.flex(
-                rx.vstack(
-                    rx.badge(
-                        "Public Catalog",
-                        radius="full",
-                        variant="soft",
-                        color_scheme="bronze",
-                        width="fit-content",
-                    ),
-                    rx.heading(
-                        BrowseState.result_count_label,
-                        size="6",
-                        font_family="var(--hub-font-display)",
-                        letter_spacing="-0.05em",
-                        color="var(--hub-color-text)",
-                    ),
-                    rx.text(
-                        BrowseState.result_window_label,
-                        color="var(--hub-color-text-muted)",
-                    ),
-                    align="start",
-                    gap="var(--hub-space-3)",
-                    width="100%",
-                ),
-                rx.grid(
-                    _summary_chip(
-                        "Page",
-                        rx.text(BrowseState.current_page, "/", BrowseState.total_pages),
-                    ),
-                    _summary_chip("Sort", BrowseState.selected_sort_label),
-                    columns=rx.breakpoints(initial="1", sm="2"),
-                    gap="var(--hub-space-3)",
-                    width=rx.breakpoints(initial="100%", md="auto"),
-                ),
-                direction=rx.breakpoints(initial="column", xl="row"),
-                align=rx.breakpoints(initial="start", xl="center"),
-                justify="between",
-                gap="var(--hub-space-4)",
-                width="100%",
+    return rx.box(
+        rx.cond(
+            BrowseState.is_loading,
+            page_loading_state(
+                title="Loading catalog results",
+                body="Refreshing public contract results and active filter summaries.",
+                test_id="browse-results-loading",
             ),
             rx.cond(
-                BrowseState.has_active_filters,
-                rx.flex(
-                    rx.foreach(BrowseState.active_filters, _active_filter_badge),
-                    wrap="wrap",
-                    gap="var(--hub-space-2)",
-                    width="100%",
+                BrowseState.has_load_error,
+                page_error_state(
+                    title="Browse results could not be loaded",
+                    body=BrowseState.load_error_message,
+                    test_id="browse-results-error",
+                    action=rx.link(
+                        rx.button("Reset browse view", size="3", variant="soft"),
+                        href=BrowseState.clear_filters_href,
+                        text_decoration="none",
+                    ),
+                ),
+                page_section(
+                    rx.vstack(
+                        rx.flex(
+                            rx.vstack(
+                                rx.badge(
+                                    "Public Catalog",
+                                    radius="full",
+                                    variant="soft",
+                                    color_scheme="bronze",
+                                    width="fit-content",
+                                ),
+                                rx.heading(
+                                    BrowseState.result_count_label,
+                                    size="6",
+                                    font_family="var(--hub-font-display)",
+                                    letter_spacing="-0.05em",
+                                    color="var(--hub-color-text)",
+                                ),
+                                rx.text(
+                                    BrowseState.result_window_label,
+                                    color="var(--hub-color-text-muted)",
+                                ),
+                                align="start",
+                                gap="var(--hub-space-3)",
+                                width="100%",
+                            ),
+                            rx.grid(
+                                _summary_chip(
+                                    "Page",
+                                    rx.text(BrowseState.current_page, "/", BrowseState.total_pages),
+                                ),
+                                _summary_chip("Sort", BrowseState.selected_sort_label),
+                                columns=rx.breakpoints(initial="1", sm="2"),
+                                gap="var(--hub-space-3)",
+                                width=rx.breakpoints(initial="100%", md="auto"),
+                            ),
+                            direction=rx.breakpoints(initial="column", xl="row"),
+                            align=rx.breakpoints(initial="start", xl="center"),
+                            justify="between",
+                            gap="var(--hub-space-4)",
+                            width="100%",
+                        ),
+                        rx.cond(
+                            BrowseState.has_active_filters,
+                            rx.flex(
+                                rx.foreach(BrowseState.active_filters, _active_filter_badge),
+                                wrap="wrap",
+                                gap="var(--hub-space-2)",
+                                width="100%",
+                            ),
+                        ),
+                        rx.cond(
+                            BrowseState.has_results,
+                            rx.vstack(
+                                rx.foreach(BrowseState.result_cards, _browse_result_card),
+                                _pagination_controls(),
+                                width="100%",
+                                gap="var(--hub-space-4)",
+                            ),
+                            _results_empty_state(),
+                        ),
+                        align="start",
+                        gap="var(--hub-space-5)",
+                        width="100%",
+                    ),
+                    custom_attrs={"data-testid": "browse-results"},
                 ),
             ),
-            rx.cond(
-                BrowseState.has_results,
-                rx.vstack(
-                    rx.foreach(BrowseState.result_cards, _browse_result_card),
-                    _pagination_controls(),
-                    width="100%",
-                    gap="var(--hub-space-4)",
-                ),
-                _results_empty_state(),
-            ),
-            align="start",
-            gap="var(--hub-space-5)",
-            width="100%",
         ),
-        custom_attrs={"data-testid": "browse-results"},
+        width="100%",
     )
 
 

@@ -62,9 +62,6 @@ def test_profile_settings_page_renders_profile_and_target_forms() -> None:
     assert rendered["name"] == "RadixThemesBox"
     assert '"data-testid":"app-shell"' in rendered["props"]
     assert any('"data-testid":"profile-settings-page"' in prop for prop in rendered_props)
-    assert any('"data-testid":"profile-settings-form"' in prop for prop in rendered_props)
-    assert any('"data-testid":"playground-target-form"' in prop for prop in rendered_props)
-    assert any('"data-testid":"avatar-upload"' in prop for prop in rendered_props)
+    assert any('"data-testid":"profile-settings-loading"' in prop for prop in rendered_props)
     assert "Profile settings" in rendered_text
-    assert "Saved playground targets" in rendered_text
-    assert "Save profile" in rendered_text
+    assert "Loading profile settings" in rendered_text

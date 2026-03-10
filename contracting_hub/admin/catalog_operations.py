@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import reflex as rx
 
-from contracting_hub.components import app_shell, contract_metadata_badge, page_section
+from contracting_hub.components import (
+    app_shell,
+    contract_metadata_badge,
+    page_error_state,
+    page_loading_state,
+    page_section,
+)
 from contracting_hub.states.admin_catalog_operations import AdminCatalogOperationsState
 from contracting_hub.states.auth import AuthState
 from contracting_hub.utils.meta import ADMIN_CONTRACTS_ROUTE, ADMIN_OPERATIONS_ROUTE
@@ -761,16 +767,40 @@ def _audit_log_panel() -> rx.Component:
 def index() -> rx.Component:
     """Render the admin catalog-operations workspace."""
     return app_shell(
-        page_section(
-            rx.vstack(
-                _overview_card(),
-                _category_manager(),
-                _featured_curation_panel(),
-                _audit_log_panel(),
-                align="start",
-                gap="var(--hub-space-6)",
-                width="100%",
+        rx.box(
+            rx.cond(
+                AdminCatalogOperationsState.is_loading,
+                page_loading_state(
+                    title="Loading catalog operations",
+                    body="Preparing taxonomy, featured curation, and recent audit activity.",
+                    test_id="admin-catalog-loading",
+                ),
+                rx.cond(
+                    AdminCatalogOperationsState.has_load_error,
+                    page_error_state(
+                        title="Catalog operations could not be loaded",
+                        body=AdminCatalogOperationsState.load_error_message,
+                        test_id="admin-catalog-error",
+                        action=rx.link(
+                            rx.button("Retry catalog operations", size="3", variant="soft"),
+                            href=ADMIN_OPERATIONS_ROUTE,
+                            text_decoration="none",
+                        ),
+                    ),
+                    page_section(
+                        rx.vstack(
+                            _overview_card(),
+                            _category_manager(),
+                            _featured_curation_panel(),
+                            _audit_log_panel(),
+                            align="start",
+                            gap="var(--hub-space-6)",
+                            width="100%",
+                        ),
+                    ),
+                ),
             ),
+            width="100%",
             custom_attrs={"data-testid": "admin-catalog-page"},
         ),
         page_title="Admin catalog operations",

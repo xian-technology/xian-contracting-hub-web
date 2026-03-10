@@ -61,13 +61,7 @@ def test_admin_contract_editor_placeholders_render_stable_scaffolding() -> None:
     assert '"data-testid":"app-shell"' in edit_rendered["props"]
     assert any('"data-testid":"admin-contract-editor-page"' in prop for prop in new_props)
     assert any('"data-testid":"admin-contract-editor-page"' in prop for prop in edit_props)
-    assert any('"data-testid":"admin-contract-editor-form"' in prop for prop in new_props)
-    assert any('"data-testid":"admin-contract-editor-form"' in prop for prop in edit_props)
-    assert any('"data-testid":"admin-contract-editor-taxonomy"' in prop for prop in new_props)
-    assert any('"data-testid":"admin-contract-editor-taxonomy"' in prop for prop in edit_props)
-    assert "Metadata editor" in new_text
-    assert "Metadata editor" in edit_text
-    assert "Stable slug" in new_text
-    assert "Stable slug" in edit_text
-    assert "Taxonomy and discovery" in new_text
-    assert "Author assignment" in edit_text
+    assert any('"data-testid":"admin-contract-editor-loading"' in prop for prop in new_props)
+    assert any('"data-testid":"admin-contract-editor-loading"' in prop for prop in edit_props)
+    assert "Loading contract editor" in new_text
+    assert "Loading contract editor" in edit_text

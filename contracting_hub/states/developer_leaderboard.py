@@ -12,6 +12,7 @@ from contracting_hub.services.developer_kpis import (
 )
 from contracting_hub.services.developer_leaderboard import (
     PublicDeveloperLeaderboardSnapshot,
+    build_empty_public_developer_leaderboard_snapshot,
     build_public_developer_leaderboard_path,
     load_public_developer_leaderboard_snapshot_safe,
 )
@@ -58,6 +59,8 @@ class DeveloperLeaderboardEntryPayload(TypedDict):
 class DeveloperLeaderboardState(rx.State):
     """URL-driven state for the public developer leaderboard page."""
 
+    load_state: str = "loading"
+    load_error_message: str = ""
     selected_sort: str = "star_total"
     selected_sort_label: str = "Most starred"
     selected_timeframe: str = "all_time"
@@ -75,6 +78,16 @@ class DeveloperLeaderboardState(rx.State):
         return bool(self.leaderboard_entries)
 
     @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the current leaderboard route is loading KPI data."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the leaderboard route failed to resolve cleanly."""
+        return self.load_state == "error" and bool(self.load_error_message)
+
+    @rx.var
     def page_intro(self) -> str:
         """Return the current intro copy for the public leaderboard."""
         return (
@@ -86,12 +99,27 @@ class DeveloperLeaderboardState(rx.State):
     def load_page(self) -> None:
         """Load the leaderboard snapshot from the current router query params."""
         params = self.router.page.params
-        snapshot = load_public_developer_leaderboard_snapshot_safe(
-            sort=params.get("sort"),
-            timeframe=params.get("timeframe"),
-            activity_window_days=params.get("window"),
-        )
+        self.load_state = "loading"
+        self.load_error_message = ""
+        try:
+            snapshot = load_public_developer_leaderboard_snapshot_safe(
+                sort=params.get("sort"),
+                timeframe=params.get("timeframe"),
+                activity_window_days=params.get("window"),
+            )
+        except Exception as error:
+            snapshot = build_empty_public_developer_leaderboard_snapshot(
+                sort=params.get("sort"),
+                timeframe=params.get("timeframe"),
+                activity_window_days=params.get("window"),
+            )
+            self._apply_snapshot(snapshot)
+            self.load_error_message = str(error)
+            self.load_state = "error"
+            return
+
         self._apply_snapshot(snapshot)
+        self.load_state = "ready"
 
     def set_selected_sort(self, value: str) -> None:
         """Update the current leaderboard sort control."""

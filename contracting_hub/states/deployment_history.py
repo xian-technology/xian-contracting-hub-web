@@ -75,6 +75,7 @@ class DeploymentHistoryState(rx.State):
     current_user_email: str | None = None
     current_username: str | None = None
     current_display_name: str | None = None
+    load_state: str = "loading"
     deployment_entries: list[DeploymentHistoryEntryPayload] = []
     visible_deployment_entries: list[DeploymentHistoryEntryPayload] = []
     saved_target_shortcuts: list[SavedTargetShortcutPayload] = []
@@ -92,6 +93,16 @@ class DeploymentHistoryState(rx.State):
     def is_authenticated(self) -> bool:
         """Return whether the current browser has an active user session."""
         return self.current_user_id is not None
+
+    @rx.var
+    def is_loading(self) -> bool:
+        """Return whether the history route is still resolving deployment data."""
+        return self.load_state == "loading"
+
+    @rx.var
+    def has_load_error(self) -> bool:
+        """Return whether the history route failed to load."""
+        return self.load_state == "error" and bool(self.page_error_message)
 
     @rx.var
     def current_identity_label(self) -> str:
@@ -130,12 +141,15 @@ class DeploymentHistoryState(rx.State):
 
     def load_page(self) -> rx.event.EventSpec | None:
         """Load the authenticated deployment-history snapshot."""
+        self.load_state = "loading"
         self._clear_feedback()
         self._apply_user_snapshot(self._resolve_user_from_cookie())
         self._reset_history_state()
 
         user_id = self.current_user_id
         if user_id is None:
+            self.page_error_message = "Authentication is required to review deployment history."
+            self.load_state = "error"
             return None
 
         try:
@@ -146,9 +160,15 @@ class DeploymentHistoryState(rx.State):
                 )
         except DeploymentHistoryServiceError as error:
             self.page_error_message = str(error)
+            self.load_state = "error"
+            return None
+        except Exception as error:
+            self.page_error_message = str(error)
+            self.load_state = "error"
             return None
 
         self._apply_snapshot(snapshot)
+        self.load_state = "ready"
         return None
 
     def logout_current_user(self) -> rx.event.EventSpec:
