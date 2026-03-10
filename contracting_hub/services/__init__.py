@@ -29,11 +29,19 @@ from contracting_hub.services.auth import (
 )
 from contracting_hub.services.bootstrap import (
     DEFAULT_CATEGORY_TAXONOMY,
+    DEFAULT_LOCAL_DEMO_PASSWORD,
+    DEMO_CONTRACT_DEFINITIONS,
+    DEMO_USER_DEFINITIONS,
+    REQUIRED_DEMO_SCHEMA_TABLES,
     REQUIRED_SCHEMA_TABLES,
     BootstrapAdminDefinition,
     BootstrapSeedReport,
     CategorySeedDefinition,
+    DemoContractSeedDefinition,
+    DemoSeedReport,
+    DemoUserSeedDefinition,
     build_bootstrap_admin_definition,
+    seed_demo_catalog_data,
     seed_local_development_data,
 )
 from contracting_hub.services.contract_browse import (
@@ -178,6 +186,10 @@ from contracting_hub.services.homepage import (
     load_public_home_page_snapshot_safe,
     normalize_home_page_section_limit,
 )
+from contracting_hub.services.local_reset import (
+    LocalResetReport,
+    reset_local_development_environment,
+)
 from contracting_hub.services.playground_targets import (
     MAX_PLAYGROUND_ID_LENGTH,
     MAX_PLAYGROUND_TARGET_LABEL_LENGTH,
@@ -269,6 +281,9 @@ __all__ = [
     "CONTRACT_NAME_PATTERN",
     "CONTRACT_SLUG_PATTERN",
     "CategorySeedDefinition",
+    "DemoContractSeedDefinition",
+    "DemoSeedReport",
+    "DemoUserSeedDefinition",
     "ContractLintReport",
     "ContractLintServiceError",
     "ContractLintServiceErrorCode",
@@ -296,6 +311,7 @@ __all__ = [
     "ContractVersionDiffServiceError",
     "ContractVersionDiffServiceErrorCode",
     "DEFAULT_CATEGORY_TAXONOMY",
+    "DEFAULT_LOCAL_DEMO_PASSWORD",
     "DEPLOYABLE_CONTRACT_STATUSES",
     "INDEXED_SOURCE_MAX_CHARS",
     "INDEXED_SOURCE_MAX_LINES",
@@ -324,6 +340,7 @@ __all__ = [
     "PUBLIC_VERSION_STATUSES",
     "RATEABLE_CONTRACT_STATUSES",
     "REQUIRED_SCHEMA_TABLES",
+    "REQUIRED_DEMO_SCHEMA_TABLES",
     "SEARCH_INDEX_SHADOW_TABLE_NAMES",
     "STARABLE_CONTRACT_STATUSES",
     "SEARCH_QUERY_TOKEN_PATTERN",
@@ -413,6 +430,7 @@ __all__ = [
     "require_authenticated_user",
     "search_contract_catalog",
     "seed_local_development_data",
+    "seed_demo_catalog_data",
     "store_avatar_upload",
     "submit_contract_rating",
     "toggle_contract_star",
@@ -423,7 +441,11 @@ __all__ = [
     "ContractVersionServiceErrorCode",
     "ContractStarServiceError",
     "ContractStarServiceErrorCode",
+    "DEMO_CONTRACT_DEFINITIONS",
+    "DEMO_USER_DEFINITIONS",
+    "LocalResetReport",
     "register_user",
+    "reset_local_development_environment",
     "require_user_role",
     "resolve_current_user",
     "update_playground_target",

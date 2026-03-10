@@ -66,6 +66,6 @@
 ## Phase 7: Hardening, Coverage, and Release Readiness
 - [x] 7.1 — Add comprehensive loading, empty, validation, and failure states across public, authenticated, and admin screens.
 - [x] 7.2 — Improve accessibility semantics, keyboard navigation, focus management, and responsive behavior on key layouts.
-- [ ] 7.3 — Add seed/demo data and repeatable local reset scripts for productive development and QA.
+- [x] 7.3 — Add seed/demo data and repeatable local reset scripts for productive development and QA.
 - [ ] 7.4 — Close remaining unit, integration, and Playwright coverage gaps until total coverage is at least 80 percent.
 - [ ] 7.5 — Run the full lint, format-check, test, coverage, and production export pipeline and fix the last release blockers.
