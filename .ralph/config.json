@@ -1,10 +1,10 @@
 {
   "cli": "codex",
   "flags": "-s danger-full-access",
-  "max_iterations": 150,
-  "test_command": "pytest -x -q --timeout=30",
+  "max_iterations": 0,
+  "test_command": ".venv/bin/pytest -x -q --timeout=30",
   "model_pricing": {
-    "codex": 0.006,
-    "claude": 0.015
+    "claude": 0.015,
+    "codex": 0.006
   }
 }

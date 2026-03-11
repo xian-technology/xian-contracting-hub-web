@@ -1,3 +1,7 @@
+.web
+.states
+assets/external/
+*.db
 .venv/
 .env
 .local/
@@ -11,3 +15,6 @@ dist/
 build/
 playwright-report/
 test-results/
+.ralph/
+uploaded_files/
+uploads/
