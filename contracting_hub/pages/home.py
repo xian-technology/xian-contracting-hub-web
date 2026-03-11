@@ -45,7 +45,7 @@ def _summary_metric(label: str, value: str) -> rx.Component:
     return rx.box(
         rx.text(
             label,
-            font_size="0.72rem",
+            font_size="0.68rem",
             text_transform="uppercase",
             letter_spacing="0.08em",
             color="var(--hub-color-text-muted)",
@@ -56,10 +56,11 @@ def _summary_metric(label: str, value: str) -> rx.Component:
             font_weight="600",
             color="var(--hub-color-text)",
         ),
-        padding="0.85rem 1rem",
+        padding="0.75rem 0.85rem",
         border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 249, 239, 0.8)",
+        border_radius="var(--hub-radius-sm)",
+        background="rgba(255, 250, 242, 0.7)",
+        class_name="hub-metric",
     )
 
 
@@ -204,33 +205,27 @@ def _home_overview(snapshot: HomePageSnapshot) -> rx.Component:
     return page_section(
         rx.grid(
             rx.vstack(
-                rx.badge(
-                    "Public catalog",
-                    radius="full",
-                    variant="soft",
-                    color_scheme="bronze",
-                    width="fit-content",
-                ),
                 rx.heading(
                     "Curated contracts surfaced by signal, freshness, and deployment activity.",
-                    size="7",
+                    size="6",
                     font_family="var(--hub-font-display)",
-                    letter_spacing="-0.06em",
+                    letter_spacing="-0.04em",
                     color="var(--hub-color-text)",
                     max_width="32rem",
                 ),
                 rx.text(
                     (
-                        "Featured entries highlight editorial picks, trending ranks by public "
+                        "Featured entries highlight editorial picks, trending ranks by "
                         "engagement, recently updated tracks fresh releases, and recently "
-                        "deployed surfaces contracts that are actively reaching playgrounds."
+                        "deployed surfaces contracts reaching playgrounds."
                     ),
-                    size="4",
                     color="var(--hub-color-text-muted)",
                     max_width="38rem",
+                    font_size="0.95rem",
+                    line_height="1.6",
                 ),
                 align="start",
-                gap="var(--hub-space-4)",
+                gap="var(--hub-space-3)",
                 width="100%",
             ),
             rx.grid(
@@ -239,10 +234,10 @@ def _home_overview(snapshot: HomePageSnapshot) -> rx.Component:
                 _summary_metric("Updated", str(len(snapshot.recently_updated_contracts))),
                 _summary_metric("Deployed", str(len(snapshot.recently_deployed_contracts))),
                 columns="2",
-                gap="var(--hub-space-3)",
+                gap="var(--hub-space-2)",
                 width="100%",
             ),
-            columns=rx.breakpoints(initial="1", lg="2"),
+            columns=rx.breakpoints(initial="1", lg="3fr 2fr"),
             gap="var(--hub-space-6)",
             width="100%",
             align_items="center",

@@ -43,45 +43,32 @@ def _brand_lockup() -> rx.Component:
                 rx.text(
                     "xh",
                     font_family="var(--hub-font-display)",
-                    font_size="1rem",
+                    font_size="0.85rem",
                     font_weight="700",
-                    letter_spacing="0.08em",
+                    letter_spacing="0.1em",
                     text_transform="uppercase",
                     color="var(--hub-color-accent-strong)",
                 ),
-                width="3rem",
-                height="3rem",
+                width="2.25rem",
+                height="2.25rem",
                 display="flex",
                 align_items="center",
                 justify_content="center",
-                border_radius="var(--hub-radius-md)",
-                border="1px solid var(--hub-color-line)",
-                background=(
-                    "linear-gradient(135deg, var(--hub-color-accent-soft) 0%, "
-                    "var(--hub-color-highlight-soft) 100%)"
-                ),
-                box_shadow="var(--hub-shadow-header)",
+                border_radius="var(--hub-radius-sm)",
+                border="1px solid rgba(52, 43, 30, 0.08)",
+                background="var(--hub-color-accent-soft)",
                 flex_shrink="0",
             ),
-            rx.vstack(
-                rx.text(
-                    APP_NAME,
-                    font_family="var(--hub-font-display)",
-                    font_size="1.15rem",
-                    font_weight="700",
-                    letter_spacing="-0.04em",
-                    color="var(--hub-color-text)",
-                ),
-                rx.text(
-                    "Code-first Xian contract discovery",
-                    font_size="0.92rem",
-                    color="var(--hub-color-text-muted)",
-                ),
-                spacing="1",
-                align="start",
+            rx.text(
+                APP_NAME,
+                font_family="var(--hub-font-display)",
+                font_size="1.05rem",
+                font_weight="700",
+                letter_spacing="-0.03em",
+                color="var(--hub-color-text)",
             ),
             align="center",
-            gap="var(--hub-space-4)",
+            gap="var(--hub-space-3)",
         ),
         href=HOME_ROUTE,
         text_decoration="none",
@@ -93,19 +80,18 @@ def _header_badges() -> rx.Component:
     """Render shared status badges in the shell header."""
     return rx.flex(
         *[
-            rx.badge(
+            rx.text(
                 pillar,
-                radius="full",
-                variant="soft",
-                color_scheme="bronze",
-                padding_x="0.85rem",
-                padding_y="0.35rem",
+                font_size="0.78rem",
+                color="var(--hub-color-text-muted)",
+                letter_spacing="0.02em",
             )
             for pillar in SHELL_PILLARS
         ],
         wrap="wrap",
-        gap="var(--hub-space-3)",
+        gap="var(--hub-space-4)",
         justify=rx.breakpoints(initial="start", md="end"),
+        display=rx.breakpoints(initial="none", md="flex"),
     )
 
 
@@ -118,23 +104,29 @@ def _shell_navigation() -> rx.Component:
                 href=HOME_ROUTE,
                 text_decoration="none",
                 color="var(--hub-color-text)",
-                font_weight="600",
+                font_weight="500",
+                font_size="0.92rem",
+                class_name="hub-nav-link",
             ),
             rx.link(
                 "Browse",
                 href=BROWSE_ROUTE,
                 text_decoration="none",
                 color="var(--hub-color-text)",
-                font_weight="600",
+                font_weight="500",
+                font_size="0.92rem",
+                class_name="hub-nav-link",
             ),
             rx.link(
                 "Developers",
                 href=DEVELOPER_LEADERBOARD_ROUTE,
                 text_decoration="none",
                 color="var(--hub-color-text)",
-                font_weight="600",
+                font_weight="500",
+                font_size="0.92rem",
+                class_name="hub-nav-link",
             ),
-            gap="var(--hub-space-4)",
+            gap="var(--hub-space-5)",
             wrap="wrap",
             justify=rx.breakpoints(initial="start", md="end"),
         ),
@@ -281,16 +273,15 @@ def _page_intro(
         rx.vstack(
             *intro_children,
             align="start",
-            gap="var(--hub-space-4)",
+            gap="var(--hub-space-3)",
         ),
         width="100%",
-        padding="var(--hub-space-8)",
-        border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-lg)",
-        background=(
-            "linear-gradient(180deg, rgba(255, 249, 239, 0.95) 0%, rgba(250, 242, 229, 0.9) 100%)"
+        padding=rx.breakpoints(
+            initial="var(--hub-space-5)",
+            md="var(--hub-space-7) var(--hub-space-6)",
         ),
-        box_shadow="var(--hub-shadow-panel)",
+        border_bottom="1px solid var(--hub-color-line)",
+        class_name="hub-fade-in",
     )
 
 
@@ -299,33 +290,32 @@ def _shell_header(auth_state: type[AuthState]) -> rx.Component:
     return rx.el.header(
         _shell_frame(
             rx.flex(
-                _brand_lockup(),
-                rx.vstack(
-                    rx.flex(
-                        _shell_navigation(),
-                        _session_navigation(auth_state),
-                        direction=rx.breakpoints(initial="column", lg="row"),
-                        align=rx.breakpoints(initial="start", lg="center"),
-                        justify="end",
-                        gap="var(--hub-space-3)",
-                        width="100%",
-                    ),
-                    _header_badges(),
-                    align=rx.breakpoints(initial="start", md="end"),
-                    gap="var(--hub-space-3)",
-                    width="100%",
+                rx.flex(
+                    _brand_lockup(),
+                    _shell_navigation(),
+                    align="center",
+                    gap="var(--hub-space-6)",
+                    direction=rx.breakpoints(initial="column", sm="row"),
                 ),
-                direction=rx.breakpoints(initial="column", sm="row"),
-                align=rx.breakpoints(initial="start", sm="center"),
+                rx.flex(
+                    _header_badges(),
+                    _session_navigation(auth_state),
+                    direction=rx.breakpoints(initial="column", lg="row"),
+                    align=rx.breakpoints(initial="start", lg="center"),
+                    gap="var(--hub-space-4)",
+                    width=rx.breakpoints(initial="100%", lg="auto"),
+                ),
+                direction=rx.breakpoints(initial="column", lg="row"),
+                align=rx.breakpoints(initial="start", lg="center"),
                 justify="between",
                 gap="var(--hub-space-4)",
             )
         ),
         width="100%",
-        padding="var(--hub-space-5) var(--hub-layout-gutter)",
+        padding="var(--hub-space-4) var(--hub-layout-gutter)",
         border_bottom="1px solid var(--hub-color-line)",
-        background="rgba(245, 239, 226, 0.78)",
-        backdrop_filter="blur(18px)",
+        background="rgba(244, 239, 228, 0.85)",
+        backdrop_filter="blur(12px)",
         position="sticky",
         top="0",
         z_index="10",
@@ -339,23 +329,26 @@ def _shell_footer() -> rx.Component:
         _shell_frame(
             rx.flex(
                 rx.text(
-                    "Curated repository scaffolding for Xian smart contracts.",
+                    APP_NAME,
+                    font_family="var(--hub-font-display)",
+                    font_size="0.88rem",
+                    font_weight="600",
                     color="var(--hub-color-text-muted)",
-                    font_size="0.92rem",
                 ),
                 rx.text(
-                    "Designed for search, diffs, lint feedback, and deployments.",
+                    "Curated Xian smart contracts",
                     color="var(--hub-color-text-muted)",
-                    font_size="0.92rem",
+                    font_size="0.82rem",
                 ),
                 direction=rx.breakpoints(initial="column", md="row"),
                 align=rx.breakpoints(initial="start", md="center"),
                 justify="between",
-                gap="var(--hub-space-4)",
+                gap="var(--hub-space-3)",
             )
         ),
         width="100%",
-        padding="var(--hub-space-6) var(--hub-layout-gutter) var(--hub-space-7)",
+        padding="var(--hub-space-5) var(--hub-layout-gutter)",
+        border_top="1px solid var(--hub-color-line)",
         custom_attrs={"role": "contentinfo"},
     )
 
@@ -376,17 +369,6 @@ def app_shell(
 
     return rx.box(
         _skip_to_content_button(),
-        rx.box(
-            position="absolute",
-            inset="0",
-            background=(
-                "linear-gradient(rgba(52, 43, 30, 0.04) 1px, transparent 1px), "
-                "linear-gradient(90deg, rgba(52, 43, 30, 0.04) 1px, transparent 1px)"
-            ),
-            background_size="40px 40px",
-            mask_image="linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 75%)",
-            pointer_events="none",
-        ),
         rx.flex(
             _shell_header(auth_state),
             rx.el.main(
@@ -395,26 +377,21 @@ def app_shell(
                         *content_children,
                         width="100%",
                         gap="var(--hub-layout-section-gap)",
+                        class_name="hub-stagger",
                     )
                 ),
                 width="100%",
                 flex="1",
-                padding="var(--hub-space-8) var(--hub-layout-gutter)",
-                position="relative",
-                z_index="1",
+                padding="var(--hub-space-7) var(--hub-layout-gutter)",
                 id=MAIN_CONTENT_ID,
                 tab_index=-1,
             ),
             _shell_footer(),
             direction="column",
             min_height="100vh",
-            position="relative",
-            z_index="1",
         ),
         width="100%",
         min_height="100vh",
-        position="relative",
-        overflow="hidden",
         custom_attrs={"data-testid": "app-shell"},
     )
 

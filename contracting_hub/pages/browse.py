@@ -212,15 +212,14 @@ def _browse_filters() -> rx.Component:
 def _select_style() -> dict[str, str]:
     return {
         "width": "100%",
-        "padding": "0.85rem 1rem",
+        "padding": "0.7rem 0.85rem",
         "border": "1px solid var(--hub-color-line)",
-        "border_radius": "var(--hub-radius-md)",
-        "background": "rgba(255, 252, 246, 0.98)",
+        "border_radius": "var(--hub-radius-sm)",
+        "background": "rgba(255, 253, 248, 0.98)",
         "color": "var(--hub-color-text)",
         "font_family": "var(--hub-font-body)",
-        "font_size": "0.98rem",
+        "font_size": "0.92rem",
         "outline": "none",
-        "box_shadow": "inset 0 1px 0 rgba(255, 255, 255, 0.75)",
     }
 
 
@@ -230,7 +229,7 @@ def _summary_chip(label: str, value) -> rx.Component:
         if isinstance(value, rx.Component)
         else rx.text(
             value,
-            font_size="0.96rem",
+            font_size="0.92rem",
             font_weight="600",
             color="var(--hub-color-text)",
         )
@@ -238,16 +237,17 @@ def _summary_chip(label: str, value) -> rx.Component:
     return rx.box(
         rx.text(
             label,
-            font_size="0.72rem",
+            font_size="0.68rem",
             text_transform="uppercase",
             letter_spacing="0.08em",
             color="var(--hub-color-text-muted)",
         ),
         value_component,
-        padding="0.85rem 1rem",
+        padding="0.65rem 0.85rem",
         border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 249, 239, 0.82)",
+        border_radius="var(--hub-radius-sm)",
+        background="rgba(255, 250, 242, 0.7)",
+        class_name="hub-metric",
     )
 
 
@@ -342,24 +342,26 @@ def _pagination_link(page_link) -> rx.Component:
         page_link["is_current"],
         rx.box(
             page_link["label"],
-            min_width="2.5rem",
-            padding="0.65rem 0.85rem",
+            min_width="2.25rem",
+            padding="0.5rem 0.7rem",
             border="1px solid var(--hub-color-accent)",
-            border_radius="var(--hub-radius-pill)",
+            border_radius="var(--hub-radius-sm)",
             background="var(--hub-color-accent-soft)",
             color="var(--hub-color-accent-strong)",
             font_weight="600",
+            font_size="0.88rem",
             text_align="center",
         ),
         rx.link(
             rx.box(
                 page_link["label"],
-                min_width="2.5rem",
-                padding="0.65rem 0.85rem",
+                min_width="2.25rem",
+                padding="0.5rem 0.7rem",
                 border="1px solid var(--hub-color-line)",
-                border_radius="var(--hub-radius-pill)",
-                background="rgba(255, 252, 246, 0.9)",
+                border_radius="var(--hub-radius-sm)",
+                background="rgba(255, 253, 248, 0.9)",
                 color="var(--hub-color-text)",
+                font_size="0.88rem",
                 text_align="center",
             ),
             href=page_link["href"],

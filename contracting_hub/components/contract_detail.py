@@ -89,14 +89,13 @@ def contract_detail_header(
             width="100%",
         ),
         width="100%",
-        padding=rx.breakpoints(initial="var(--hub-space-5)", md="var(--hub-space-8)"),
+        padding=rx.breakpoints(initial="var(--hub-space-5)", md="var(--hub-space-6)"),
         border="1px solid var(--hub-color-line)",
         border_radius="var(--hub-radius-lg)",
-        background=(
-            "linear-gradient(180deg, rgba(255, 252, 246, 0.96) 0%, rgba(248, 241, 230, 0.92) 100%)"
-        ),
+        background="rgba(255, 253, 248, 0.94)",
         box_shadow="var(--hub-shadow-panel)",
         min_width="0",
+        class_name="hub-fade-in",
         **props,
     )
 
@@ -115,16 +114,17 @@ def _detail_metric(metric: ContractCardMetric) -> rx.Component:
     return rx.box(
         rx.text(
             metric.label,
-            font_size="0.72rem",
+            font_size="0.68rem",
             text_transform="uppercase",
             letter_spacing="0.08em",
             color="var(--hub-color-text-muted)",
         ),
         value_component,
-        padding="1rem 1.1rem",
-        border="1px solid rgba(124, 93, 37, 0.14)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 248, 236, 0.84)",
+        padding="0.85rem 1rem",
+        border="1px solid var(--hub-color-line)",
+        border_radius="var(--hub-radius-sm)",
+        background="rgba(255, 250, 242, 0.7)",
+        class_name="hub-metric",
     )
 
 

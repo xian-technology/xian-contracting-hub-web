@@ -112,8 +112,9 @@ def contract_card(
                 badges,
                 rx.text(
                     context_label,
-                    font_size="0.82rem",
+                    font_size="0.78rem",
                     color="var(--hub-color-text-muted)",
+                    letter_spacing="0.01em",
                 ),
                 direction=rx.breakpoints(initial="column", md="row"),
                 align=rx.breakpoints(initial="start", md="center"),
@@ -126,12 +127,14 @@ def contract_card(
                 rx.text(
                     contract_name,
                     font_family="var(--hub-font-mono)",
-                    font_size="0.88rem",
+                    font_size="0.85rem",
                     color="var(--hub-color-accent-strong)",
                 ),
                 rx.text(
                     short_summary,
                     color="var(--hub-color-text-muted)",
+                    font_size="0.92rem",
+                    line_height="1.55",
                 ),
                 align="start",
                 spacing="2",
@@ -140,15 +143,15 @@ def contract_card(
             rx.grid(
                 *[_contract_metric(metric) for metric in metrics],
                 columns=metric_columns,
-                gap="var(--hub-space-3)",
+                gap="var(--hub-space-2)",
                 width="100%",
             ),
             rx.flex(
                 rx.text(
-                    "Author: ",
                     author_name,
-                    font_size="0.88rem",
+                    font_size="0.82rem",
                     color="var(--hub-color-text-muted)",
+                    font_weight="500",
                 ),
                 tags,
                 direction=rx.breakpoints(initial="column", md="row"),
@@ -165,7 +168,8 @@ def contract_card(
         padding="var(--hub-space-5)",
         border="1px solid var(--hub-color-line)",
         border_radius="var(--hub-radius-md)",
-        background="rgba(255, 252, 246, 0.88)",
+        background="rgba(255, 253, 248, 0.92)",
+        class_name="hub-card",
         **props,
     )
 
@@ -176,7 +180,7 @@ def _contract_metric(metric: ContractCardMetric) -> rx.Component:
         if isinstance(metric.value, rx.Component)
         else rx.text(
             metric.value,
-            font_size="0.96rem",
+            font_size="0.92rem",
             font_weight="600",
             color="var(--hub-color-text)",
         )
@@ -184,16 +188,17 @@ def _contract_metric(metric: ContractCardMetric) -> rx.Component:
     return rx.box(
         rx.text(
             metric.label,
-            font_size="0.72rem",
+            font_size="0.68rem",
             text_transform="uppercase",
             letter_spacing="0.08em",
             color="var(--hub-color-text-muted)",
         ),
         value_component,
-        padding="0.85rem 1rem",
+        padding="0.65rem 0.85rem",
         border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 249, 239, 0.82)",
+        border_radius="var(--hub-radius-sm)",
+        background="rgba(255, 250, 242, 0.7)",
+        class_name="hub-metric",
     )
 
 

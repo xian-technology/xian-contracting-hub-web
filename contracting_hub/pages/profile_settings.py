@@ -52,22 +52,21 @@ def _surface_text_area(**props: object) -> rx.Component:
 def _select_style() -> dict[str, str]:
     return {
         "width": "100%",
-        "padding": "0.85rem 1rem",
+        "padding": "0.7rem 0.85rem",
         "border": "1px solid var(--hub-color-line)",
-        "borderRadius": "var(--hub-radius-md)",
-        "background": "rgba(255, 252, 246, 0.98)",
+        "borderRadius": "var(--hub-radius-sm)",
+        "background": "rgba(255, 253, 248, 0.98)",
         "color": "var(--hub-color-text)",
         "fontFamily": "var(--hub-font-body)",
-        "fontSize": "0.98rem",
+        "fontSize": "0.92rem",
         "outline": "none",
-        "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.75)",
     }
 
 
 def _text_area_style() -> dict[str, str]:
     return {
         **_select_style(),
-        "minHeight": "8rem",
+        "minHeight": "7rem",
         "resize": "vertical",
         "lineHeight": "1.5",
     }

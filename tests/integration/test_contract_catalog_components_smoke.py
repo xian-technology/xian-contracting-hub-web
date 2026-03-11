@@ -82,5 +82,4 @@ def test_contract_catalog_components_render_shared_card_metadata_and_rating() ->
     assert "con_escrow_vault" in rendered_text
     assert "4.8 avg" in rendered_text
     assert "12 ratings" in rendered_text
-    assert "Author: " in rendered_text
     assert "Avery" in rendered_text

@@ -10,7 +10,6 @@ def page_section(*children: rx.Component, **props: object) -> rx.Component:
         "padding": rx.breakpoints(
             initial="var(--hub-space-5)",
             md="var(--hub-space-6)",
-            lg="var(--hub-space-7)",
         ),
         "border": "1px solid var(--hub-color-line)",
         "border_radius": "var(--hub-radius-lg)",

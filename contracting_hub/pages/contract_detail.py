@@ -89,15 +89,14 @@ def _surface_input(**props: object) -> rx.Component:
 def _select_style() -> dict[str, str]:
     return {
         "width": "100%",
-        "padding": "0.85rem 1rem",
+        "padding": "0.7rem 0.85rem",
         "border": "1px solid var(--hub-color-line)",
-        "borderRadius": "var(--hub-radius-md)",
-        "background": "rgba(255, 252, 246, 0.98)",
+        "borderRadius": "var(--hub-radius-sm)",
+        "background": "rgba(255, 253, 248, 0.98)",
         "color": "var(--hub-color-text)",
         "fontFamily": "var(--hub-font-body)",
-        "fontSize": "0.98rem",
+        "fontSize": "0.92rem",
         "outline": "none",
-        "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.75)",
     }
 
 
@@ -1013,9 +1012,10 @@ def _deployment_drawer() -> rx.Component:
             rx.box(
                 position="fixed",
                 inset="0",
-                background="rgba(38, 30, 17, 0.42)",
-                backdrop_filter="blur(3px)",
+                background="rgba(38, 30, 17, 0.36)",
+                backdrop_filter="blur(2px)",
                 on_click=ContractDetailState.close_deployment_drawer,
+                class_name="hub-drawer-overlay",
             ),
             rx.flex(
                 drawer_panel,
@@ -1024,6 +1024,7 @@ def _deployment_drawer() -> rx.Component:
                 width="100%",
                 height="100%",
                 position="relative",
+                class_name="hub-drawer-panel",
             ),
             position="fixed",
             inset="0",

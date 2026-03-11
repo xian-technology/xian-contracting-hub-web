@@ -74,15 +74,14 @@ def _control_field(
 def _select_style() -> dict[str, str]:
     return {
         "width": "100%",
-        "padding": "0.85rem 1rem",
+        "padding": "0.7rem 0.85rem",
         "border": "1px solid var(--hub-color-line)",
-        "border_radius": "var(--hub-radius-md)",
-        "background": "rgba(255, 252, 246, 0.98)",
+        "border_radius": "var(--hub-radius-sm)",
+        "background": "rgba(255, 253, 248, 0.98)",
         "color": "var(--hub-color-text)",
         "font_family": "var(--hub-font-body)",
-        "font_size": "0.98rem",
+        "font_size": "0.92rem",
         "outline": "none",
-        "box_shadow": "inset 0 1px 0 rgba(255, 255, 255, 0.75)",
     }
 
 
@@ -222,21 +221,22 @@ def _summary_chip(label: str, value: object) -> rx.Component:
     return rx.box(
         rx.text(
             label,
-            font_size="0.72rem",
+            font_size="0.68rem",
             text_transform="uppercase",
             letter_spacing="0.08em",
             color="var(--hub-color-text-muted)",
         ),
         rx.text(
             value,
-            font_size="0.96rem",
+            font_size="0.92rem",
             font_weight="600",
             color="var(--hub-color-text)",
         ),
-        padding="0.85rem 1rem",
+        padding="0.65rem 0.85rem",
         border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 249, 239, 0.82)",
+        border_radius="var(--hub-radius-sm)",
+        background="rgba(255, 250, 242, 0.7)",
+        class_name="hub-metric",
     )
 
 
@@ -268,9 +268,10 @@ def _metric_panel(label: object, value: object) -> rx.Component:
         ),
         width="100%",
         padding="var(--hub-space-4)",
-        border="1px solid rgba(124, 93, 37, 0.14)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 248, 236, 0.72)",
+        border="1px solid var(--hub-color-line)",
+        border_radius="var(--hub-radius-sm)",
+        background="rgba(255, 250, 242, 0.7)",
+        class_name="hub-metric",
     )
 
 
@@ -367,9 +368,10 @@ def _leaderboard_card(entry) -> rx.Component:
         width="100%",
         padding="var(--hub-space-5)",
         border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-lg)",
-        background="rgba(255, 252, 246, 0.96)",
+        border_radius="var(--hub-radius-md)",
+        background="rgba(255, 253, 248, 0.94)",
         box_shadow="var(--hub-shadow-panel)",
+        class_name="hub-card",
         custom_attrs={"data-testid": "developer-leaderboard-card"},
     )
 
