@@ -44,10 +44,8 @@ tests/
   unit/               # Fast isolated tests
   integration/        # Database-backed tests
   e2e/                # Playwright browser tests
-specs/                # Requirements and design documents
 migrations/           # Alembic migration scripts
 assets/               # Static CSS and public assets
-scripts/              # Dev tooling (seed, reset)
 ```
 
 ## Getting started
@@ -69,9 +67,6 @@ cp .env.example .env
 # Initialize and migrate the database
 reflex db init
 reflex db migrate
-
-# Optionally seed demo data
-python -m contracting_hub.services.bootstrap
 
 # Start the dev server
 reflex run
