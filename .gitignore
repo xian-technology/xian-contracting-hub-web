@@ -18,3 +18,6 @@ test-results/
 .ralph/
 uploaded_files/
 uploads/
+.coverage
+frontend.zip
+backend.zip
