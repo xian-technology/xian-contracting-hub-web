@@ -131,9 +131,10 @@ def _normalize_lint_finding(finding: Any) -> XianLintFinding:
     position = finding.position
     normalized_position: XianLintPosition | None = None
     if position is not None:
+        column = getattr(position, "column", getattr(position, "col", None))
         normalized_position = XianLintPosition(
             line=int(position.line),
-            column=int(position.column),
+            column=int(column if column is not None else 0),
         )
 
     return XianLintFinding(

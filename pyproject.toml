@@ -7,14 +7,14 @@ name = "contracting-hub"
 version = "0.1.0"
 description = "Curated smart-contract repository for the Xian ecosystem."
 readme = { file = "specs/overview.md", content-type = "text/markdown" }
-requires-python = "==3.11.11"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "reflex==0.8.27",
     "sqlmodel==0.0.33",
     "alembic==1.18.4",
-    "xian-contracting==1.0.2",
-    "xian-linter==0.2.5",
-    "xian-py==0.4.8",
+    "xian-tech-contracting>=1.0.1,<2",
+    "xian-tech-linter>=0.3.1,<1",
+    "xian-tech-py>=0.4.8,<1",
 ]
 
 [project.optional-dependencies]
@@ -59,3 +59,8 @@ source = ["contracting_hub"]
 fail_under = 80
 show_missing = true
 skip_covered = true
+
+[tool.uv.sources]
+xian-tech-contracting = { path = "../xian-contracting", editable = true }
+xian-tech-linter = { path = "../xian-linter", editable = true }
+xian-tech-py = { path = "../xian-py", editable = true }
