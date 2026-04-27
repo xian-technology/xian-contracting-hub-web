@@ -263,7 +263,7 @@ def load_admin_contract_editor_snapshot_safe(
                 session=session,
                 contract_slug=contract_slug,
             )
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+    except sa.exc.OperationalError, sa.exc.ProgrammingError:
         return build_empty_admin_contract_editor_snapshot(contract_slug=contract_slug)
 
 

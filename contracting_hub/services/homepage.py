@@ -107,7 +107,7 @@ def load_public_home_page_snapshot_safe(
     try:
         with session_scope() as session:
             return load_public_home_page_snapshot(session=session, limit=resolved_limit)
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+    except sa.exc.OperationalError, sa.exc.ProgrammingError:
         return build_empty_home_page_snapshot()
 
 

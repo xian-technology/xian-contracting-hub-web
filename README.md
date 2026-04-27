@@ -51,8 +51,8 @@ assets/               # Static CSS and public assets
 ## Getting started
 
 ```bash
-# Create a Python 3.11.11 virtualenv
-python3.11 -m venv .venv
+# Create a Python 3.14 virtualenv
+python3.14 -m venv .venv
 source .venv/bin/activate
 
 # Install the project with dev dependencies

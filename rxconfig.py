@@ -8,4 +8,5 @@ settings.ensure_local_paths()
 config = rx.Config(
     app_name="contracting_hub",
     db_url=settings.database_url,
+    plugins=[rx.plugins.SitemapPlugin()],
 )
