@@ -7,6 +7,20 @@ catalog. Contracts are stored as immutable append-only versions in a
 SQLite database; full-text search uses SQLite FTS5; lint and deployment
 flows are mediated through adapter integrations.
 
+## Catalog Flow
+
+```mermaid
+flowchart LR
+  Developer["Developer or admin"] --> UI["Reflex web UI"]
+  UI --> Services["Domain services"]
+  Services --> Repositories["Repositories"]
+  Repositories --> SQLite["SQLite and FTS5"]
+  Services --> Linter["xian-linter adapter"]
+  Services --> Deploy["Deployment adapter"]
+  Deploy --> Node["Xian node"]
+  SQLite --> Search["Search and catalog views"]
+```
+
 ## Quick Start
 
 ```bash
