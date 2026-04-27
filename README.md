@@ -1,119 +1,130 @@
-# contracting-hub
+# xian-contracting-hub-web
 
-Curated smart-contract repository for the Xian ecosystem. Browse, search, inspect, and deploy Xian contracts from a single interface.
+`xian-contracting-hub-web` is the curated smart-contract hub for the Xian
+ecosystem. It is a Reflex-based web app where developers browse, search,
+inspect, rate, and deploy Xian contracts, and where admins curate the
+catalog. Contracts are stored as immutable append-only versions in a
+SQLite database; full-text search uses SQLite FTS5; lint and deployment
+flows are mediated through adapter integrations.
 
-## What it does
-
-- **Browse and search** curated Xian contracts with full-text search, category/tag filters, and multiple sort options
-- **Inspect contracts** with syntax-highlighted Python source, version diffs, lint reports, and related-contract navigation
-- **Engage** as an authenticated developer: star contracts, submit ratings, save playground targets, and deploy versions
-- **Manage** the catalog as an admin: create/edit contracts, publish versions, map relations, and curate featured content
-- **Track** deployment history and developer leaderboard rankings across the catalog
-
-## Tech stack
-
-| Layer | Tool | Version |
-|-------|------|---------|
-| Runtime | Python | 3.11.11 |
-| Framework | Reflex | 0.8.27 |
-| ORM | SQLModel | 0.0.33 |
-| Database | SQLite | 3.52.0 (with FTS5) |
-| Migrations | Alembic | 1.18.4 |
-| Contract linting | xian-linter | 0.2.5 |
-| Xian SDK | xian-py | 0.4.8 |
-| Tests | pytest + Playwright | 9.0.2 / 1.58.0 |
-| Lint/format | Ruff | 0.15.1 |
-
-## Project layout
-
-```
-contracting_hub/
-  app.py              # Reflex app assembly and route registration
-  config.py           # Runtime settings from env vars
-  theme.py            # Design tokens, fonts, color palette
-  pages/              # Route-level page components
-  components/         # Reusable UI primitives (shell, cards, viewers)
-  states/             # Reflex state classes for UI orchestration
-  models/             # SQLModel schema definitions
-  repositories/       # Data-access layer
-  services/           # Domain logic (auth, search, diffs, ratings, deploy)
-  integrations/       # External adapters (xian-linter, playground, storage)
-  admin/              # Admin workspace pages
-  utils/              # Helpers and shared metadata
-tests/
-  unit/               # Fast isolated tests
-  integration/        # Database-backed tests
-  e2e/                # Playwright browser tests
-migrations/           # Alembic migration scripts
-assets/               # Static CSS and public assets
-```
-
-## Getting started
+## Quick Start
 
 ```bash
-# Create a Python 3.14 virtualenv
+# Python 3.14 virtual environment
 python3.14 -m venv .venv
 source .venv/bin/activate
 
-# Install the project with dev dependencies
+# Project + dev dependencies
 pip install -e ".[dev]"
 
-# Set up Playwright browsers
+# Playwright browsers (used by e2e tests)
 playwright install chromium
 
-# Copy environment config
+# Environment config
 cp .env.example .env
 
-# Initialize and migrate the database
+# Database initialization and migration
 reflex db init
 reflex db migrate
 
-# Start the dev server
+# Dev server (defaults to http://localhost:3000)
 reflex run
 ```
 
-The app serves at `http://localhost:3000` by default.
-
-## Testing
-
-```bash
-# Run all tests
-pytest -x -q --timeout=30
-
-# Run by category
-pytest -x -q --timeout=30 tests/unit
-pytest -x -q --timeout=30 tests/integration
-pytest -x -q --timeout=30 tests/e2e
-
-# Coverage report (80% minimum)
-pytest --cov=contracting_hub --cov-report=term-missing --cov-fail-under=80
-```
-
-## Linting
-
-```bash
-ruff check .
-ruff format --check .
-```
-
-## Production export
+For a production-ready static export:
 
 ```bash
 reflex export --no-zip
 ```
 
-## Environment variables
+## Principles
 
-See `.env.example` for the full list. Key settings:
+- **Curated, append-only catalog.** Contract versions are immutable
+  snapshots; new releases create new rows. History is never rewritten.
+- **Search is first-class.** SQLite FTS5 indexes contract names,
+  descriptions, authors, tags, and categories. The catalog UX is built
+  around it.
+- **Adapters around external integrations.** The contract linter,
+  playground deploy target, and storage layer sit behind adapters under
+  `integrations/` so the UI stays stable when those integrations change.
+- **Custom auth, no Reflex Enterprise.** Email / password sessions with
+  secure cookies; no third-party identity provider.
+- **Layered code.** `pages/` and `states/` orchestrate the UI; business
+  logic lives in `services/`; data access lives in `repositories/`.
+  Models stay thin.
 
-- `CONTRACTING_HUB_ENV` -- `development` or `production`
-- `CONTRACTING_HUB_DB_PATH` -- SQLite database file path
-- `CONTRACTING_HUB_BOOTSTRAP_ADMIN_*` -- Optional admin seed credentials
+## Capabilities
 
-## Architecture notes
+- browse and search curated Xian contracts (full-text search,
+  category / tag filters, multiple sort orders)
+- inspect contracts with syntax-highlighted Python source, version
+  diffs, lint reports, and related-contract navigation
+- developer engagement: star contracts, submit ratings, save playground
+  targets, deploy versions
+- admin workspace: create / edit contracts, publish versions, map
+  relations, curate featured content
+- track deployment history and a developer leaderboard across the
+  catalog
 
-- **Auth** uses custom email/password sessions with secure cookies (no Reflex Enterprise auth)
-- **Contract versions** are immutable append-only snapshots; new releases create new rows
-- **Search** uses SQLite FTS5 across contract names, descriptions, authors, tags, and categories
-- **Playground deployment** is isolated behind an adapter so the UI stays stable across integration changes
-- **Pages and states** orchestrate the UI; business logic lives in `services/` and `repositories/`
+## Tech Stack
+
+| Layer            | Tool                  | Version            |
+| ---------------- | --------------------- | ------------------ |
+| Runtime          | Python                | 3.11+ / 3.14 venv  |
+| Framework        | Reflex                | 0.8.x              |
+| ORM              | SQLModel              | 0.0.x              |
+| Database         | SQLite (FTS5)         | 3.52+              |
+| Migrations       | Alembic               | 1.18+              |
+| Contract linting | `xian-linter`         | 0.2+               |
+| Xian SDK         | `xian-py`             | 0.4+               |
+| Tests            | `pytest`, Playwright  | 9.x / 1.58+        |
+| Lint / format    | Ruff                  | 0.15+              |
+
+## Key Directories
+
+- `contracting_hub/` — Reflex app:
+  - `app.py`, `contracting_hub.py` — app assembly and route registration.
+  - `config.py`, `theme.py` — runtime settings, design tokens.
+  - `pages/`, `components/`, `states/` — route-level pages, reusable UI,
+    state machines.
+  - `models/` — SQLModel schema definitions.
+  - `repositories/` — data-access layer.
+  - `services/` — domain logic (auth, search, diffs, ratings, deploy).
+  - `integrations/` — external adapters (`xian-linter`, playground,
+    storage).
+  - `admin/` — admin workspace pages.
+  - `utils/` — helpers and shared metadata.
+- `tests/` — `unit/`, `integration/`, `e2e/` (Playwright).
+- `migrations/` — Alembic migration scripts.
+- `assets/` — static CSS and public assets.
+- `uploads/`, `uploaded_files/` — runtime upload areas.
+- `rxconfig.py` — Reflex runtime configuration.
+- `pyproject.toml`, `uv.lock`, `alembic.ini` — packaging, dependency
+  lock, migration config.
+
+## Configuration
+
+Key environment variables (full list in `.env.example`):
+
+- `CONTRACTING_HUB_ENV` — `development` or `production`
+- `CONTRACTING_HUB_DB_PATH` — SQLite database file path
+- `CONTRACTING_HUB_BOOTSTRAP_ADMIN_*` — optional admin seed credentials
+
+## Validation
+
+```bash
+ruff check .
+ruff format --check .
+
+pytest -x -q --timeout=30                          # full suite
+pytest -x -q --timeout=30 tests/unit
+pytest -x -q --timeout=30 tests/integration
+pytest -x -q --timeout=30 tests/e2e
+pytest --cov=contracting_hub --cov-report=term-missing --cov-fail-under=80
+```
+
+## Related Repos
+
+- [`../xian-linter/README.md`](../xian-linter/README.md) — contract linter consumed by the hub
+- [`../xian-py/README.md`](../xian-py/README.md) — Python SDK used for chain reads / deploys
+- [`../xian-playground-web/README.md`](../xian-playground-web/README.md) — playground that the hub can target for "deploy to playground"
