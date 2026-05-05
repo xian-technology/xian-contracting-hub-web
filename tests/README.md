@@ -3,13 +3,13 @@
 Install the development dependencies before running tests:
 
 ```bash
-pip install -e ".[dev]"
+uv sync --extra dev
 ```
 
 Playwright-backed browser tests also need the Chromium browser binary installed locally:
 
 ```bash
-playwright install chromium
+uv run playwright install chromium
 ```
 
 Pytest markers are registered centrally and applied by test directory:

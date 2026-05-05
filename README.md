@@ -24,31 +24,27 @@ flowchart LR
 ## Quick Start
 
 ```bash
-# Python 3.14 virtual environment
-python3.14 -m venv .venv
-source .venv/bin/activate
-
 # Project + dev dependencies
-pip install -e ".[dev]"
+uv sync --extra dev
 
 # Playwright browsers (used by e2e tests)
-playwright install chromium
+uv run playwright install chromium
 
 # Environment config
 cp .env.example .env
 
 # Database initialization and migration
-reflex db init
-reflex db migrate
+uv run reflex db init
+uv run reflex db migrate
 
 # Dev server (defaults to http://localhost:3000)
-reflex run
+uv run reflex run
 ```
 
 For a production-ready static export:
 
 ```bash
-reflex export --no-zip
+uv run reflex export --no-zip
 ```
 
 ## Principles
