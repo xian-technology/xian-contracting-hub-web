@@ -179,7 +179,7 @@ def load_admin_contract_relation_manager_snapshot_safe(
                 session=session,
                 contract_slug=str(contract_slug or "").strip().lower(),
             )
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+    except sa.exc.OperationalError, sa.exc.ProgrammingError:
         return build_empty_admin_contract_relation_manager_snapshot(contract_slug=contract_slug)
 
 

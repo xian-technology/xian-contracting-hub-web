@@ -156,7 +156,7 @@ def load_admin_catalog_operations_snapshot_safe() -> AdminCatalogOperationsSnaps
     try:
         with session_scope() as session:
             return load_admin_catalog_operations_snapshot(session=session)
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+    except sa.exc.OperationalError, sa.exc.ProgrammingError:
         return build_empty_admin_catalog_operations_snapshot()
 
 
