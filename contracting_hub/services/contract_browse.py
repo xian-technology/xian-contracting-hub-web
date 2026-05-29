@@ -289,7 +289,7 @@ def load_public_contract_browse_snapshot_safe(
                 page=page,
                 page_size=page_size,
             )
-    except sa.exc.OperationalError, sa.exc.ProgrammingError:
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
         return build_empty_contract_browse_snapshot(
             query=query,
             category_slug=category_slug,

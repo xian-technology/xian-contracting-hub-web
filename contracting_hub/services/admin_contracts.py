@@ -271,7 +271,7 @@ def load_admin_contract_index_snapshot_safe(
                 status_filter=status_filter,
                 featured_filter=featured_filter,
             )
-    except sa.exc.OperationalError, sa.exc.ProgrammingError:
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
         return build_empty_admin_contract_index_snapshot(
             query=query,
             status_filter=status_filter,

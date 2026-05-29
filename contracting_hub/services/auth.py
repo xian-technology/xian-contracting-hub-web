@@ -439,7 +439,7 @@ def _parse_password_hash(stored_password_hash: str) -> tuple[bytes, bytes] | Non
         dklen_value = int(parts[4])
         salt = base64.b64decode(parts[5], validate=True)
         expected_hash = base64.b64decode(parts[6], validate=True)
-    except ValueError, TypeError, binascii.Error:
+    except (ValueError, TypeError, binascii.Error):
         return None
 
     expected_values = (

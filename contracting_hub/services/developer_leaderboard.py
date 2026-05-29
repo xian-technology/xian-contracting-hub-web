@@ -185,7 +185,7 @@ def load_public_developer_leaderboard_snapshot_safe(
                 limit=limit,
                 now=now,
             )
-    except sa.exc.OperationalError, sa.exc.ProgrammingError:
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
         return build_empty_public_developer_leaderboard_snapshot(
             sort=resolved_sort,
             timeframe=resolved_timeframe,

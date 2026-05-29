@@ -190,7 +190,7 @@ def load_public_developer_profile_snapshot_safe(
                 activity_window_days=resolved_window_days,
                 now=now,
             )
-    except sa.exc.OperationalError, sa.exc.ProgrammingError:
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
         return build_empty_public_developer_profile_snapshot(
             username=normalized_username,
             activity_window_days=resolved_window_days,
