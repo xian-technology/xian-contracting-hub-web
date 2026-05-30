@@ -349,7 +349,7 @@ def load_public_contract_detail_snapshot_safe(
                 slug=normalized_slug,
                 semantic_version=semantic_version,
             )
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+    except sa.exc.OperationalError, sa.exc.ProgrammingError:
         return build_empty_contract_detail_snapshot(slug=normalized_slug)
 
 
@@ -367,7 +367,7 @@ def load_contract_detail_engagement_snapshot_safe(
                 user_id=user_id,
                 slug=normalized_slug,
             )
-    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+    except sa.exc.OperationalError, sa.exc.ProgrammingError:
         return build_empty_contract_detail_engagement_snapshot()
 
 
@@ -722,7 +722,7 @@ def _coerce_lint_count(value: object, *, fallback: int) -> int:
 def _coerce_optional_lint_count(value: object) -> int | None:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
