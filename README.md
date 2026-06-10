@@ -133,7 +133,7 @@ pytest -x -q --timeout=30 tests/e2e
 pytest --cov=contracting_hub --cov-report=term-missing --cov-fail-under=80
 ```
 
-## Related Repos
+## Related Docs
 
 - [`../xian-linter/README.md`](../xian-linter/README.md) — contract linter consumed by the hub
 - [`../xian-py/README.md`](../xian-py/README.md) — Python SDK used for chain reads / deploys
