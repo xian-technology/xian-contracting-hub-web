@@ -20,4 +20,5 @@ Pytest markers are registered centrally and applied by test directory:
 - `smoke` for startup and foundation checks
 - `playwright` for browser-driven tests that use the Playwright plugin
 
-Shared fixtures live in [`tests/conftest.py`](/home/endogen/projects/contracting-hub/tests/conftest.py), and browser defaults for future Playwright coverage live in [`tests/e2e/conftest.py`](/home/endogen/projects/contracting-hub/tests/e2e/conftest.py).
+Shared fixtures live in [`conftest.py`](conftest.py), and browser defaults
+for Playwright coverage live in [`e2e/conftest.py`](e2e/conftest.py).
