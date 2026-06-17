@@ -33,6 +33,15 @@ class PublicationStatus(str, Enum):
     DEPRECATED = "deprecated"
 
 
+class ContractPackageKind(str, Enum):
+    """Supported package ownership and presentation shapes."""
+
+    STANDALONE = "standalone"
+    PRODUCT = "product"
+    STANDARD = "standard"
+    EXAMPLE = "example"
+
+
 class ContractRelationType(str, Enum):
     """Supported typed links between contracts."""
 
@@ -96,6 +105,13 @@ class User(TimestampedModel, table=True):
         sa_relationship_kwargs={
             "cascade": "all, delete-orphan",
             "foreign_keys": "[Contract.author_user_id]",
+        },
+    )
+    authored_packages: list["ContractPackage"] = sqlmodel.Relationship(
+        back_populates="author",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "foreign_keys": "[ContractPackage.author_user_id]",
         },
     )
     stars: list["Star"] = sqlmodel.Relationship(
@@ -171,6 +187,83 @@ class Category(TimestampedModel, table=True):
 
     contract_links: list["ContractCategoryLink"] = sqlmodel.Relationship(
         back_populates="category",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+
+class ContractPackage(TimestampedModel, table=True):
+    """Stable catalog package that owns immutable releases."""
+
+    __tablename__ = "contract_packages"
+
+    slug: str = sqlmodel.Field(max_length=128, unique=True, index=True)
+    display_name: str = sqlmodel.Field(max_length=128, index=True)
+    short_summary: str = sqlmodel.Field(max_length=280)
+    long_description: str = sqlmodel.Field(sa_column=sa.Column(sa.Text, nullable=False))
+    kind: ContractPackageKind = sqlmodel.Field(default=ContractPackageKind.STANDALONE, index=True)
+    status: PublicationStatus = sqlmodel.Field(default=PublicationStatus.DRAFT, index=True)
+    author_user_id: int | None = sqlmodel.Field(default=None, foreign_key="users.id", index=True)
+    author_label: str | None = sqlmodel.Field(default=None, max_length=128)
+    documentation_url: str | None = sqlmodel.Field(default=None, max_length=500)
+    source_repository_url: str | None = sqlmodel.Field(default=None, max_length=500)
+    tags: list[str] = sqlmodel.Field(
+        default_factory=list,
+        sa_column=sa.Column(sa.JSON, nullable=False),
+    )
+    latest_published_release_id: int | None = sqlmodel.Field(
+        default=None,
+        foreign_key="contract_package_releases.id",
+        index=True,
+    )
+
+    author: Optional[User] = sqlmodel.Relationship(
+        back_populates="authored_packages",
+        sa_relationship_kwargs={"foreign_keys": "[ContractPackage.author_user_id]"},
+    )
+    releases: list["ContractPackageRelease"] = sqlmodel.Relationship(
+        back_populates="package",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "foreign_keys": "[ContractPackageRelease.package_id]",
+        },
+    )
+    latest_published_release: Optional["ContractPackageRelease"] = sqlmodel.Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[ContractPackage.latest_published_release_id]",
+            "post_update": True,
+        },
+    )
+
+
+class ContractPackageRelease(TimestampedModel, table=True):
+    """Immutable release of a curated package."""
+
+    __tablename__ = "contract_package_releases"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "package_id",
+            "semantic_version",
+            name="uq_contract_package_releases_package_semantic_version",
+        ),
+    )
+
+    package_id: int = sqlmodel.Field(foreign_key="contract_packages.id", index=True)
+    semantic_version: str = sqlmodel.Field(max_length=32, index=True)
+    status: PublicationStatus = sqlmodel.Field(default=PublicationStatus.DRAFT, index=True)
+    source_repository_url: str | None = sqlmodel.Field(default=None, max_length=500)
+    source_commit: str | None = sqlmodel.Field(default=None, max_length=80, index=True)
+    source_tag: str | None = sqlmodel.Field(default=None, max_length=128, index=True)
+    manifest_path: str | None = sqlmodel.Field(default=None, max_length=500)
+    manifest_hash_sha256: str | None = sqlmodel.Field(default=None, max_length=64, index=True)
+    release_notes: str | None = sqlmodel.Field(default=None, sa_column=sa.Column(sa.Text))
+    published_at: datetime | None = sqlmodel.Field(default=None, index=True)
+
+    package: ContractPackage = sqlmodel.Relationship(
+        back_populates="releases",
+        sa_relationship_kwargs={"foreign_keys": "[ContractPackageRelease.package_id]"},
+    )
+    artifacts: list["ContractPackageReleaseArtifact"] = sqlmodel.Relationship(
+        back_populates="release",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
@@ -304,6 +397,41 @@ class ContractVersion(TimestampedModel, table=True):
     deployments: list["DeploymentHistory"] = sqlmodel.Relationship(
         back_populates="contract_version",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    package_release_artifacts: list["ContractPackageReleaseArtifact"] = sqlmodel.Relationship(
+        back_populates="contract_version",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+
+class ContractPackageReleaseArtifact(TimestampedModel, table=True):
+    """One contract-version artifact included in a package release."""
+
+    __tablename__ = "contract_package_release_artifacts"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "release_id",
+            "contract_version_id",
+            name="uq_package_release_artifacts_release_contract_version",
+        ),
+    )
+
+    release_id: int = sqlmodel.Field(foreign_key="contract_package_releases.id", index=True)
+    contract_version_id: int = sqlmodel.Field(foreign_key="contract_versions.id", index=True)
+    role: str | None = sqlmodel.Field(default=None, max_length=64, index=True)
+    source_path: str | None = sqlmodel.Field(default=None, max_length=500)
+    source_hash_sha256: str | None = sqlmodel.Field(default=None, max_length=64, index=True)
+    deploy_order: int = sqlmodel.Field(default=0, index=True)
+    default_chi: int | None = sqlmodel.Field(default=None)
+    deploy_default: bool = sqlmodel.Field(default=True, index=True)
+    manifest_metadata: dict[str, Any] = sqlmodel.Field(
+        default_factory=dict,
+        sa_column=sa.Column(sa.JSON, nullable=False),
+    )
+
+    release: ContractPackageRelease = sqlmodel.Relationship(back_populates="artifacts")
+    contract_version: ContractVersion = sqlmodel.Relationship(
+        back_populates="package_release_artifacts"
     )
 
 

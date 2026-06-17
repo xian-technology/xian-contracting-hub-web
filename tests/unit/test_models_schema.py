@@ -7,6 +7,9 @@ EXPECTED_TABLES = {
     "auth_sessions",
     "categories",
     "contract_category_links",
+    "contract_packages",
+    "contract_package_release_artifacts",
+    "contract_package_releases",
     "contract_relations",
     "contract_versions",
     "contracts",
@@ -27,10 +30,14 @@ def test_models_module_exports_full_domain_schema() -> None:
         "User",
         "Profile",
         "Contract",
+        "ContractPackage",
+        "ContractPackageRelease",
+        "ContractPackageReleaseArtifact",
         "ContractVersion",
         "DeploymentHistory",
     } <= exported_names
     assert models.ContractRelationType.DEPENDS_ON.value == "depends_on"
+    assert models.ContractPackageKind.PRODUCT.value == "product"
     assert models.PublicationStatus.PUBLISHED.value == "published"
 
 

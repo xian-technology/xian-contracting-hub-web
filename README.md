@@ -51,6 +51,10 @@ uv run reflex export --no-zip
 
 - **Curated, append-only catalog.** Contract versions are immutable
   snapshots; new releases create new rows. History is never rewritten.
+- **Presentation, not source ownership.** The hub presents curated releases
+  from their canonical owner repos. Reusable standalone packages may come
+  from `xian-contracts`; product-owned systems such as the DEX stay in their
+  product repos and are imported from pinned manifests.
 - **Search is first-class.** SQLite FTS5 indexes contract names,
   descriptions, authors, tags, and categories. The catalog UX is built
   around it.
@@ -75,6 +79,48 @@ uv run reflex export --no-zip
   relations, curate featured content
 - track deployment history and a developer leaderboard across the
   catalog
+
+## Source Ownership and Imports
+
+The hub should not be the canonical source repository for curated contracts.
+It is the public registry and review surface. Source ownership stays with the
+repo that naturally owns the release cycle:
+
+- `xian-contracts` owns reusable standalone contract packages, standards,
+  adapters, and examples.
+- Product repos own tightly coupled product systems, for example
+  `xian-dex` owns its contracts, frontend, bootstrap script, tests, and
+  `contract-bundle.json`.
+- Network-level system packaging belongs outside the hub, for example in
+  `xian-configs`.
+
+The hub imports from those owners into SQLite as immutable release snapshots.
+Package and release metadata model both standalone contracts and product-scale
+systems:
+
+- `contract_packages` identify the source owner or product package.
+- `contract_package_releases` identify pinned releases, including source repo,
+  commit or tag, manifest path, and manifest hash.
+- `contract_package_release_artifacts` link one package release to the immutable
+  `contract_versions` that the hub already displays and deploys.
+
+For a DEX-style repo, `contract-bundle.json` is the import contract: the hub
+should verify the manifest hash and per-contract source hashes, then store the
+corresponding source snapshots and artifact links. Page rendering should read
+from the hub database, not from live GitHub requests.
+
+See [`docs/catalog-model.md`](docs/catalog-model.md) for the package / release /
+artifact distinction and how bundle-style manifests map into the simplified
+database model.
+
+## Production Storage
+
+SQLite is the default and is sufficient for the expected hub workload: small
+curated release data, catalog search, admin curation, ratings, and deployment
+history. Production deployments should put the SQLite database and upload
+directory on persistent storage and back them up. Move to Postgres only if the
+hub needs multi-writer operational scale, external BI access, or stronger
+managed database operations than a single-server SQLite deployment provides.
 
 ## Tech Stack
 

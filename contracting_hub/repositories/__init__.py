@@ -1,6 +1,7 @@
 """Repository layer for persistence-oriented data access."""
 
 from contracting_hub.repositories.auth import AuthRepository
+from contracting_hub.repositories.contract_packages import ContractPackageRepository
 from contracting_hub.repositories.contract_versions import ContractVersionRepository
 from contracting_hub.repositories.contracts import (
     CONTRACT_SEARCH_INDEX_TABLE_NAME,
@@ -32,6 +33,7 @@ __all__ = [
     "ContractDetailRecord",
     "ContractHighlightRecord",
     "ContractRelationTraversal",
+    "ContractPackageRepository",
     "ContractRepository",
     "ContractSearchResult",
     "ContractVersionRepository",

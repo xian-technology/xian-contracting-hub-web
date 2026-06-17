@@ -24,6 +24,10 @@ pages, domain services, persistence, and the lint / deploy integrations.
 
 - Contract versions are stored append-only; do not mutate published catalog
   rows outside the service layer.
+- Product-scale systems should be modeled as package -> release -> artifact
+  records, with package-release artifacts linking back to immutable contract
+  versions. Importers should verify pinned owner-repo manifests before writing
+  those records.
 - Schema changes need an Alembic migration under `../migrations/`; run
   `uv run reflex db migrate` rather than editing the database directly.
 

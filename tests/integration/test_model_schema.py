@@ -9,6 +9,10 @@ from contracting_hub.models import (
     Contract,
     ContractCategoryLink,
     ContractNetwork,
+    ContractPackage,
+    ContractPackageKind,
+    ContractPackageRelease,
+    ContractPackageReleaseArtifact,
     ContractRelation,
     ContractRelationType,
     ContractVersion,
@@ -55,6 +59,17 @@ def test_domain_models_support_catalog_relationships() -> None:
             github_url="https://github.com/alice",
         )
         category = Category(slug="finance", name="Finance", sort_order=10)
+        package = ContractPackage(
+            slug="xian-dex",
+            display_name="Xian DEX",
+            short_summary="Canonical AMM package.",
+            long_description="Canonical AMM contracts and product-owned release metadata.",
+            kind=ContractPackageKind.PRODUCT,
+            status=PublicationStatus.PUBLISHED,
+            author=author,
+            source_repository_url="https://github.com/xian-technology/xian-dex",
+            tags=["dex", "amm"],
+        )
         contract = Contract(
             slug="escrow",
             contract_name="con_escrow",
@@ -76,6 +91,25 @@ def test_domain_models_support_catalog_relationships() -> None:
             changelog="Initial release",
         )
         contract.latest_published_version = version
+        package_release = ContractPackageRelease(
+            package=package,
+            semantic_version="0.1.0",
+            status=PublicationStatus.PUBLISHED,
+            source_repository_url="https://github.com/xian-technology/xian-dex",
+            source_commit="5c7b85bef8a558622a0223b3c9b2162566e6fdd6",
+            manifest_path="contract-bundle.json",
+            manifest_hash_sha256="d" * 64,
+        )
+        package.latest_published_release = package_release
+        package_artifact = ContractPackageReleaseArtifact(
+            release=package_release,
+            contract_version=version,
+            role="router",
+            source_path="src/con_dex.py",
+            source_hash_sha256="a" * 64,
+            deploy_order=20,
+            default_chi=200000,
+        )
         category_link = ContractCategoryLink(
             contract=contract,
             category=category,
@@ -132,6 +166,9 @@ def test_domain_models_support_catalog_relationships() -> None:
         session.add_all(
             [
                 category,
+                package,
+                package_release,
+                package_artifact,
                 category_link,
                 relation,
                 star,
@@ -167,6 +204,11 @@ def test_domain_models_support_catalog_relationships() -> None:
         assert stored_contract.ratings[0].score == 5
         assert stored_contract.tags == ["finance", "escrow"]
         assert stored_contract.versions[0].deployments[0].status == DeploymentStatus.ACCEPTED
+        assert stored_contract.versions[0].package_release_artifacts[0].release.package.slug == (
+            "xian-dex"
+        )
+        assert stored_user.authored_packages[0].latest_published_release is not None
+        assert stored_user.authored_packages[0].latest_published_release.semantic_version == "0.1.0"
         assert stored_user.sessions[0].session_token_hash == "c" * 64
         assert stored_user.admin_actions[0].action == "publish"
 
