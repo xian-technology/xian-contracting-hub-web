@@ -50,3 +50,32 @@ published snapshots for browsing, search, review, and deployment workflows.
 
 Importers should verify pinned owner-repo manifests before writing package
 release and artifact records.
+
+## Importing Owner Repos
+
+Owner repos publish `xian.contract_bundle.v1` manifests when one release
+contains one or more deployable contracts. The hub imports those manifests into
+the simplified package model:
+
+- manifest `name` becomes the package slug.
+- manifest `version` becomes the package release version.
+- manifest `source.repo`, `source.commit`, path, and manifest hash pin the
+  release to an owner-repo snapshot.
+- each manifest contract becomes a catalog contract version and one release
+  artifact.
+
+Run the local importer from the hub repo:
+
+```bash
+uv run python -m contracting_hub.services.contract_imports \
+  ../xian-dex/contract-bundle.json
+```
+
+The import is intentionally idempotent. Re-importing the same manifest reuses
+the existing rows. Re-importing a release with a different manifest hash, source
+commit, contract source hash, or artifact metadata fails so published catalog
+history remains append-only.
+
+In the UI, users should normally care about packages and releases. Artifacts are
+shown as the contracts included in a release, not as a separate top-level object
+that every package author has to understand.

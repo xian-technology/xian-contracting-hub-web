@@ -105,9 +105,19 @@ systems:
   `contract_versions` that the hub already displays and deploys.
 
 For a DEX-style repo, `contract-bundle.json` is the import contract: the hub
-should verify the manifest hash and per-contract source hashes, then store the
-corresponding source snapshots and artifact links. Page rendering should read
-from the hub database, not from live GitHub requests.
+verifies the manifest hash and per-contract source hashes, then stores the
+corresponding source snapshots and artifact links. Page rendering reads from
+the hub database, not from live GitHub requests.
+
+```bash
+uv run python -m contracting_hub.services.contract_imports \
+  ../xian-dex/contract-bundle.json
+```
+
+The importer currently supports local `xian.contract_bundle.v1` manifests. It
+creates or reuses the package, release, contracts, contract versions, and
+release artifacts in one transaction, and rejects hash or release conflicts
+instead of silently changing existing snapshots.
 
 See [`docs/catalog-model.md`](docs/catalog-model.md) for the package / release /
 artifact distinction and how bundle-style manifests map into the simplified
