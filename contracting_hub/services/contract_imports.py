@@ -513,7 +513,7 @@ def _get_or_create_manifest_contract(
         return contract, False
 
     contract_slug = _derive_contract_slug(
-        package_slug=manifest.package_slug,
+        manifest=manifest,
         contract_definition=contract_definition,
     )
     existing_slug = session.exec(select(Contract).where(Contract.slug == contract_slug)).first()
@@ -761,16 +761,27 @@ def _normalize_package_kind(kind: ContractPackageKind | str) -> ContractPackageK
 
 def _derive_contract_slug(
     *,
-    package_slug: str,
+    manifest: BundleManifest,
     contract_definition: BundleManifestContract,
 ) -> str:
+    if _manifest_has_single_contract(manifest):
+        return _validate_manifest_slug(
+            manifest.package_slug,
+            field="contract.slug",
+            code=ContractImportErrorCode.INVALID_CONTRACT_ENTRY,
+        )
+
     suffix_source = contract_definition.role or contract_definition.name.removeprefix("con_")
     suffix = re.sub(r"[^a-z0-9]+", "-", suffix_source.lower()).strip("-")
     return _validate_manifest_slug(
-        f"{package_slug}-{suffix}",
+        f"{manifest.package_slug}-{suffix}",
         field="contract.slug",
         code=ContractImportErrorCode.INVALID_CONTRACT_ENTRY,
     )
+
+
+def _manifest_has_single_contract(manifest: BundleManifest) -> bool:
+    return len(manifest.contracts) == 1
 
 
 def _validate_manifest_contract_name(value: str, *, field: str) -> str:
@@ -823,6 +834,9 @@ def _contract_display_name(
     manifest: BundleManifest,
     contract_definition: BundleManifestContract,
 ) -> str:
+    if _manifest_has_single_contract(manifest):
+        return _bounded_text(manifest.package_display_name, max_length=128)
+
     suffix = contract_definition.role or contract_definition.name.removeprefix("con_")
     return _bounded_text(
         f"{manifest.package_display_name} {_title_from_slug(suffix)}",
@@ -834,6 +848,9 @@ def _contract_short_summary(
     manifest: BundleManifest,
     contract_definition: BundleManifestContract,
 ) -> str:
+    if _manifest_has_single_contract(manifest):
+        return _bounded_text(manifest.description, max_length=280)
+
     role_label = contract_definition.role or contract_definition.name
     return _bounded_text(
         f"{role_label.replace('_', ' ').title()} contract from {manifest.package_display_name}.",
@@ -845,6 +862,12 @@ def _contract_long_description(
     manifest: BundleManifest,
     contract_definition: BundleManifestContract,
 ) -> str:
+    if _manifest_has_single_contract(manifest):
+        return (
+            f"{manifest.description}\n\n"
+            f"Imported source `{contract_definition.name}` from `{contract_definition.path}`."
+        )
+
     role_label = contract_definition.role or contract_definition.name
     return (
         f"{manifest.description}\n\n"

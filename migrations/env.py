@@ -6,6 +6,7 @@ from reflex.model import ModelRegistry
 from sqlalchemy import engine_from_config, pool
 
 from contracting_hub.config import get_settings
+from contracting_hub.services.contract_search import SEARCH_INDEX_SHADOW_TABLE_NAMES
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -30,6 +31,13 @@ target_metadata = ModelRegistry.get_metadata()
 # ... etc.
 
 
+def include_object(object_, name, type_, reflected, compare_to) -> bool:
+    """Exclude SQLite FTS5 virtual/shadow tables from autogenerate diffs."""
+    if type_ == "table" and name in SEARCH_INDEX_SHADOW_TABLE_NAMES:
+        return False
+    return True
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -49,6 +57,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=include_object,
         render_as_batch=settings.uses_sqlite,
     )
 
@@ -74,6 +83,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            include_object=include_object,
             render_as_batch=settings.uses_sqlite,
         )
 

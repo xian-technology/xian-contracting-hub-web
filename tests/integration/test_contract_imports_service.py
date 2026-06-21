@@ -6,8 +6,9 @@ from pathlib import Path
 import pytest
 import sqlalchemy as sa
 from reflex.model import ModelRegistry
-from sqlmodel import Session
+from sqlmodel import Session, select
 
+from contracting_hub.models import Contract
 from contracting_hub.services import (
     ContractImportError,
     ContractImportErrorCode,
@@ -94,6 +95,37 @@ def _write_manifest_fixture(root: Path, *, bad_hash: bool = False) -> Path:
     return manifest_path
 
 
+def _write_single_contract_manifest_fixture(root: Path) -> Path:
+    source_path = "src/con_staking.py"
+    source = "@export\ndef pool_count():\n    return 0\n"
+    _write_source(root, source_path, source)
+
+    manifest = {
+        "schema": "xian.contract_bundle.v1",
+        "schema_version": 1,
+        "name": "staking",
+        "display_name": "Staking",
+        "version": "0.1.0",
+        "description": "Multi-pool staking contract with reward deposits.",
+        "source": {
+            "repo": "https://github.com/xian-technology/xian-contracts",
+        },
+        "contracts": [
+            {
+                "name": "con_staking",
+                "role": "staking",
+                "path": source_path,
+                "sha256": build_source_hash(source),
+                "deploy_order": 10,
+            }
+        ],
+    }
+
+    manifest_path = root / "contract-bundle.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return manifest_path
+
+
 def _write_source(root: Path, relative_path: str, source_code: str) -> None:
     source_path = root / relative_path
     source_path.parent.mkdir(parents=True, exist_ok=True)
@@ -143,6 +175,40 @@ def test_import_contract_bundle_manifest_creates_package_release_artifacts(
     assert snapshot.artifacts[1].manifest_metadata["deployment_note"] == (
         "Router is optional in this fixture."
     )
+
+
+def test_import_single_contract_manifest_uses_package_identity(
+    tmp_path: Path,
+) -> None:
+    engine = _build_engine()
+    manifest_path = _write_single_contract_manifest_fixture(tmp_path)
+
+    with Session(engine) as session:
+        report = import_contract_bundle_manifest(
+            session=session,
+            manifest_path=manifest_path,
+            package_kind="standalone",
+        )
+
+        stored_contract = session.exec(
+            select(Contract).where(Contract.contract_name == "con_staking")
+        ).one()
+        snapshot = load_contract_package_release_snapshot(
+            session=session,
+            package_slug="staking",
+            semantic_version="0.1.0",
+        )
+
+    assert report.package_created is True
+    assert report.contracts_created == 1
+    assert stored_contract.slug == "staking"
+    assert stored_contract.display_name == "Staking"
+    assert stored_contract.short_summary == "Multi-pool staking contract with reward deposits."
+    assert "Imported source `con_staking`" in stored_contract.long_description
+
+    assert snapshot.found is True
+    assert [artifact.contract_slug for artifact in snapshot.artifacts] == ["staking"]
+    assert [artifact.role for artifact in snapshot.artifacts] == ["staking"]
 
 
 def test_import_contract_bundle_manifest_is_idempotent(tmp_path: Path) -> None:

@@ -86,17 +86,6 @@ from contracting_hub.services.contract_diffs import (
     build_unified_contract_diff,
     get_contract_version_diff,
 )
-from contracting_hub.services.contract_imports import (
-    BUNDLE_MANIFEST_SCHEMA,
-    BUNDLE_MANIFEST_SCHEMA_VERSION,
-    BundleManifest,
-    BundleManifestContract,
-    ContractBundleManifestImportReport,
-    ContractImportError,
-    ContractImportErrorCode,
-    import_contract_bundle_manifest,
-    load_contract_bundle_manifest,
-)
 from contracting_hub.services.contract_linting import (
     ContractLintReport,
     ContractLintServiceError,
@@ -270,6 +259,30 @@ from contracting_hub.services.uploads import (
     get_upload_storage,
     store_avatar_upload,
 )
+
+_CONTRACT_IMPORT_EXPORTS = {
+    "BUNDLE_MANIFEST_SCHEMA",
+    "BUNDLE_MANIFEST_SCHEMA_VERSION",
+    "BundleManifest",
+    "BundleManifestContract",
+    "ContractBundleManifestImportReport",
+    "ContractImportError",
+    "ContractImportErrorCode",
+    "import_contract_bundle_manifest",
+    "load_contract_bundle_manifest",
+}
+
+
+def __getattr__(name: str) -> object:
+    """Load manifest import helpers lazily so their CLI can run without warnings."""
+    if name in _CONTRACT_IMPORT_EXPORTS:
+        from contracting_hub.services import contract_imports
+
+        value = getattr(contract_imports, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "AVATAR_UPLOAD_SUBDIR",
