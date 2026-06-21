@@ -94,6 +94,18 @@ repo that naturally owns the release cycle:
 - Network-level system packaging belongs outside the hub, for example in
   `xian-configs`.
 
+For a live hub, adding a contract should normally start in the owner repo:
+
+- Add reusable standalone contracts to `xian-contracts` under
+  `contracts/<package-name>/`, with package docs, tests or explicit test-gap
+  notes, and a package-local `contract-bundle.json`.
+- Add product-owned contract systems to the product repo that owns the release
+  lifecycle, for example `xian-dex`, `xian-nft`, or `xian-stable-protocol`.
+- Use direct manual hub admin entry only for drafts, emergency curation, or
+  temporary review entries. A manually entered contract is not the canonical
+  source unless it is later moved into an owner repo and imported from a pinned
+  manifest.
+
 The hub imports from those owners into SQLite as immutable release snapshots.
 Package and release metadata model both standalone contracts and product-scale
 systems:
@@ -112,6 +124,15 @@ the hub database, not from live GitHub requests.
 ```bash
 uv run python -m contracting_hub.services.contract_imports \
   ../xian-dex/contract-bundle.json
+```
+
+For `xian-contracts`, import the package manifest for the package you want to
+publish:
+
+```bash
+uv run python -m contracting_hub.services.contract_imports \
+  ../xian-contracts/contracts/nameservice/contract-bundle.json \
+  --package-kind standalone
 ```
 
 The importer currently supports local `xian.contract_bundle.v1` manifests. It
