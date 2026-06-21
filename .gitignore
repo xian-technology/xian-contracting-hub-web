@@ -23,7 +23,6 @@ frontend.zip
 backend.zip
 .ralph/
 specs/
-AGENTS.md
 IMPLEMENTATION_PLAN.md
 PROMPT.md
 scripts/
