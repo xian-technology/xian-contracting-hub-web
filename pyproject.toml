@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "contracting-hub"
-version = "0.3.0"
+version = "0.3.1"
 description = "Curated smart-contract repository for the Xian ecosystem."
 readme = { file = "specs/overview.md", content-type = "text/markdown" }
 requires-python = ">=3.14,<3.15"
