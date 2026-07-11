@@ -210,6 +210,13 @@ pytest -x -q --timeout=30 tests/e2e
 pytest --cov=contracting_hub --cov-report=term-missing --cov-fail-under=80
 ```
 
+## Releases
+
+Pushing a `vX.Y.Z` tag runs the release workflow. It validates that
+`pyproject.toml` matches the tag, runs Ruff, unit tests, and Reflex export,
+builds the Python distributions, and creates the GitHub Release with those
+artifacts.
+
 ## Related Docs
 
 - [`../xian-linter/README.md`](../xian-linter/README.md) — contract linter consumed by the hub

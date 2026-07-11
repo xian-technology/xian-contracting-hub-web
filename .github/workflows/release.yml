@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: xian-contracting-hub-web
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          path: xian-contracting-hub-web
+          ref: ${{ github.ref }}
+
+      - name: Check out xian-contracting
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/xian-contracting
+          ref: main
+          path: xian-contracting
+
+      - name: Check out xian-linter
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/xian-linter
+          ref: main
+          path: xian-linter
+
+      - name: Check out xian-py
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/xian-py
+          ref: main
+          path: xian-py
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Verify release version metadata
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          expected = os.environ["RELEASE_VERSION"].removeprefix("v")
+          pyproject = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          actual = pyproject["project"]["version"]
+          if actual != expected:
+              raise SystemExit(f"pyproject.toml version {actual} does not match {expected}")
+          PY
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Run unit tests
+        run: uv run pytest -q tests/unit
+
+      - name: Export Reflex app
+        run: uv run reflex export --no-zip
+
+      - name: Build distributions
+        run: |
+          rm -rf dist
+          uv build
+
+      - name: Verify distribution artifacts
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+
+          expected = os.environ["RELEASE_VERSION"].removeprefix("v")
+          dist = pathlib.Path("dist")
+          files = sorted(
+              path.name
+              for path in dist.iterdir()
+              if path.is_file() and not path.name.startswith(".")
+          )
+          expected_files = sorted([
+              f"contracting_hub-{expected}-py3-none-any.whl",
+              f"contracting_hub-{expected}.tar.gz",
+          ])
+          if files != expected_files:
+              raise SystemExit(f"Unexpected release artifacts: {files}")
+          PY
+
+      - name: Upload validated release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-dist
+          path: xian-contracting-hub-web/dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-dist
+          path: dist
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_flags=()
+          if [[ "${GITHUB_REF_NAME}" == *"-"* ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --title "xian-contracting-hub-web ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            "${release_flags[@]}"
