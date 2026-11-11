@@ -5,6 +5,64 @@ import pytest
 from contracting_hub.config import load_settings, sqlite_url_for_path
 
 
+def test_explicit_empty_environment_does_not_read_process_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("CONTRACTING_HUB_ENV", "production")
+    monkeypatch.setenv("CONTRACTING_HUB_DB_PATH", "/host-only/production.db")
+    env_file = tmp_path / ".env"
+    env_file.write_text("CONTRACTING_HUB_ENV=dotenv\n")
+
+    settings = load_settings(project_root=tmp_path, environ={}, env_file=env_file)
+
+    assert settings.environment == "dotenv"
+    assert settings.sqlite_database_path == tmp_path / ".local" / "contracting_hub.db"
+
+
+def test_omitted_environment_reads_process_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("CONTRACTING_HUB_ENV", "process")
+    settings = load_settings(project_root=tmp_path, env_file=tmp_path / ".env")
+
+    assert settings.environment == "process"
+
+
+@pytest.mark.parametrize(
+    ("environ", "expected_url", "relative_path"),
+    [
+        ({}, None, ".local/contracting_hub.db"),
+        ({"CONTRACTING_HUB_DB_PATH": "data/custom.db"}, None, "data/custom.db"),
+        ({"CONTRACTING_HUB_DB_URL": "sqlite:///catalog.db"}, None, "catalog.db"),
+        (
+            {"REFLEX_DB_URL": "", "CONTRACTING_HUB_DB_URL": "sqlite:///fallback.db"},
+            None,
+            "fallback.db",
+        ),
+        (
+            {
+                "REFLEX_DB_URL": "sqlite:///reflex.db",
+                "CONTRACTING_HUB_DB_URL": "sqlite:///other.db",
+            },
+            None,
+            "reflex.db",
+        ),
+        ({"REFLEX_DB_URL": "sqlite:///:memory:"}, "sqlite:///:memory:", None),
+        (
+            {"REFLEX_DB_URL": "postgresql://localhost/catalog"},
+            "postgresql://localhost/catalog",
+            None,
+        ),
+    ],
+)
+def test_database_configuration_precedence_and_paths(
+    tmp_path, environ, expected_url, relative_path
+):
+    settings = load_settings(project_root=tmp_path, environ=environ, env_file=tmp_path / ".env")
+    expected_path = tmp_path / relative_path if relative_path is not None else None
+
+    assert settings.sqlite_database_path == expected_path
+    assert settings.database_url == (
+        sqlite_url_for_path(expected_path) if expected_path is not None else expected_url
+    )
+
+
 def test_load_settings_uses_local_sqlite_defaults(tmp_path: Path) -> None:
     settings = load_settings(
         project_root=tmp_path,

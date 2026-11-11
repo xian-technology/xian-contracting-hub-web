@@ -95,6 +95,21 @@ def _normalize_database_url(database_url: str, *, base_dir: Path) -> str:
     return sqlite_url_for_path(sqlite_path)
 
 
+def _database_settings(
+    environment: Mapping[str, str], *, project_root: Path, instance_dir: Path
+) -> tuple[str, Path | None]:
+    database_url = environment.get("REFLEX_DB_URL") or environment.get("CONTRACTING_HUB_DB_URL")
+    if database_url:
+        normalized_url = _normalize_database_url(database_url, base_dir=project_root)
+        return normalized_url, _sqlite_path_from_url(normalized_url, base_dir=project_root)
+
+    sqlite_path = (
+        _resolve_path(environment.get("CONTRACTING_HUB_DB_PATH"), base_dir=project_root)
+        or (instance_dir / DEFAULT_SQLITE_FILENAME).resolve()
+    )
+    return sqlite_url_for_path(sqlite_path), sqlite_path
+
+
 def _read_positive_int(
     value: str | None,
     *,
@@ -153,11 +168,11 @@ def load_settings(
     environ: Mapping[str, str] | None = None,
     env_file: Path | None = None,
 ) -> AppSettings:
-    """Load application settings from `.env` and environment variables."""
+    """Load `.env` defaults and the supplied environment (process env when omitted)."""
     resolved_project_root = project_root.resolve()
     resolved_env_file = (env_file or (resolved_project_root / DEFAULT_ENV_FILE_NAME)).resolve()
     dotenv_values = _read_env_file(resolved_env_file)
-    merged_environment = {**dotenv_values, **dict(environ or os.environ)}
+    merged_environment = {**dotenv_values, **dict(os.environ if environ is None else environ)}
 
     environment_name = merged_environment.get("CONTRACTING_HUB_ENV", DEFAULT_ENVIRONMENT)
     instance_dir = (
@@ -222,25 +237,9 @@ def load_settings(
     playground_callback_url = _read_optional_text(
         merged_environment.get("CONTRACTING_HUB_PLAYGROUND_CALLBACK_URL")
     )
-    database_url_override = merged_environment.get("REFLEX_DB_URL") or merged_environment.get(
-        "CONTRACTING_HUB_DB_URL"
+    database_url, sqlite_database_path = _database_settings(
+        merged_environment, project_root=resolved_project_root, instance_dir=instance_dir
     )
-
-    if database_url_override:
-        database_url = _normalize_database_url(
-            database_url_override,
-            base_dir=resolved_project_root,
-        )
-        sqlite_database_path = _sqlite_path_from_url(database_url, base_dir=resolved_project_root)
-    else:
-        sqlite_database_path = (
-            _resolve_path(
-                merged_environment.get("CONTRACTING_HUB_DB_PATH"),
-                base_dir=resolved_project_root,
-            )
-            or (instance_dir / DEFAULT_SQLITE_FILENAME).resolve()
-        )
-        database_url = sqlite_url_for_path(sqlite_database_path)
 
     return AppSettings(
         environment=environment_name,

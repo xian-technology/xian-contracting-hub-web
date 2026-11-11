@@ -198,6 +198,10 @@ Key environment variables (full list in `.env.example`):
 - `CONTRACTING_HUB_DB_PATH` — SQLite database file path
 - `CONTRACTING_HUB_BOOTSTRAP_ADMIN_*` — optional admin seed credentials
 
+Programmatic `load_settings(environ=...)` calls use the supplied mapping over
+the dotenv file. An empty mapping uses dotenv values and defaults; omitting the
+mapping reads the process environment.
+
 ## Validation
 
 ```bash
