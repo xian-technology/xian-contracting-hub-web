@@ -138,11 +138,16 @@ def test_admins_can_create_publish_archive_and_manage_relations(
     expect(draft_row.get_by_role("button", name="Publish")).to_be_disabled()
 
     expect(vault_row).to_have_count(1)
+    vault_node = vault_row.element_handle()
+    assert vault_node is not None
     vault_row.get_by_role("button", name="Archive").click()
 
     expect(page.locator('[data-testid="admin-contract-page"]')).to_contain_text(
         "Contract archived while preserving its version history."
     )
+
+    # A status change reorders the list; existing controls must stay with their contract.
+    assert vault_row.evaluate("(row, previous) => row === previous", vault_node)
 
     page.goto(f"{live_server_url}/browse")
 

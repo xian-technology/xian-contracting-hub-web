@@ -5,7 +5,8 @@ ecosystem. It is a Reflex-based web app where developers browse, search,
 inspect, rate, and deploy Xian contracts, and where admins curate the
 catalog. Contracts are stored as immutable append-only versions in a
 SQLite database; full-text search uses SQLite FTS5; lint and deployment
-flows are mediated through adapter integrations.
+flows are mediated through adapter integrations. New catalog versions are linted
+with the fresh-chain `xian_vm_v2` profile and checked by its native IR validator.
 
 ## Catalog Flow
 

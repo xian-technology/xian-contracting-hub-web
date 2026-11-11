@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import partial
 from typing import Any, Iterable
 from unittest.mock import patch
 
@@ -97,14 +98,14 @@ def lint_contract_source(
 
 def _load_lint_callable():
     try:
-        from xian_linter import lint_code_inline
+        from xian_linter import XIAN_VM_V2_MODE, lint_code_inline
     except ImportError as error:  # pragma: no cover - environment specific
         raise XianLinterIntegrationError(
             XianLinterIntegrationErrorCode.UNAVAILABLE,
             "xian-linter is not installed in the current environment.",
             details={"error": str(error)},
         ) from error
-    return lint_code_inline
+    return partial(lint_code_inline, mode=XIAN_VM_V2_MODE)
 
 
 def _invoke_lint_callable(

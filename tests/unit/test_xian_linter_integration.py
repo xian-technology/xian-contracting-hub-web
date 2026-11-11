@@ -11,3 +11,10 @@ def test_lint_contract_source_succeeds_inside_running_event_loop() -> None:
         assert findings == ()
 
     asyncio.run(_lint_inside_running_loop())
+
+
+def test_catalog_admits_v2_decimal_signatures_and_rejects_float() -> None:
+    valid = "@export\ndef quote(amount: decimal):\n    return amount / 3\n"
+    assert lint_contract_source(valid) == ()
+    findings = lint_contract_source(valid.replace("decimal", "float"))
+    assert any(finding.severity == "error" and "float" in finding.message for finding in findings)

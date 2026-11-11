@@ -312,7 +312,7 @@ def _wait_for_server(
             with urlopen(url, timeout=2) as response:
                 if response.status < 500:
                     return
-        except URLError:
+        except URLError, TimeoutError:
             time.sleep(1)
             continue
 

@@ -396,6 +396,7 @@ def _contract_row(row) -> rx.Component:
         border="1px solid var(--hub-color-line)",
         border_radius="var(--hub-radius-md)",
         background="rgba(255, 250, 242, 0.78)",
+        key=row["slug"],
         custom_attrs={"data-testid": "admin-contract-row"},
     )
 
