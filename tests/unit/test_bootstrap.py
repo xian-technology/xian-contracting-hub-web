@@ -13,7 +13,7 @@ def test_project_dependencies_are_pinned(pyproject_data: dict[str, object]) -> N
     assert "sqlmodel==0.0.38" in dependencies
     assert "alembic==1.18.4" in dependencies
     assert "xian-tech-contracting>=1.1.4,<2" in dependencies
-    assert "xian-tech-linter[vm]>=0.4.3,<1" in dependencies
+    assert "xian-tech-linter>=0.4.3,<1" in dependencies
 
 
 def test_reflex_configuration_uses_package_name(rxconfig_module: dict[str, object]) -> None:
