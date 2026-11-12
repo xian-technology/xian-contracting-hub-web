@@ -28,3 +28,4 @@ PROMPT.md
 scripts/
 .DS_Store
 graphify-out/
+reflex.lock/
