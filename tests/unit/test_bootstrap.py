@@ -12,7 +12,7 @@ def test_project_dependencies_are_pinned(pyproject_data: dict[str, object]) -> N
     assert not any(dependency.startswith("reflex-components-") for dependency in dependencies)
     assert "sqlmodel==0.0.38" in dependencies
     assert "alembic==1.18.4" in dependencies
-    assert "xian-tech-contracting>=1.1.4,<2" in dependencies
+    assert not any(dependency.startswith("xian-tech-contracting") for dependency in dependencies)
     assert "xian-tech-linter>=0.4.3,<1" in dependencies
 
 

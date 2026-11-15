@@ -15,7 +15,6 @@ dependencies = [
     "sqlmodel==0.0.38",
     "sqlalchemy==2.0.49",
     "alembic==1.18.4",
-    "xian-tech-contracting>=1.1.4,<2",
     "xian-tech-linter>=0.4.3,<1",
     "xian-tech-py>=0.5.0,<1",
 ]
@@ -64,6 +63,5 @@ show_missing = true
 skip_covered = true
 
 [tool.uv.sources]
-xian-tech-contracting = { path = "../xian-contracting", editable = true }
 xian-tech-linter = { path = "../xian-linter", editable = true }
 xian-tech-py = { path = "../xian-py", editable = true }
