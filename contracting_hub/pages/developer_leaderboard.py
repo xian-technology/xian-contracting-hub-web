@@ -11,6 +11,7 @@ from contracting_hub.components import (
     page_loading_state,
     page_section,
 )
+from contracting_hub.components.catalog_metric import catalog_metric
 from contracting_hub.states import AuthState, DeveloperLeaderboardState
 from contracting_hub.utils.meta import DEVELOPER_LEADERBOARD_ROUTE
 
@@ -21,7 +22,6 @@ SORT_OPTIONS: tuple[tuple[str, str], ...] = (
     ("star_total", "Most starred"),
     ("weighted_rating", "Top rated"),
     ("contract_count", "Most contracts"),
-    ("deployment_count", "Most deployed"),
     ("recent_activity", "Recent activity"),
 )
 TIMEFRAME_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -113,7 +113,7 @@ def _leaderboard_filters() -> rx.Component:
                 rx.text(
                     (
                         "Switch between all-time and recent windows, then rank developers by "
-                        "published contracts, stars, ratings, deployments, or recent activity."
+                        "published contracts, stars, ratings, or recent activity."
                     ),
                     color="var(--hub-color-text-muted)",
                 ),
@@ -214,29 +214,6 @@ def _leaderboard_filters() -> rx.Component:
         custom_attrs={"data-testid": "developer-leaderboard-filters"},
         position=rx.breakpoints(initial="static", lg="sticky"),
         top=rx.breakpoints(initial="0", lg="5.75rem"),
-    )
-
-
-def _summary_chip(label: str, value: object) -> rx.Component:
-    return rx.box(
-        rx.text(
-            label,
-            font_size="0.68rem",
-            text_transform="uppercase",
-            letter_spacing="0.08em",
-            color="var(--hub-color-text-muted)",
-        ),
-        rx.text(
-            value,
-            font_size="0.92rem",
-            font_weight="600",
-            color="var(--hub-color-text)",
-        ),
-        padding="0.65rem 0.85rem",
-        border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-sm)",
-        background="rgba(255, 250, 242, 0.7)",
-        class_name="hub-metric",
     )
 
 
@@ -351,8 +328,7 @@ def _leaderboard_card(entry) -> rx.Component:
                     ),
                 ),
                 _metric_panel("Recent activity", entry["recent_activity_value"]),
-                _metric_panel(entry["deployments_label"], entry["deployments_value"]),
-                columns=rx.breakpoints(initial="1", sm="2", xl="5"),
+                columns=rx.breakpoints(initial="1", sm="2", xl="4"),
                 gap="var(--hub-space-3)",
                 width="100%",
             ),
@@ -455,15 +431,15 @@ def _leaderboard_results() -> rx.Component:
                                 width="100%",
                             ),
                             rx.flex(
-                                _summary_chip(
+                                catalog_metric(
                                     "Sort",
                                     DeveloperLeaderboardState.selected_sort_label,
                                 ),
-                                _summary_chip(
+                                catalog_metric(
                                     "Timeframe",
                                     DeveloperLeaderboardState.selected_timeframe_label,
                                 ),
-                                _summary_chip(
+                                catalog_metric(
                                     "Recent window",
                                     DeveloperLeaderboardState.activity_window_label,
                                 ),

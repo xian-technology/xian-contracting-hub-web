@@ -72,18 +72,16 @@ def test_developer_kpi_aggregate_recent_activity_count_sums_recent_metrics() -> 
         total_stars_received=8,
         weighted_average_rating=4.25,
         total_rating_count=4,
-        total_deployment_count=3,
         recent_published_contract_count=1,
         recent_publish_count=2,
         recent_stars_received=3,
         recent_weighted_average_rating=4.5,
         recent_rating_count=2,
-        recent_deployment_count=4,
         activity_window_days=30,
         activity_since=datetime(2026, 2, 8, 12, 0, tzinfo=timezone.utc),
     )
 
-    assert aggregate.recent_activity_count == 11
+    assert aggregate.recent_activity_count == 7
 
 
 def test_developer_kpi_service_error_serializes_stable_payload() -> None:

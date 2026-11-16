@@ -328,45 +328,6 @@ def upgrade() -> None:
         )
 
     op.create_table(
-        "playground_targets",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("label", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
-        sa.Column("playground_id", sqlmodel.sql.sqltypes.AutoString(length=128), nullable=False),
-        sa.Column("is_default", sa.Boolean(), nullable=False),
-        sa.Column("last_used_at", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "user_id", "playground_id", name="uq_playground_targets_user_playground_id"
-        ),
-    )
-    with op.batch_alter_table("playground_targets", schema=None) as batch_op:
-        batch_op.create_index(
-            batch_op.f("ix_playground_targets_created_at"), ["created_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_playground_targets_is_default"), ["is_default"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_playground_targets_last_used_at"), ["last_used_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_playground_targets_playground_id"), ["playground_id"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_playground_targets_updated_at"), ["updated_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_playground_targets_user_id"), ["user_id"], unique=False
-        )
-
-    op.create_table(
         "profiles",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
@@ -443,107 +404,13 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f("ix_stars_updated_at"), ["updated_at"], unique=False)
         batch_op.create_index(batch_op.f("ix_stars_user_id"), ["user_id"], unique=False)
 
-    op.create_table(
-        "deployment_history",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("contract_version_id", sa.Integer(), nullable=False),
-        sa.Column("playground_target_id", sa.Integer(), nullable=True),
-        sa.Column("playground_id", sqlmodel.sql.sqltypes.AutoString(length=128), nullable=False),
-        sa.Column(
-            "status",
-            sa.Enum("PENDING", "ACCEPTED", "REDIRECT_REQUIRED", "FAILED", name="deploymentstatus"),
-            nullable=False,
-        ),
-        sa.Column(
-            "transport",
-            sa.Enum("DEEP_LINK", "HTTP", "HYBRID", name="deploymenttransport"),
-            nullable=True,
-        ),
-        sa.Column(
-            "external_request_id", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True
-        ),
-        sa.Column("redirect_url", sqlmodel.sql.sqltypes.AutoString(length=1024), nullable=True),
-        sa.Column("request_payload", sa.JSON(), nullable=False),
-        sa.Column("response_payload", sa.JSON(), nullable=True),
-        sa.Column("error_payload", sa.JSON(), nullable=True),
-        sa.Column("initiated_at", sa.DateTime(), nullable=False),
-        sa.Column("completed_at", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["contract_version_id"],
-            ["contract_versions.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["playground_target_id"],
-            ["playground_targets.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    with op.batch_alter_table("deployment_history", schema=None) as batch_op:
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_completed_at"), ["completed_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_contract_version_id"),
-            ["contract_version_id"],
-            unique=False,
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_created_at"), ["created_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_external_request_id"),
-            ["external_request_id"],
-            unique=False,
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_initiated_at"), ["initiated_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_playground_id"), ["playground_id"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_playground_target_id"),
-            ["playground_target_id"],
-            unique=False,
-        )
-        batch_op.create_index(batch_op.f("ix_deployment_history_status"), ["status"], unique=False)
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_transport"), ["transport"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_updated_at"), ["updated_at"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_deployment_history_user_id"), ["user_id"], unique=False
-        )
-
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
-    with op.batch_alter_table("deployment_history", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_deployment_history_user_id"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_updated_at"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_transport"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_status"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_playground_target_id"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_playground_id"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_initiated_at"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_external_request_id"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_created_at"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_contract_version_id"))
-        batch_op.drop_index(batch_op.f("ix_deployment_history_completed_at"))
 
-    op.drop_table("deployment_history")
     with op.batch_alter_table("stars", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_stars_user_id"))
         batch_op.drop_index(batch_op.f("ix_stars_updated_at"))
@@ -566,15 +433,7 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f("ix_profiles_created_at"))
 
     op.drop_table("profiles")
-    with op.batch_alter_table("playground_targets", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_playground_targets_user_id"))
-        batch_op.drop_index(batch_op.f("ix_playground_targets_updated_at"))
-        batch_op.drop_index(batch_op.f("ix_playground_targets_playground_id"))
-        batch_op.drop_index(batch_op.f("ix_playground_targets_last_used_at"))
-        batch_op.drop_index(batch_op.f("ix_playground_targets_is_default"))
-        batch_op.drop_index(batch_op.f("ix_playground_targets_created_at"))
 
-    op.drop_table("playground_targets")
     with op.batch_alter_table("contract_relations", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_contract_relations_updated_at"))
         batch_op.drop_index(batch_op.f("ix_contract_relations_target_contract_id"))

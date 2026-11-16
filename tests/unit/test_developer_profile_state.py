@@ -54,11 +54,9 @@ def test_load_page_populates_public_profile_snapshot(monkeypatch) -> None:
         total_stars_received=5,
         weighted_average_rating=4.5,
         total_rating_count=2,
-        total_deployment_count=3,
         recent_publish_count=1,
         recent_stars_received=2,
         recent_rating_count=1,
-        recent_deployment_count=1,
         recent_activity_count=5,
         activity_window_days=30,
         activity_since=_timestamp(2, 8),
@@ -79,7 +77,6 @@ def test_load_page_populates_public_profile_snapshot(monkeypatch) -> None:
                 star_count=5,
                 rating_count=2,
                 average_rating=4.5,
-                deployment_count=3,
             ),
         ),
     )
@@ -98,7 +95,7 @@ def test_load_page_populates_public_profile_snapshot(monkeypatch) -> None:
     assert state.profile_secondary == "@alice"
     assert state.published_contract_count_text == "2"
     assert state.star_total_text == "5"
-    assert state.recent_activity_breakdown == "1 publishes • 2 stars • 1 ratings • 1 deploys"
+    assert state.recent_activity_breakdown == "1 publishes • 2 stars • 1 ratings"
     assert state.authored_contract_count_label == "1 public contract"
     assert state.authored_contracts[0]["detail_href"] == "/contracts/escrow"
     assert state.authored_contracts[0]["status_is_published"] is True
@@ -164,11 +161,9 @@ def test_profile_state_helper_serializers_include_all_public_links_and_status_fl
         total_stars_received=2,
         weighted_average_rating=None,
         total_rating_count=0,
-        total_deployment_count=0,
         recent_publish_count=0,
         recent_stars_received=0,
         recent_rating_count=0,
-        recent_deployment_count=0,
         recent_activity_count=0,
         activity_window_days=30,
         activity_since=_timestamp(2, 8),
@@ -192,7 +187,6 @@ def test_profile_state_helper_serializers_include_all_public_links_and_status_fl
                 star_count=0,
                 rating_count=0,
                 average_rating=None,
-                deployment_count=0,
             ),
         )
     )
@@ -222,11 +216,9 @@ def test_profile_link_serializer_skips_missing_earlier_links() -> None:
         total_stars_received=0,
         weighted_average_rating=None,
         total_rating_count=0,
-        total_deployment_count=0,
         recent_publish_count=0,
         recent_stars_received=0,
         recent_rating_count=0,
-        recent_deployment_count=0,
         recent_activity_count=0,
         activity_window_days=30,
         activity_since=_timestamp(2, 8),

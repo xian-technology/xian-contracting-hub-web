@@ -26,7 +26,6 @@ SORT_LABELS = {
     "contract_count": "Most contracts",
     "star_total": "Most starred",
     "weighted_rating": "Top rated",
-    "deployment_count": "Most deployed",
     "recent_activity": "Recent activity",
 }
 TIMEFRAME_LABELS = {
@@ -47,8 +46,6 @@ class DeveloperLeaderboardEntryPayload(TypedDict):
     contracts_value: str
     stars_label: str
     stars_value: str
-    deployments_label: str
-    deployments_value: str
     rating_headline: str
     rating_detail: str
     rating_empty: bool
@@ -174,8 +171,6 @@ def _serialize_entry(
         contracts_value = str(entry.recent_published_contract_count)
         stars_label = "Recent stars"
         stars_value = str(entry.recent_stars_received)
-        deployments_label = "Recent deploys"
-        deployments_value = str(entry.recent_deployment_count)
         average_rating = entry.recent_weighted_average_rating
         rating_count = entry.recent_rating_count
     else:
@@ -183,8 +178,6 @@ def _serialize_entry(
         contracts_value = str(entry.published_contract_count)
         stars_label = "Total stars"
         stars_value = str(entry.total_stars_received)
-        deployments_label = "Deployments"
-        deployments_value = str(entry.total_deployment_count)
         average_rating = entry.weighted_average_rating
         rating_count = entry.total_rating_count
 
@@ -202,8 +195,6 @@ def _serialize_entry(
         "contracts_value": contracts_value,
         "stars_label": stars_label,
         "stars_value": stars_value,
-        "deployments_label": deployments_label,
-        "deployments_value": deployments_value,
         "rating_headline": rating_display.headline,
         "rating_detail": rating_display.detail,
         "rating_empty": rating_display.empty,
@@ -223,8 +214,7 @@ def _avatar_fallback(entry: DeveloperKPIAggregate) -> str:
 def _recent_activity_breakdown(entry: DeveloperKPIAggregate) -> str:
     return (
         f"Last {entry.activity_window_days} days: {entry.recent_publish_count} publishes • "
-        f"{entry.recent_stars_received} stars • {entry.recent_rating_count} ratings • "
-        f"{entry.recent_deployment_count} deploys"
+        f"{entry.recent_stars_received} stars • {entry.recent_rating_count} ratings"
     )
 
 

@@ -432,9 +432,7 @@ def _taxonomy_section() -> rx.Component:
                         style=_select_style(),
                     ),
                     error_message=AdminContractEditorState.network_error,
-                    helper_text=(
-                        "Optional deployment context for public badges and playground metadata."
-                    ),
+                    helper_text=("Optional network context for public catalog badges."),
                 ),
                 columns=rx.breakpoints(initial="1", lg="2"),
                 gap="var(--hub-space-4)",
@@ -637,7 +635,7 @@ def _editor_form() -> rx.Component:
                     ),
                     rx.text(
                         "Add optional links and license details that help users evaluate and "
-                        "verify the contract before opening source or deployment flows.",
+                        "verify the contract before opening its source in the playground.",
                         color="var(--hub-color-text-muted)",
                     ),
                     rx.grid(

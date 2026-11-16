@@ -16,10 +16,6 @@ from contracting_hub.models import (
     ContractRelation,
     ContractRelationType,
     ContractVersion,
-    DeploymentHistory,
-    DeploymentStatus,
-    DeploymentTransport,
-    PlaygroundTarget,
     Profile,
     PublicationStatus,
     Rating,
@@ -141,26 +137,10 @@ def test_domain_models_support_catalog_relationships() -> None:
         )
         star = Star(user=author, contract=contract)
         rating = Rating(user=author, contract=contract, score=5, note="Useful baseline.")
-        target = PlaygroundTarget(
-            user=author,
-            label="Sandbox",
-            playground_id="playground-123",
-            is_default=True,
-        )
         auth_session = AuthSession(
             user=author,
             session_token_hash="c" * 64,
             expires_at=version.created_at,
-        )
-        deployment = DeploymentHistory(
-            user=author,
-            contract_version=version,
-            playground_target=target,
-            playground_id="playground-123",
-            status=DeploymentStatus.ACCEPTED,
-            transport=DeploymentTransport.HTTP,
-            request_payload={"contract": {"slug": "escrow"}},
-            response_payload={"status": "accepted"},
         )
 
         session.add_all(
@@ -173,9 +153,7 @@ def test_domain_models_support_catalog_relationships() -> None:
                 relation,
                 star,
                 rating,
-                target,
                 auth_session,
-                deployment,
             ]
         )
         session.commit()
@@ -203,7 +181,6 @@ def test_domain_models_support_catalog_relationships() -> None:
         assert stored_contract.stars[0].user.email == "alice@example.com"
         assert stored_contract.ratings[0].score == 5
         assert stored_contract.tags == ["finance", "escrow"]
-        assert stored_contract.versions[0].deployments[0].status == DeploymentStatus.ACCEPTED
         assert stored_contract.versions[0].package_release_artifacts[0].release.package.slug == (
             "xian-dex"
         )

@@ -101,8 +101,8 @@ def _benefits_panel() -> rx.Component:
         ),
         rx.text(
             (
-                "Authenticated sessions unlock stars, ratings, saved playground IDs, "
-                "and deployment actions without changing the public browse experience."
+                "Sign in to star releases, rate curated contracts, "
+                "and manage your developer profile."
             ),
             color="var(--hub-color-text-muted)",
             max_width="32rem",
@@ -127,14 +127,14 @@ def _benefits_panel() -> rx.Component:
             ),
             rx.box(
                 rx.text(
-                    "Deploy",
+                    "Identity",
                     font_size="0.78rem",
                     text_transform="uppercase",
                     letter_spacing="0.08em",
                     color="var(--hub-color-text-muted)",
                 ),
                 rx.text(
-                    "Reuse saved playground targets when you send a version to Xian.",
+                    "Keep your public developer profile and avatar up to date.",
                     color="var(--hub-color-text)",
                 ),
                 padding="1rem",
@@ -249,7 +249,7 @@ def index() -> rx.Component:
         page_title="Log in",
         page_intro=(
             "Restore your developer session to save favorites, rate contracts, "
-            "and prepare deployments."
+            "and explore source in the browser playground."
         ),
         page_kicker="Account access",
     )

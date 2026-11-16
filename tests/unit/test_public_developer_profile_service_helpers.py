@@ -9,12 +9,12 @@ from sqlmodel import Session
 
 from contracting_hub.models import Profile, User
 from contracting_hub.services.developer_profiles import (
-    _coerce_utc_datetime,
     build_empty_public_developer_profile_snapshot,
     load_public_developer_profile_snapshot,
     load_public_developer_profile_snapshot_safe,
     normalize_public_developer_username,
 )
+from contracting_hub.utils.dates import coerce_utc_datetime
 from contracting_hub.utils.meta import build_developer_profile_path
 
 NOW = datetime(2026, 3, 9, 12, 0, tzinfo=timezone.utc)
@@ -167,4 +167,4 @@ def test_coerce_utc_datetime_converts_non_utc_offsets() -> None:
         tzinfo=timezone(timedelta(hours=1)),
     )
 
-    assert _coerce_utc_datetime(berlin_time) == datetime(2026, 3, 9, 13, 0, tzinfo=timezone.utc)
+    assert coerce_utc_datetime(berlin_time) == datetime(2026, 3, 9, 13, 0, tzinfo=timezone.utc)

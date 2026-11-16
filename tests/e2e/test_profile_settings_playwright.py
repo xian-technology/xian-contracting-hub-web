@@ -8,7 +8,7 @@ from contracting_hub.utils.meta import PROFILE_SETTINGS_ROUTE
 pytestmark = [pytest.mark.playwright, pytest.mark.timeout(120)]
 
 
-def test_authenticated_users_can_manage_profile_settings_and_saved_targets(
+def test_authenticated_users_can_manage_profile_settings(
     page: Page,
     live_server_url: str,
 ) -> None:
@@ -28,12 +28,11 @@ def test_authenticated_users_can_manage_profile_settings_and_saved_targets(
     page.goto(f"{live_server_url}{PROFILE_SETTINGS_ROUTE}")
 
     profile_form = page.locator('[data-testid="profile-settings-form"]')
-    target_form = page.locator('[data-testid="playground-target-form"]')
     session_navigation = page.locator('[data-testid="session-navigation"]')
     settings_url = f"{live_server_url}{PROFILE_SETTINGS_ROUTE}/"
 
     expect(profile_form).to_be_visible()
-    expect(target_form).to_be_visible()
+    expect(page.locator('[data-testid="playground-target-form"]')).to_have_count(0)
     expect(page).to_have_url(settings_url)
     expect(profile_form.locator('input[name="username"]')).to_have_value("frank_builder")
     expect(profile_form.locator('input[name="display_name"]')).to_have_value("Frank Builder")
@@ -49,28 +48,6 @@ def test_authenticated_users_can_manage_profile_settings_and_saved_targets(
     expect(profile_form).to_contain_text("Profile updated.")
     expect(session_navigation).to_contain_text("Eve Ops")
     expect(session_navigation).to_contain_text("@eve_ops")
-
-    target_form.locator('input[name="label"]').fill("Sandbox primary")
-    target_form.locator('input[name="playground_id"]').fill("sandbox-main")
-    target_form.locator('select[name="is_default"]').select_option("yes")
-    target_form.get_by_role("button", name="Add saved target").click()
-
-    page_body = page.locator("body")
-    target_row = page.locator('[data-testid="playground-target-row"]').first
-    expect(page_body).to_contain_text("Saved playground target added.")
-    expect(target_row).to_contain_text("Sandbox primary")
-    expect(target_row).to_contain_text("sandbox-main")
-    expect(target_row).to_contain_text("Default")
-
-    target_row.get_by_role("button", name="Edit").click()
-    expect(target_form.get_by_role("button", name="Save target changes")).to_be_visible()
-    target_form.locator('input[name="label"]').fill("Sandbox production")
-    target_form.locator('input[name="playground_id"]').fill("sandbox-prod")
-    target_form.get_by_role("button", name="Save target changes").click()
-
-    expect(page_body).to_contain_text("Saved playground target updated.")
-    expect(target_row).to_contain_text("Sandbox production")
-    expect(target_row).to_contain_text("sandbox-prod")
 
     page.locator('[data-testid="avatar-upload"] input[type="file"]').set_input_files(
         {
@@ -88,8 +65,3 @@ def test_authenticated_users_can_manage_profile_settings_and_saved_targets(
 
     expect(profile_form).to_contain_text("Avatar removed.")
     expect(profile_form).to_contain_text("No avatar uploaded yet")
-
-    target_row.get_by_role("button", name="Delete").click()
-
-    expect(page.locator('[data-testid="playground-target-row"]')).to_have_count(0)
-    expect(page_body).to_contain_text("No saved playground targets yet.")

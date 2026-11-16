@@ -66,13 +66,11 @@ def test_load_page_populates_leaderboard_state_from_snapshot(monkeypatch) -> Non
                 total_stars_received=12,
                 weighted_average_rating=4.75,
                 total_rating_count=6,
-                total_deployment_count=8,
                 recent_published_contract_count=2,
                 recent_publish_count=3,
                 recent_stars_received=5,
                 recent_weighted_average_rating=4.5,
                 recent_rating_count=4,
-                recent_deployment_count=3,
                 activity_window_days=90,
                 activity_since=_timestamp(12, 9),
             ),
@@ -100,10 +98,10 @@ def test_load_page_populates_leaderboard_state_from_snapshot(monkeypatch) -> Non
     )
     assert state.leaderboard_entries[0]["profile_href"] == "/developers/alice"
     assert state.leaderboard_entries[0]["contracts_label"] == "Recent contracts"
-    assert state.leaderboard_entries[0]["deployments_value"] == "3"
+
     assert state.leaderboard_entries[0]["rating_empty"] is False
     assert state.leaderboard_entries[0]["recent_activity_breakdown"] == (
-        "Last 90 days: 3 publishes • 5 stars • 4 ratings • 3 deploys"
+        "Last 90 days: 3 publishes • 5 stars • 4 ratings"
     )
 
 

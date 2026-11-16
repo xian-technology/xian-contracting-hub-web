@@ -54,7 +54,7 @@ def test_app_registers_profile_settings_route(app_module: dict[str, object]) -> 
     assert PROFILE_SETTINGS_ROUTE.lstrip("/") in app_module["app"]._unevaluated_pages
 
 
-def test_profile_settings_page_renders_profile_and_target_forms() -> None:
+def test_profile_settings_page_renders_profile_without_server_playground_settings() -> None:
     rendered = profile_settings_index().render()
     rendered_text = _rendered_text(rendered)
     rendered_props = _collect_props(rendered)
@@ -65,3 +65,6 @@ def test_profile_settings_page_renders_profile_and_target_forms() -> None:
     assert any('"data-testid":"profile-settings-loading"' in prop for prop in rendered_props)
     assert "Profile settings" in rendered_text
     assert "Loading profile settings" in rendered_text
+
+    assert "Saved playground targets" not in rendered_text
+    assert not any("playground-target-form" in prop for prop in rendered_props)

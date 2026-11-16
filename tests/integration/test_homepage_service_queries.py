@@ -9,9 +9,6 @@ from contracting_hub.models import (
     Contract,
     ContractCategoryLink,
     ContractVersion,
-    DeploymentHistory,
-    DeploymentStatus,
-    DeploymentTransport,
     Profile,
     PublicationStatus,
     Rating,
@@ -273,61 +270,6 @@ def _seed_homepage_catalog(session: Session) -> None:
             Rating(user=viewers[0], contract=oracle, score=5, updated_at=_timestamp(7)),
             Rating(user=viewers[2], contract=utility, score=4, updated_at=_timestamp(8)),
             Rating(user=viewers[3], contract=hidden, score=5, updated_at=_timestamp(12)),
-            DeploymentHistory(
-                user=viewers[0],
-                contract_version=vault_v2,
-                playground_id="vault-prod",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.HTTP,
-                request_payload={"slug": "vault"},
-                response_payload={"ok": True},
-                initiated_at=_timestamp(10),
-                completed_at=_timestamp(10),
-            ),
-            DeploymentHistory(
-                user=viewers[1],
-                contract_version=vault_v2,
-                playground_id="vault-failed",
-                status=DeploymentStatus.FAILED,
-                transport=DeploymentTransport.HTTP,
-                request_payload={"slug": "vault"},
-                error_payload={"ok": False},
-                initiated_at=_timestamp(11),
-                completed_at=_timestamp(11),
-            ),
-            DeploymentHistory(
-                user=viewers[2],
-                contract_version=oracle_v1,
-                playground_id="oracle-live",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.DEEP_LINK,
-                request_payload={"slug": "oracle"},
-                response_payload={"ok": True},
-                initiated_at=_timestamp(8),
-                completed_at=_timestamp(8),
-            ),
-            DeploymentHistory(
-                user=viewers[3],
-                contract_version=utility_v1,
-                playground_id="utility-live",
-                status=DeploymentStatus.REDIRECT_REQUIRED,
-                transport=DeploymentTransport.DEEP_LINK,
-                request_payload={"slug": "utility"},
-                response_payload={"ok": True},
-                initiated_at=_timestamp(6),
-                completed_at=_timestamp(6),
-            ),
-            DeploymentHistory(
-                user=viewers[4],
-                contract_version=hidden_v1,
-                playground_id="hidden-live",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.HTTP,
-                request_payload={"slug": "hidden"},
-                response_payload={"ok": True},
-                initiated_at=_timestamp(12),
-                completed_at=_timestamp(12),
-            ),
         ]
     )
     session.commit()
@@ -354,11 +296,6 @@ def test_load_public_home_page_snapshot_returns_visible_sections_in_expected_ord
             "oracle",
             "escrow",
         ]
-        assert [summary.slug for summary in snapshot.recently_deployed_contracts] == [
-            "vault",
-            "oracle",
-            "utility",
-        ]
 
         oracle = snapshot.featured_contracts[0]
         vault = snapshot.trending_contracts[0]
@@ -366,9 +303,8 @@ def test_load_public_home_page_snapshot_returns_visible_sections_in_expected_ord
         assert oracle.author_name == "Core Team"
         assert oracle.primary_category_name == "Governance"
         assert oracle.semantic_version == "1.4.0"
-        assert oracle.deployment_count == 1
+
         assert vault.author_name == "Bob"
         assert vault.star_count == 3
         assert vault.rating_count == 2
         assert vault.average_rating == 4.5
-        assert vault.latest_deployment_at == _timestamp(10)

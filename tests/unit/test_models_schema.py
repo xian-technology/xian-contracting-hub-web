@@ -13,8 +13,6 @@ EXPECTED_TABLES = {
     "contract_relations",
     "contract_versions",
     "contracts",
-    "deployment_history",
-    "playground_targets",
     "profiles",
     "ratings",
     "stars",
@@ -34,7 +32,6 @@ def test_models_module_exports_full_domain_schema() -> None:
         "ContractPackageRelease",
         "ContractPackageReleaseArtifact",
         "ContractVersion",
-        "DeploymentHistory",
     } <= exported_names
     assert models.ContractRelationType.DEPENDS_ON.value == "depends_on"
     assert models.ContractPackageKind.PRODUCT.value == "product"
@@ -45,3 +42,10 @@ def test_model_registry_contains_phase_two_tables() -> None:
     metadata = ModelRegistry.get_metadata()
 
     assert EXPECTED_TABLES <= set(metadata.tables)
+
+
+def test_browser_playground_has_no_server_side_target_or_deployment_tables() -> None:
+    metadata = ModelRegistry.get_metadata()
+
+    assert "playground_targets" not in metadata.tables
+    assert "deployment_history" not in metadata.tables

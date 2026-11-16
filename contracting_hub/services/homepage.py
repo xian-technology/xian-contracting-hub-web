@@ -35,8 +35,6 @@ class HomePageContractSummary:
     star_count: int
     rating_count: int
     average_rating: float | None
-    deployment_count: int
-    latest_deployment_at: datetime | None
 
 
 @dataclass(frozen=True)
@@ -46,7 +44,6 @@ class HomePageSnapshot:
     featured_contracts: tuple[HomePageContractSummary, ...]
     trending_contracts: tuple[HomePageContractSummary, ...]
     recently_updated_contracts: tuple[HomePageContractSummary, ...]
-    recently_deployed_contracts: tuple[HomePageContractSummary, ...]
 
 
 def normalize_home_page_section_limit(limit: int | None) -> int:
@@ -64,7 +61,6 @@ def build_empty_home_page_snapshot() -> HomePageSnapshot:
         featured_contracts=(),
         trending_contracts=(),
         recently_updated_contracts=(),
-        recently_deployed_contracts=(),
     )
 
 
@@ -83,16 +79,14 @@ def load_public_home_page_snapshot(
         ),
         trending_contracts=tuple(
             _build_home_page_contract_summary(record)
-            for record in repository.list_trending_contract_highlights(limit=resolved_limit)
+            for record in repository.list_contract_highlights(
+                ordering="trending", limit=resolved_limit
+            )
         ),
         recently_updated_contracts=tuple(
             _build_home_page_contract_summary(record)
-            for record in repository.list_recently_updated_contract_highlights(limit=resolved_limit)
-        ),
-        recently_deployed_contracts=tuple(
-            _build_home_page_contract_summary(record)
-            for record in repository.list_recently_deployed_contract_highlights(
-                limit=resolved_limit
+            for record in repository.list_contract_highlights(
+                ordering="recently_updated", limit=resolved_limit
             )
         ),
     )
@@ -150,8 +144,6 @@ def _build_home_page_contract_summary(
         star_count=record.star_count,
         rating_count=record.rating_count,
         average_rating=record.average_rating,
-        deployment_count=record.deployment_count,
-        latest_deployment_at=_coerce_utc_datetime(record.latest_deployment_at),
     )
 
 

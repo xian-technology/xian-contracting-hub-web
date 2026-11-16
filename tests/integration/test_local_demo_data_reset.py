@@ -9,13 +9,10 @@ from contracting_hub.models import AdminAuditLog, Contract, User
 from contracting_hub.services.bootstrap import (
     DEMO_AUDIT_LOG_DEFINITIONS,
     DEMO_CONTRACT_DEFINITIONS,
-    DEMO_DEPLOYMENT_DEFINITIONS,
-    DEMO_PLAYGROUND_TARGET_DEFINITIONS,
     DEMO_USER_DEFINITIONS,
     seed_local_development_data,
 )
 from contracting_hub.services.contract_detail import load_public_contract_detail_snapshot
-from contracting_hub.services.deployment_history import load_private_deployment_history_snapshot
 from contracting_hub.services.developer_profiles import load_public_developer_profile_snapshot
 from contracting_hub.services.homepage import load_public_home_page_snapshot
 from contracting_hub.services.local_reset import reset_local_development_environment
@@ -52,11 +49,6 @@ def test_seed_local_development_data_with_demo_data_populates_key_product_surfac
             session=session,
             username="alice",
         )
-        alice = session.exec(select(User).where(User.email == "alice@example.com")).one()
-        history_snapshot = load_private_deployment_history_snapshot(
-            session=session,
-            user_id=alice.id,
-        )
         audit_logs = session.exec(select(AdminAuditLog)).all()
 
     assert report.schema_ready is True
@@ -64,14 +56,11 @@ def test_seed_local_development_data_with_demo_data_populates_key_product_surfac
     assert report.demo_report.schema_ready is True
     assert report.demo_report.users_created == len(DEMO_USER_DEFINITIONS)
     assert report.demo_report.contracts_created == len(DEMO_CONTRACT_DEFINITIONS)
-    assert report.demo_report.deployments_created == len(DEMO_DEPLOYMENT_DEFINITIONS)
-    assert report.demo_report.playground_targets_created == len(DEMO_PLAYGROUND_TARGET_DEFINITIONS)
     assert report.demo_report.audit_logs_created == len(DEMO_AUDIT_LOG_DEFINITIONS)
 
     assert homepage_snapshot.featured_contracts
     assert homepage_snapshot.trending_contracts
     assert homepage_snapshot.recently_updated_contracts
-    assert homepage_snapshot.recently_deployed_contracts
 
     assert detail_snapshot.found is True
     assert detail_snapshot.slug == "escrow"
@@ -83,10 +72,7 @@ def test_seed_local_development_data_with_demo_data_populates_key_product_surfac
     assert developer_snapshot.found is True
     assert developer_snapshot.username == "alice"
     assert developer_snapshot.authored_contracts
-    assert developer_snapshot.total_deployment_count >= 1
 
-    assert len(history_snapshot.saved_targets) == 2
-    assert len(history_snapshot.deployments) == 2
     assert len(audit_logs) == len(DEMO_AUDIT_LOG_DEFINITIONS)
 
 
@@ -118,8 +104,6 @@ def test_seed_local_development_data_with_demo_data_is_repeatable(tmp_path: Path
     assert second_report.demo_report.relations_created == 0
     assert second_report.demo_report.stars_created == 0
     assert second_report.demo_report.ratings_created == 0
-    assert second_report.demo_report.playground_targets_created == 0
-    assert second_report.demo_report.deployments_created == 0
     assert second_report.demo_report.audit_logs_created == 0
 
 
@@ -168,5 +152,7 @@ def test_reset_local_development_environment_rebuilds_database_and_uploads(
         ).one()
         admin_username = admin_user.profile.username if admin_user.profile is not None else None
 
+    assert "playground_targets" not in sa.inspect(engine).get_table_names()
+    assert "deployment_history" not in sa.inspect(engine).get_table_names()
     assert contract_count == len(DEMO_CONTRACT_DEFINITIONS)
     assert admin_username == "catalogadmin"

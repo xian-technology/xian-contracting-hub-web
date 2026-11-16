@@ -40,7 +40,6 @@ class DeveloperProfileContractPayload(TypedDict):
     rating_headline: str
     rating_detail: str
     rating_empty: bool
-    deployment_count: str
     tag_preview: list[str]
 
 
@@ -58,9 +57,8 @@ class DeveloperProfileState(rx.State):
     rating_headline: str = "No ratings yet"
     rating_detail: str = ""
     rating_empty: bool = True
-    deployment_count_text: str = "0"
     recent_activity_count_text: str = "0"
-    recent_activity_breakdown: str = "0 publishes • 0 stars • 0 ratings • 0 deploys"
+    recent_activity_breakdown: str = "0 publishes • 0 stars • 0 ratings"
     activity_window_label: str = "Last 30 days"
     authored_contract_count_label: str = "0 public contracts"
     authored_contracts: list[DeveloperProfileContractPayload] = []
@@ -112,10 +110,7 @@ class DeveloperProfileState(rx.State):
             return "This developer profile is not available on the public catalog."
         if self.bio:
             return self.bio
-        return (
-            "Published authorship signals, deployment history, and public contract releases "
-            "for this Xian developer."
-        )
+        return "Published authorship signals and public contract releases for this Xian developer."
 
     @rx.var
     def profile_secondary(self) -> str:
@@ -164,7 +159,6 @@ class DeveloperProfileState(rx.State):
         self.rating_headline = rating_display.headline
         self.rating_detail = rating_display.detail
         self.rating_empty = rating_display.empty
-        self.deployment_count_text = str(snapshot.total_deployment_count)
         self.recent_activity_count_text = str(snapshot.recent_activity_count)
         self.recent_activity_breakdown = _format_recent_activity_breakdown(snapshot)
         self.activity_window_label = _format_activity_window_label(snapshot.activity_window_days)
@@ -186,9 +180,8 @@ class DeveloperProfileState(rx.State):
         self.rating_headline = "No ratings yet"
         self.rating_detail = ""
         self.rating_empty = True
-        self.deployment_count_text = "0"
         self.recent_activity_count_text = "0"
-        self.recent_activity_breakdown = "0 publishes • 0 stars • 0 ratings • 0 deploys"
+        self.recent_activity_breakdown = "0 publishes • 0 stars • 0 ratings"
         self.activity_window_label = _format_activity_window_label(snapshot.activity_window_days)
         self.authored_contract_count_label = "0 public contracts"
         self.authored_contracts = []
@@ -234,7 +227,6 @@ def _serialize_authored_contracts(
                 "rating_headline": rating_display.headline,
                 "rating_detail": rating_display.detail,
                 "rating_empty": rating_display.empty,
-                "deployment_count": str(contract.deployment_count),
                 "tag_preview": list(contract.tag_names[:4]),
             }
         )
@@ -245,8 +237,7 @@ def _format_recent_activity_breakdown(snapshot: PublicDeveloperProfileSnapshot) 
     return (
         f"{snapshot.recent_publish_count} publishes • "
         f"{snapshot.recent_stars_received} stars • "
-        f"{snapshot.recent_rating_count} ratings • "
-        f"{snapshot.recent_deployment_count} deploys"
+        f"{snapshot.recent_rating_count} ratings"
     )
 
 

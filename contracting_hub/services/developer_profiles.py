@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 
 import sqlalchemy as sa
 from sqlmodel import Session
@@ -18,6 +18,7 @@ from contracting_hub.services.developer_kpis import (
     get_developer_kpi_snapshot,
     normalize_developer_activity_window_days,
 )
+from contracting_hub.utils.dates import coerce_utc_datetime
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,6 @@ class PublicDeveloperContractSummary:
     star_count: int
     rating_count: int
     average_rating: float | None
-    deployment_count: int
 
 
 @dataclass(frozen=True)
@@ -58,11 +58,9 @@ class PublicDeveloperProfileSnapshot:
     total_stars_received: int
     weighted_average_rating: float | None
     total_rating_count: int
-    total_deployment_count: int
     recent_publish_count: int
     recent_stars_received: int
     recent_rating_count: int
-    recent_deployment_count: int
     recent_activity_count: int
     activity_window_days: int
     activity_since: datetime
@@ -100,11 +98,9 @@ def build_empty_public_developer_profile_snapshot(
         total_stars_received=0,
         weighted_average_rating=None,
         total_rating_count=0,
-        total_deployment_count=0,
         recent_publish_count=0,
         recent_stars_received=0,
         recent_rating_count=0,
-        recent_deployment_count=0,
         recent_activity_count=0,
         activity_window_days=resolved_window_days,
         activity_since=build_developer_activity_window_start(window_days=resolved_window_days),
@@ -161,11 +157,9 @@ def load_public_developer_profile_snapshot(
         total_stars_received=kpi_snapshot.total_stars_received,
         weighted_average_rating=kpi_snapshot.weighted_average_rating,
         total_rating_count=kpi_snapshot.total_rating_count,
-        total_deployment_count=kpi_snapshot.total_deployment_count,
         recent_publish_count=kpi_snapshot.recent_publish_count,
         recent_stars_received=kpi_snapshot.recent_stars_received,
         recent_rating_count=kpi_snapshot.recent_rating_count,
-        recent_deployment_count=kpi_snapshot.recent_deployment_count,
         recent_activity_count=kpi_snapshot.recent_activity_count,
         activity_window_days=kpi_snapshot.activity_window_days,
         activity_since=kpi_snapshot.activity_since,
@@ -216,13 +210,11 @@ def _build_zero_kpi_aggregate(
         total_stars_received=0,
         weighted_average_rating=None,
         total_rating_count=0,
-        total_deployment_count=0,
         recent_published_contract_count=0,
         recent_publish_count=0,
         recent_stars_received=0,
         recent_weighted_average_rating=None,
         recent_rating_count=0,
-        recent_deployment_count=0,
         activity_window_days=activity_window_days,
         activity_since=activity_since,
     )
@@ -245,16 +237,15 @@ def _build_public_developer_contract_summary(
         primary_category_name=_build_primary_category_name(contract),
         category_names=categories,
         tag_names=tuple(contract.tags),
-        updated_at=_coerce_utc_datetime(contract.updated_at),
+        updated_at=coerce_utc_datetime(contract.updated_at),
         published_at=(
-            _coerce_utc_datetime(latest_version.published_at)
+            coerce_utc_datetime(latest_version.published_at)
             if latest_version is not None and latest_version.published_at is not None
             else None
         ),
         star_count=record.star_count,
         rating_count=record.rating_count,
         average_rating=record.average_rating,
-        deployment_count=record.deployment_count,
     )
 
 
@@ -279,12 +270,6 @@ def _build_primary_category_name(contract) -> str | None:
         (link.category.name for link in ordered_categories if link.is_primary),
         category_names[0] if category_names else None,
     )
-
-
-def _coerce_utc_datetime(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
 
 
 __all__ = [

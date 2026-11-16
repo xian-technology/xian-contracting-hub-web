@@ -363,7 +363,7 @@ def live_server_url(project_root: Path, tmp_path_factory: pytest.TempPathFactory
             "CONTRACTING_HUB_DB_PATH": str(database_path),
             "CONTRACTING_HUB_INSTANCE_DIR": str(instance_dir),
             "CONTRACTING_HUB_UPLOADS_DIR": str(uploads_dir),
-            "CONTRACTING_HUB_PLAYGROUND_DEEP_LINK_BASE_URL": "https://playground.local/deploy",
+            "CONTRACTING_HUB_PLAYGROUND_URL": "http://127.0.0.1:3210",
             "REFLEX_DB_URL": sqlite_url_for_path(database_path),
         }
     )

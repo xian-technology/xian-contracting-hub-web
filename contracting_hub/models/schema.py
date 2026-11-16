@@ -7,7 +7,7 @@ from typing import Any, Optional
 import sqlalchemy as sa
 import sqlmodel
 
-from contracting_hub.models.base import TimestampedModel, utc_now
+from contracting_hub.models.base import TimestampedModel
 
 
 class UserRole(str, Enum):
@@ -68,23 +68,6 @@ class LintStatus(str, Enum):
     FAIL = "fail"
 
 
-class DeploymentStatus(str, Enum):
-    """Lifecycle states for recorded deployment requests."""
-
-    PENDING = "pending"
-    ACCEPTED = "accepted"
-    REDIRECT_REQUIRED = "redirect_required"
-    FAILED = "failed"
-
-
-class DeploymentTransport(str, Enum):
-    """Transport labels emitted by playground adapters."""
-
-    DEEP_LINK = "deep_link"
-    HTTP = "http"
-    HYBRID = "hybrid"
-
-
 class User(TimestampedModel, table=True):
     """Authenticated application account."""
 
@@ -119,14 +102,6 @@ class User(TimestampedModel, table=True):
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
     ratings: list["Rating"] = sqlmodel.Relationship(
-        back_populates="user",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
-    )
-    playground_targets: list["PlaygroundTarget"] = sqlmodel.Relationship(
-        back_populates="user",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
-    )
-    deployments: list["DeploymentHistory"] = sqlmodel.Relationship(
         back_populates="user",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
@@ -394,10 +369,6 @@ class ContractVersion(TimestampedModel, table=True):
         back_populates="previous_version",
         sa_relationship_kwargs={"foreign_keys": "[ContractVersion.previous_version_id]"},
     )
-    deployments: list["DeploymentHistory"] = sqlmodel.Relationship(
-        back_populates="contract_version",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
-    )
     package_release_artifacts: list["ContractPackageReleaseArtifact"] = sqlmodel.Relationship(
         back_populates="contract_version",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
@@ -519,70 +490,6 @@ class Rating(TimestampedModel, table=True):
     contract: Contract = sqlmodel.Relationship(back_populates="ratings")
 
 
-class PlaygroundTarget(TimestampedModel, table=True):
-    """Saved playground identifier for a developer."""
-
-    __tablename__ = "playground_targets"
-    __table_args__ = (
-        sa.UniqueConstraint(
-            "user_id",
-            "playground_id",
-            name="uq_playground_targets_user_playground_id",
-        ),
-    )
-
-    user_id: int = sqlmodel.Field(foreign_key="users.id", index=True)
-    label: str = sqlmodel.Field(max_length=100)
-    playground_id: str = sqlmodel.Field(max_length=128, index=True)
-    is_default: bool = sqlmodel.Field(default=False, index=True)
-    last_used_at: datetime | None = sqlmodel.Field(default=None, index=True)
-
-    user: User = sqlmodel.Relationship(back_populates="playground_targets")
-    deployments: list["DeploymentHistory"] = sqlmodel.Relationship(
-        back_populates="playground_target",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
-    )
-
-
-class DeploymentHistory(TimestampedModel, table=True):
-    """Recorded playground deployment attempt."""
-
-    __tablename__ = "deployment_history"
-
-    user_id: int = sqlmodel.Field(foreign_key="users.id", index=True)
-    contract_version_id: int = sqlmodel.Field(foreign_key="contract_versions.id", index=True)
-    playground_target_id: int | None = sqlmodel.Field(
-        default=None,
-        foreign_key="playground_targets.id",
-        index=True,
-    )
-    playground_id: str = sqlmodel.Field(max_length=128, index=True)
-    status: DeploymentStatus = sqlmodel.Field(default=DeploymentStatus.PENDING, index=True)
-    transport: DeploymentTransport | None = sqlmodel.Field(default=None, index=True)
-    external_request_id: str | None = sqlmodel.Field(default=None, max_length=255, index=True)
-    redirect_url: str | None = sqlmodel.Field(default=None, max_length=1024)
-    request_payload: dict[str, Any] = sqlmodel.Field(
-        default_factory=dict,
-        sa_column=sa.Column(sa.JSON, nullable=False),
-    )
-    response_payload: dict[str, Any] | None = sqlmodel.Field(
-        default=None,
-        sa_column=sa.Column(sa.JSON, nullable=True),
-    )
-    error_payload: dict[str, Any] | None = sqlmodel.Field(
-        default=None,
-        sa_column=sa.Column(sa.JSON, nullable=True),
-    )
-    initiated_at: datetime = sqlmodel.Field(default_factory=utc_now, index=True)
-    completed_at: datetime | None = sqlmodel.Field(default=None, index=True)
-
-    user: User = sqlmodel.Relationship(back_populates="deployments")
-    contract_version: ContractVersion = sqlmodel.Relationship(back_populates="deployments")
-    playground_target: Optional[PlaygroundTarget] = sqlmodel.Relationship(
-        back_populates="deployments"
-    )
-
-
 class AdminAuditLog(TimestampedModel, table=True):
     """Immutable admin action record."""
 
@@ -611,11 +518,7 @@ __all__ = [
     "ContractRelation",
     "ContractRelationType",
     "ContractVersion",
-    "DeploymentHistory",
-    "DeploymentStatus",
-    "DeploymentTransport",
     "LintStatus",
-    "PlaygroundTarget",
     "Profile",
     "PublicationStatus",
     "Rating",

@@ -45,4 +45,5 @@ def test_load_private_profile_settings_snapshot_returns_blank_profile_when_missi
 
     assert snapshot.username == ""
     assert snapshot.display_name is None
-    assert snapshot.playground_targets == ()
+    assert snapshot.website_url is None
+    assert not hasattr(snapshot, "playground_targets")

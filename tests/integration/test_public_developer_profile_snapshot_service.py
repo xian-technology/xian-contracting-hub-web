@@ -11,9 +11,6 @@ from contracting_hub.models import (
     Contract,
     ContractCategoryLink,
     ContractVersion,
-    DeploymentHistory,
-    DeploymentStatus,
-    DeploymentTransport,
     Profile,
     PublicationStatus,
     Rating,
@@ -165,28 +162,6 @@ def test_load_public_developer_profile_snapshot_returns_public_identity_metrics_
                 Rating(user=viewer_one, contract=escrow, score=5, updated_at=_timestamp(2, 22)),
                 Rating(user=viewer_two, contract=escrow, score=4, updated_at=_timestamp(2, 23)),
                 Rating(user=viewer_one, contract=legacy, score=1, updated_at=_timestamp(3, 3)),
-                DeploymentHistory(
-                    user=viewer_one,
-                    contract_version=escrow_v1,
-                    playground_id="escrow-target",
-                    status=DeploymentStatus.ACCEPTED,
-                    transport=DeploymentTransport.DEEP_LINK,
-                    initiated_at=_timestamp(2, 24),
-                    completed_at=_timestamp(2, 24),
-                    created_at=_timestamp(2, 24),
-                    updated_at=_timestamp(2, 24),
-                ),
-                DeploymentHistory(
-                    user=viewer_two,
-                    contract_version=legacy_v1,
-                    playground_id="legacy-target",
-                    status=DeploymentStatus.ACCEPTED,
-                    transport=DeploymentTransport.HTTP,
-                    initiated_at=_timestamp(3, 3),
-                    completed_at=_timestamp(3, 3),
-                    created_at=_timestamp(3, 3),
-                    updated_at=_timestamp(3, 3),
-                ),
             ]
         )
         session.commit()
@@ -209,8 +184,8 @@ def test_load_public_developer_profile_snapshot_returns_public_identity_metrics_
     assert snapshot.total_stars_received == 2
     assert snapshot.weighted_average_rating == 4.5
     assert snapshot.total_rating_count == 2
-    assert snapshot.total_deployment_count == 1
-    assert snapshot.recent_activity_count == 6
+
+    assert snapshot.recent_activity_count == 5
     assert [contract.slug for contract in snapshot.authored_contracts] == [
         "legacy-vault",
         "escrow",

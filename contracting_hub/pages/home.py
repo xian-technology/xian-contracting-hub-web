@@ -12,6 +12,7 @@ from contracting_hub.components import (
     contract_rating_summary,
     page_section,
 )
+from contracting_hub.components.catalog_metric import catalog_metric
 from contracting_hub.services.homepage import (
     HomePageContractSummary,
     HomePageSnapshot,
@@ -33,35 +34,9 @@ ON_LOAD = AuthState.sync_auth_state
 
 def _resolve_contract_context(summary: HomePageContractSummary, section_key: str) -> str:
     """Return the section-specific context line rendered in each summary card."""
-    if section_key == "recently_deployed":
-        return f"Last deployed {format_contract_calendar_date(summary.latest_deployment_at)}"
     if section_key == "featured" and summary.published_at is not None:
         return f"Published {format_contract_calendar_date(summary.published_at)}"
     return f"Updated {format_contract_calendar_date(summary.updated_at)}"
-
-
-def _summary_metric(label: str, value: str) -> rx.Component:
-    """Render one compact metric chip inside a homepage card."""
-    return rx.box(
-        rx.text(
-            label,
-            font_size="0.68rem",
-            text_transform="uppercase",
-            letter_spacing="0.08em",
-            color="var(--hub-color-text-muted)",
-        ),
-        rx.text(
-            value,
-            font_size="0.95rem",
-            font_weight="600",
-            color="var(--hub-color-text)",
-        ),
-        padding="0.75rem 0.85rem",
-        border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-sm)",
-        background="rgba(255, 250, 242, 0.7)",
-        class_name="hub-metric",
-    )
 
 
 def _contract_summary_card(
@@ -105,7 +80,6 @@ def _contract_summary_card(
                     empty=rating_display.empty,
                 ),
             ),
-            ContractCardMetric("Deploys", str(summary.deployment_count)),
         ),
         author_name=summary.author_name or "Curated entry",
         tags=rx.flex(
@@ -206,7 +180,7 @@ def _home_overview(snapshot: HomePageSnapshot) -> rx.Component:
         rx.grid(
             rx.vstack(
                 rx.heading(
-                    "Curated contracts surfaced by signal, freshness, and deployment activity.",
+                    "Curated contracts surfaced by engagement and fresh releases.",
                     size="6",
                     font_family="var(--hub-font-display)",
                     letter_spacing="-0.04em",
@@ -216,8 +190,7 @@ def _home_overview(snapshot: HomePageSnapshot) -> rx.Component:
                 rx.text(
                     (
                         "Featured entries highlight editorial picks, trending ranks by "
-                        "engagement, recently updated tracks fresh releases, and recently "
-                        "deployed surfaces contracts reaching playgrounds."
+                        "engagement, and recently updated tracks fresh releases."
                     ),
                     color="var(--hub-color-text-muted)",
                     max_width="38rem",
@@ -229,10 +202,9 @@ def _home_overview(snapshot: HomePageSnapshot) -> rx.Component:
                 width="100%",
             ),
             rx.grid(
-                _summary_metric("Featured", str(len(snapshot.featured_contracts))),
-                _summary_metric("Trending", str(len(snapshot.trending_contracts))),
-                _summary_metric("Updated", str(len(snapshot.recently_updated_contracts))),
-                _summary_metric("Deployed", str(len(snapshot.recently_deployed_contracts))),
+                catalog_metric("Featured", str(len(snapshot.featured_contracts))),
+                catalog_metric("Trending", str(len(snapshot.trending_contracts))),
+                catalog_metric("Updated", str(len(snapshot.recently_updated_contracts))),
                 columns="2",
                 gap="var(--hub-space-2)",
                 width="100%",
@@ -267,10 +239,7 @@ def index() -> rx.Component:
             _home_section(
                 "Trending Now",
                 "Public Momentum",
-                (
-                    "Sorted by aggregate stars, ratings, and deployment activity "
-                    "across published contracts."
-                ),
+                ("Sorted by aggregate stars and ratings across published contracts."),
                 snapshot.trending_contracts,
                 section_key="trending",
                 test_id="home-section-trending",
@@ -289,22 +258,6 @@ def index() -> rx.Component:
                 test_id="home-section-updated",
                 empty_title="No recent updates yet",
                 empty_body="Publish a contract version to start building this timeline.",
-            ),
-            _home_section(
-                "Recently Deployed",
-                "Playground Activity",
-                (
-                    "Contracts with the most recent non-failed deployment handoffs "
-                    "to the Xian playground."
-                ),
-                snapshot.recently_deployed_contracts,
-                section_key="recently_deployed",
-                test_id="home-section-deployed",
-                empty_title="No deployments recorded yet",
-                empty_body=(
-                    "Deployment history will populate here after authenticated users "
-                    "send contracts to a playground."
-                ),
             ),
             columns=rx.breakpoints(initial="1", xl="2"),
             gap="var(--hub-space-5)",

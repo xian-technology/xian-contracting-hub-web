@@ -21,10 +21,6 @@ from contracting_hub.models import (
     ContractRelation,
     ContractRelationType,
     ContractVersion,
-    DeploymentHistory,
-    DeploymentStatus,
-    DeploymentTransport,
-    PlaygroundTarget,
     Profile,
     PublicationStatus,
     Rating,
@@ -135,37 +131,6 @@ class DemoRatingSeedDefinition:
 
 
 @dataclass(frozen=True)
-class DemoPlaygroundTargetSeedDefinition:
-    """Saved playground target inserted for one demo user."""
-
-    user_email: str
-    label: str
-    playground_id: str
-    is_default: bool = False
-    last_used_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class DemoDeploymentSeedDefinition:
-    """Recorded deployment attempt inserted for the demo catalog."""
-
-    user_email: str
-    contract_slug: str
-    semantic_version: str
-    playground_id: str
-    status: DeploymentStatus
-    initiated_at: datetime
-    external_request_id: str
-    request_payload: dict[str, object]
-    transport: DeploymentTransport | None = None
-    completed_at: datetime | None = None
-    redirect_url: str | None = None
-    response_payload: dict[str, object] | None = None
-    error_payload: dict[str, object] | None = None
-    playground_target_playground_id: str | None = None
-
-
-@dataclass(frozen=True)
 class DemoAuditLogSeedDefinition:
     """Admin audit activity inserted for local QA."""
 
@@ -190,8 +155,6 @@ class DemoSeedReport:
     relations_created: int
     stars_created: int
     ratings_created: int
-    playground_targets_created: int
-    deployments_created: int
     audit_logs_created: int
     warnings: tuple[str, ...] = ()
 
@@ -288,8 +251,6 @@ REQUIRED_DEMO_SCHEMA_TABLES: Final[frozenset[str]] = frozenset(
         "contract_relations",
         "contract_versions",
         "contracts",
-        "deployment_history",
-        "playground_targets",
         "profiles",
         "ratings",
         "stars",
@@ -342,7 +303,7 @@ DEMO_CONTRACT_DEFINITIONS: Final[tuple[DemoContractSeedDefinition, ...]] = (
         short_summary="Curated escrow settlement primitives for staged payouts.",
         long_description=(
             "Production-style escrow settlement contract with version history, "
-            "deployment records, ratings, and related utility references."
+            "ratings and related utility references."
         ),
         author_email="alice@example.com",
         status=PublicationStatus.PUBLISHED,
@@ -417,7 +378,7 @@ DEMO_CONTRACT_DEFINITIONS: Final[tuple[DemoContractSeedDefinition, ...]] = (
         short_summary="Sandbox oracle contract with a public release history.",
         long_description=(
             "Oracle feed adapter that demonstrates multiple public releases, "
-            "deployment history, and author leaderboard coverage."
+            "version history and author leaderboard coverage."
         ),
         author_email="bob@example.com",
         status=PublicationStatus.PUBLISHED,
@@ -574,96 +535,6 @@ DEMO_RATING_DEFINITIONS: Final[tuple[DemoRatingSeedDefinition, ...]] = (
         contract_slug="price-oracle",
         score=4,
         note="Good sandbox release for demo deployments.",
-    ),
-)
-DEMO_PLAYGROUND_TARGET_DEFINITIONS: Final[tuple[DemoPlaygroundTargetSeedDefinition, ...]] = (
-    DemoPlaygroundTargetSeedDefinition(
-        user_email="alice@example.com",
-        label="Alice Sandbox",
-        playground_id="alice-sandbox",
-        is_default=True,
-        last_used_at=_demo_timestamp(10, hour=14),
-    ),
-    DemoPlaygroundTargetSeedDefinition(
-        user_email="alice@example.com",
-        label="Treasury QA",
-        playground_id="alice-treasury",
-        last_used_at=_demo_timestamp(9, hour=16),
-    ),
-    DemoPlaygroundTargetSeedDefinition(
-        user_email="bob@example.com",
-        label="Oracle Bench",
-        playground_id="bob-oracle",
-        is_default=True,
-        last_used_at=_demo_timestamp(10, hour=11),
-    ),
-)
-DEMO_DEPLOYMENT_DEFINITIONS: Final[tuple[DemoDeploymentSeedDefinition, ...]] = (
-    DemoDeploymentSeedDefinition(
-        user_email="alice@example.com",
-        contract_slug="escrow",
-        semantic_version="2.0.0",
-        playground_id="alice-sandbox",
-        playground_target_playground_id="alice-sandbox",
-        status=DeploymentStatus.REDIRECT_REQUIRED,
-        transport=DeploymentTransport.DEEP_LINK,
-        initiated_at=_demo_timestamp(10, hour=14),
-        completed_at=_demo_timestamp(10, hour=14),
-        external_request_id="demo-escrow-redirect",
-        redirect_url=(
-            "https://playground.local/deploy?playground_id=alice-sandbox&contract=con_escrow"
-        ),
-        request_payload={
-            "playground_id": "alice-sandbox",
-            "contract_slug": "escrow",
-            "semantic_version": "2.0.0",
-        },
-        response_payload={
-            "message": "Redirect the user to the playground.",
-            "status": "redirect_required",
-        },
-    ),
-    DemoDeploymentSeedDefinition(
-        user_email="alice@example.com",
-        contract_slug="vault",
-        semantic_version="1.0.0",
-        playground_id="alice-treasury",
-        playground_target_playground_id="alice-treasury",
-        status=DeploymentStatus.ACCEPTED,
-        transport=DeploymentTransport.HTTP,
-        initiated_at=_demo_timestamp(9, hour=16),
-        completed_at=_demo_timestamp(9, hour=16),
-        external_request_id="demo-vault-accepted",
-        request_payload={
-            "playground_id": "alice-treasury",
-            "contract_slug": "vault",
-            "semantic_version": "1.0.0",
-        },
-        response_payload={
-            "message": "Deployment accepted by the playground adapter.",
-            "status": "accepted",
-        },
-    ),
-    DemoDeploymentSeedDefinition(
-        user_email="bob@example.com",
-        contract_slug="price-oracle",
-        semantic_version="1.0.0",
-        playground_id="bob-oracle",
-        playground_target_playground_id="bob-oracle",
-        status=DeploymentStatus.FAILED,
-        transport=DeploymentTransport.HTTP,
-        initiated_at=_demo_timestamp(10, hour=11),
-        completed_at=_demo_timestamp(10, hour=11),
-        external_request_id="demo-oracle-failed",
-        request_payload={
-            "playground_id": "bob-oracle",
-            "contract_slug": "price-oracle",
-            "semantic_version": "1.0.0",
-        },
-        error_payload={
-            "code": "adapter_timeout",
-            "message": "The playground did not confirm the deployment request in time.",
-        },
     ),
 )
 DEMO_AUDIT_LOG_DEFINITIONS: Final[tuple[DemoAuditLogSeedDefinition, ...]] = (
@@ -1151,138 +1022,6 @@ def _seed_demo_ratings(
     return created_count, warnings
 
 
-def _seed_demo_playground_targets(
-    session: Session,
-    *,
-    users_by_email: dict[str, User],
-) -> tuple[dict[tuple[str, str], PlaygroundTarget], int, list[str]]:
-    existing_targets = session.exec(select(PlaygroundTarget)).all()
-    targets_by_key = {
-        (target.user.email, target.playground_id): target
-        for target in existing_targets
-        if target.user is not None
-    }
-    created_count = 0
-    warnings: list[str] = []
-
-    for definition in DEMO_PLAYGROUND_TARGET_DEFINITIONS:
-        user = users_by_email.get(definition.user_email)
-        if user is None:
-            warnings.append(
-                (
-                    "Skipped demo playground target because the user is missing: "
-                    f"{definition.user_email!r}."
-                )
-            )
-            continue
-
-        target_key = (definition.user_email, definition.playground_id)
-        if target_key in targets_by_key:
-            continue
-
-        target = PlaygroundTarget(
-            user_id=_require_persisted_id(user.id, label="user"),
-            label=definition.label,
-            playground_id=definition.playground_id,
-            is_default=definition.is_default,
-            last_used_at=definition.last_used_at,
-        )
-        session.add(target)
-        session.flush()
-        targets_by_key[target_key] = target
-        created_count += 1
-
-    return targets_by_key, created_count, warnings
-
-
-def _seed_demo_deployments(
-    session: Session,
-    *,
-    users_by_email: dict[str, User],
-    contracts_by_slug: dict[str, Contract],
-    targets_by_key: dict[tuple[str, str], PlaygroundTarget],
-) -> tuple[int, list[str]]:
-    existing_request_ids = {
-        deployment.external_request_id
-        for deployment in session.exec(select(DeploymentHistory)).all()
-        if deployment.external_request_id is not None
-    }
-    created_count = 0
-    warnings: list[str] = []
-
-    for definition in DEMO_DEPLOYMENT_DEFINITIONS:
-        if definition.external_request_id in existing_request_ids:
-            continue
-
-        user = users_by_email.get(definition.user_email)
-        contract = contracts_by_slug.get(definition.contract_slug)
-        if user is None or contract is None:
-            warnings.append(
-                (
-                    "Skipped demo deployment because the user or contract is missing: "
-                    f"{definition.user_email!r} -> {definition.contract_slug!r}."
-                )
-            )
-            continue
-
-        version = session.exec(
-            select(ContractVersion).where(
-                ContractVersion.contract_id == contract.id,
-                ContractVersion.semantic_version == definition.semantic_version,
-            )
-        ).first()
-        if version is None:
-            warnings.append(
-                (
-                    f"Skipped demo deployment for {definition.contract_slug!r} because "
-                    f"version {definition.semantic_version!r} is missing."
-                )
-            )
-            continue
-
-        target_id = None
-        if definition.playground_target_playground_id is not None:
-            target = targets_by_key.get(
-                (definition.user_email, definition.playground_target_playground_id)
-            )
-            if target is None:
-                warnings.append(
-                    (
-                        "Skipped demo deployment because the saved playground target is "
-                        f"missing: {definition.playground_target_playground_id!r}."
-                    )
-                )
-                continue
-            target_id = _require_persisted_id(target.id, label="playground target")
-            if target.last_used_at is None or (
-                definition.completed_at is not None
-                and target.last_used_at < definition.completed_at
-            ):
-                target.last_used_at = definition.completed_at
-
-        session.add(
-            DeploymentHistory(
-                user_id=_require_persisted_id(user.id, label="user"),
-                contract_version_id=_require_persisted_id(version.id, label="contract version"),
-                playground_target_id=target_id,
-                playground_id=definition.playground_id,
-                status=definition.status,
-                transport=definition.transport,
-                external_request_id=definition.external_request_id,
-                redirect_url=definition.redirect_url,
-                request_payload=definition.request_payload,
-                response_payload=definition.response_payload,
-                error_payload=definition.error_payload,
-                initiated_at=definition.initiated_at,
-                completed_at=definition.completed_at,
-            )
-        )
-        existing_request_ids.add(definition.external_request_id)
-        created_count += 1
-
-    return created_count, warnings
-
-
 def _seed_demo_audit_logs(
     session: Session,
     *,
@@ -1383,8 +1122,6 @@ def seed_demo_catalog_data(
             relations_created=0,
             stars_created=0,
             ratings_created=0,
-            playground_targets_created=0,
-            deployments_created=0,
             audit_logs_created=0,
             warnings=("Local demo seed skipped because the schema is not fully migrated yet.",),
         )
@@ -1413,16 +1150,6 @@ def seed_demo_catalog_data(
         users_by_email=users_by_email,
         contracts_by_slug=contracts_by_slug,
     )
-    targets_by_key, playground_targets_created, target_warnings = _seed_demo_playground_targets(
-        session,
-        users_by_email=users_by_email,
-    )
-    deployments_created, deployment_warnings = _seed_demo_deployments(
-        session,
-        users_by_email=users_by_email,
-        contracts_by_slug=contracts_by_slug,
-        targets_by_key=targets_by_key,
-    )
     audit_logs_created, audit_log_warnings = _seed_demo_audit_logs(
         session,
         users_by_email=users_by_email,
@@ -1439,8 +1166,6 @@ def seed_demo_catalog_data(
         relations_created=relations_created,
         stars_created=stars_created,
         ratings_created=ratings_created,
-        playground_targets_created=playground_targets_created,
-        deployments_created=deployments_created,
         audit_logs_created=audit_logs_created,
         warnings=tuple(
             user_warnings
@@ -1448,8 +1173,6 @@ def seed_demo_catalog_data(
             + relation_warnings
             + star_warnings
             + rating_warnings
-            + target_warnings
-            + deployment_warnings
             + audit_log_warnings
         ),
     )
@@ -1529,11 +1252,6 @@ def _format_bootstrap_report(report: BootstrapSeedReport) -> str:
                 f"demo_relations_created={report.demo_report.relations_created}",
                 f"demo_stars_created={report.demo_report.stars_created}",
                 f"demo_ratings_created={report.demo_report.ratings_created}",
-                (
-                    "demo_playground_targets_created="
-                    f"{report.demo_report.playground_targets_created}"
-                ),
-                f"demo_deployments_created={report.demo_report.deployments_created}",
                 f"demo_audit_logs_created={report.demo_report.audit_logs_created}",
                 f"demo_login_password={DEFAULT_LOCAL_DEMO_PASSWORD}",
             ]

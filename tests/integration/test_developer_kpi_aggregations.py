@@ -8,9 +8,6 @@ from sqlmodel import Session
 from contracting_hub.models import (
     Contract,
     ContractVersion,
-    DeploymentHistory,
-    DeploymentStatus,
-    DeploymentTransport,
     Profile,
     PublicationStatus,
     Rating,
@@ -224,72 +221,6 @@ def _seed_developer_metrics(session: Session) -> None:
                 created_at=_timestamp(3, 1),
                 updated_at=_timestamp(3, 1),
             ),
-            DeploymentHistory(
-                user=dana,
-                contract_version=escrow_v1,
-                playground_id="escrow-recent",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.DEEP_LINK,
-                created_at=_timestamp(2, 28),
-                updated_at=_timestamp(2, 28),
-                initiated_at=_timestamp(2, 28),
-                completed_at=_timestamp(2, 28),
-            ),
-            DeploymentHistory(
-                user=eric,
-                contract_version=escrow_v1,
-                playground_id="escrow-old",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.DEEP_LINK,
-                created_at=_timestamp(1, 20),
-                updated_at=_timestamp(1, 20),
-                initiated_at=_timestamp(1, 20),
-                completed_at=_timestamp(1, 20),
-            ),
-            DeploymentHistory(
-                user=frank,
-                contract_version=vault_v1,
-                playground_id="vault-recent",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.HTTP,
-                created_at=_timestamp(2, 15),
-                updated_at=_timestamp(2, 15),
-                initiated_at=_timestamp(2, 15),
-                completed_at=_timestamp(2, 15),
-            ),
-            DeploymentHistory(
-                user=dana,
-                contract_version=oracle_v1,
-                playground_id="oracle-recent",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.HTTP,
-                created_at=_timestamp(2, 21),
-                updated_at=_timestamp(2, 21),
-                initiated_at=_timestamp(2, 21),
-                completed_at=_timestamp(2, 21),
-            ),
-            DeploymentHistory(
-                user=dana,
-                contract_version=market_v1,
-                playground_id="market-old",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.HTTP,
-                created_at=_timestamp(1, 3),
-                updated_at=_timestamp(1, 3),
-                initiated_at=_timestamp(1, 3),
-                completed_at=_timestamp(1, 3),
-            ),
-            DeploymentHistory(
-                user=eric,
-                contract_version=legacy_v1,
-                playground_id="legacy-recent",
-                status=DeploymentStatus.ACCEPTED,
-                transport=DeploymentTransport.HYBRID,
-                created_at=_timestamp(3, 1),
-                updated_at=_timestamp(3, 1),
-                initiated_at=_timestamp(3, 1),
-                completed_at=_timestamp(3, 1),
-            ),
         ]
     )
     session.commit()
@@ -314,14 +245,14 @@ def test_get_developer_kpi_snapshot_aggregates_published_contract_metrics() -> N
     assert snapshot.total_stars_received == 3
     assert snapshot.weighted_average_rating == pytest.approx(4.0)
     assert snapshot.total_rating_count == 3
-    assert snapshot.total_deployment_count == 3
+
     assert snapshot.recent_published_contract_count == 1
     assert snapshot.recent_publish_count == 1
     assert snapshot.recent_stars_received == 2
     assert snapshot.recent_weighted_average_rating == pytest.approx(4.5)
     assert snapshot.recent_rating_count == 2
-    assert snapshot.recent_deployment_count == 2
-    assert snapshot.recent_activity_count == 7
+
+    assert snapshot.recent_activity_count == 5
 
 
 def test_list_developer_leaderboard_uses_deterministic_all_time_tiebreaks() -> None:

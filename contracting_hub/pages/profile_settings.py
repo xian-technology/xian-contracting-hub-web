@@ -384,270 +384,6 @@ def _profile_form() -> rx.Component:
     )
 
 
-def _saved_target_row(target) -> rx.Component:
-    return rx.box(
-        rx.vstack(
-            rx.flex(
-                rx.vstack(
-                    rx.flex(
-                        rx.text(
-                            target["label"],
-                            font_size="1rem",
-                            font_weight="600",
-                            color="var(--hub-color-text)",
-                        ),
-                        rx.cond(
-                            target["is_default"],
-                            rx.badge(
-                                target["default_badge_label"],
-                                radius="full",
-                                variant="soft",
-                                color_scheme="bronze",
-                            ),
-                        ),
-                        wrap="wrap",
-                        gap="var(--hub-space-2)",
-                        align="center",
-                    ),
-                    rx.text(
-                        target["playground_id"],
-                        font_family="var(--hub-font-mono)",
-                        font_size="0.95rem",
-                        color="var(--hub-color-text-muted)",
-                    ),
-                    rx.text(
-                        "Last used: ",
-                        target["last_used_label"],
-                        font_size="0.9rem",
-                        color="var(--hub-color-text-muted)",
-                    ),
-                    align="start",
-                    gap="var(--hub-space-1)",
-                    width="100%",
-                ),
-                rx.flex(
-                    rx.button(
-                        "Edit",
-                        type="button",
-                        size="2",
-                        variant="soft",
-                        on_click=ProfileSettingsState.edit_playground_target(target["id"]),
-                    ),
-                    rx.button(
-                        "Delete",
-                        type="button",
-                        size="2",
-                        variant="soft",
-                        color_scheme="tomato",
-                        on_click=ProfileSettingsState.delete_playground_target(target["id"]),
-                    ),
-                    direction=rx.breakpoints(initial="column", sm="row"),
-                    gap="var(--hub-space-2)",
-                    width=rx.breakpoints(initial="100%", md="auto"),
-                ),
-                direction=rx.breakpoints(initial="column", md="row"),
-                align=rx.breakpoints(initial="start", md="center"),
-                justify="between",
-                gap="var(--hub-space-4)",
-                width="100%",
-            ),
-            align="start",
-            gap="var(--hub-space-3)",
-            width="100%",
-        ),
-        width="100%",
-        padding="var(--hub-space-4)",
-        border="1px solid var(--hub-color-line)",
-        border_radius="var(--hub-radius-md)",
-        background="rgba(255, 250, 242, 0.8)",
-        custom_attrs={"data-testid": "playground-target-row"},
-    )
-
-
-def _saved_targets_list() -> rx.Component:
-    return rx.cond(
-        ProfileSettingsState.has_playground_targets,
-        rx.vstack(
-            rx.foreach(ProfileSettingsState.playground_targets, _saved_target_row),
-            width="100%",
-            gap="var(--hub-space-3)",
-        ),
-        rx.box(
-            rx.vstack(
-                rx.heading(
-                    "No saved playground targets yet.",
-                    size="3",
-                    font_family="var(--hub-font-display)",
-                    color="var(--hub-color-text)",
-                ),
-                rx.text(
-                    "Add a playground ID here so deployment flows can reuse it later.",
-                    color="var(--hub-color-text-muted)",
-                ),
-                align="start",
-                gap="var(--hub-space-2)",
-            ),
-            width="100%",
-            padding="var(--hub-space-5)",
-            border="1px dashed var(--hub-color-line)",
-            border_radius="var(--hub-radius-md)",
-            background="rgba(255, 250, 242, 0.6)",
-        ),
-    )
-
-
-def _playground_targets_panel() -> rx.Component:
-    return rx.box(
-        rx.vstack(
-            rx.badge(
-                "Deploy faster",
-                radius="full",
-                variant="soft",
-                color_scheme="bronze",
-                width="fit-content",
-            ),
-            rx.heading(
-                "Saved playground targets",
-                size="5",
-                font_family="var(--hub-font-display)",
-                letter_spacing="-0.05em",
-                color="var(--hub-color-text)",
-            ),
-            rx.text(
-                (
-                    "Save reusable playground IDs for future deployment flows, keep one default "
-                    "target selected, and update or remove old entries without "
-                    "touching your account."
-                ),
-                color="var(--hub-color-text-muted)",
-            ),
-            rx.text(
-                ProfileSettingsState.playground_target_count_label,
-                font_size="0.9rem",
-                color="var(--hub-color-text-muted)",
-            ),
-            _message_banner(ProfileSettingsState.playground_target_success_message, tone="success"),
-            _message_banner(ProfileSettingsState.playground_target_form_error, tone="error"),
-            rx.box(
-                rx.vstack(
-                    rx.heading(
-                        ProfileSettingsState.playground_target_form_title,
-                        size="4",
-                        font_family="var(--hub-font-display)",
-                        letter_spacing="-0.04em",
-                        color="var(--hub-color-text)",
-                    ),
-                    rx.form(
-                        rx.vstack(
-                            _profile_field(
-                                label="Label",
-                                field_id="playground-target-label",
-                                control=_surface_input(
-                                    id="playground-target-label",
-                                    name="label",
-                                    value=ProfileSettingsState.playground_target_label,
-                                    on_change=ProfileSettingsState.set_playground_target_label,
-                                    placeholder="Sandbox primary",
-                                    required=True,
-                                    custom_attrs={
-                                        "aria-describedby": "playground-target-label-error",
-                                        "aria-invalid": (
-                                            ProfileSettingsState.playground_target_label_error != ""
-                                        ),
-                                    },
-                                ),
-                                error_message=ProfileSettingsState.playground_target_label_error,
-                            ),
-                            _profile_field(
-                                label="Playground ID",
-                                field_id="playground-target-playground-id",
-                                control=_surface_input(
-                                    id="playground-target-playground-id",
-                                    name="playground_id",
-                                    value=ProfileSettingsState.playground_target_playground_id,
-                                    on_change=ProfileSettingsState.set_playground_target_playground_id,
-                                    placeholder="sandbox-alpha",
-                                    required=True,
-                                    custom_attrs={
-                                        "aria-describedby": (
-                                            "playground-target-playground-id-error"
-                                        ),
-                                        "aria-invalid": (
-                                            ProfileSettingsState.playground_target_playground_id_error
-                                            != ""
-                                        ),
-                                    },
-                                ),
-                                error_message=(
-                                    ProfileSettingsState.playground_target_playground_id_error
-                                ),
-                            ),
-                            _profile_field(
-                                label="Default target",
-                                field_id="playground-target-default",
-                                control=rx.el.select(
-                                    rx.el.option("No", value="no"),
-                                    rx.el.option("Yes", value="yes"),
-                                    id="playground-target-default",
-                                    name="is_default",
-                                    value=ProfileSettingsState.playground_target_default_choice,
-                                    on_change=ProfileSettingsState.set_playground_target_default_choice,
-                                    style=_select_style(),
-                                    custom_attrs={
-                                        "aria-describedby": "playground-target-default-error"
-                                    },
-                                ),
-                                error_message="",
-                            ),
-                            rx.flex(
-                                rx.button(
-                                    ProfileSettingsState.playground_target_submit_label,
-                                    type="submit",
-                                    size="3",
-                                    width=rx.breakpoints(initial="100%", sm="auto"),
-                                ),
-                                rx.cond(
-                                    ProfileSettingsState.is_editing_playground_target,
-                                    rx.button(
-                                        "Cancel",
-                                        type="button",
-                                        size="3",
-                                        variant="soft",
-                                        on_click=ProfileSettingsState.reset_playground_target_form,
-                                        width=rx.breakpoints(initial="100%", sm="auto"),
-                                    ),
-                                ),
-                                direction=rx.breakpoints(initial="column", sm="row"),
-                                gap="var(--hub-space-3)",
-                                width="100%",
-                            ),
-                            align="start",
-                            gap="var(--hub-space-4)",
-                            width="100%",
-                        ),
-                        on_submit=ProfileSettingsState.submit_playground_target,
-                        width="100%",
-                        custom_attrs={"data-testid": "playground-target-form"},
-                    ),
-                    align="start",
-                    gap="var(--hub-space-4)",
-                    width="100%",
-                ),
-                width="100%",
-                padding="var(--hub-space-5)",
-                border="1px solid var(--hub-color-line)",
-                border_radius="var(--hub-radius-md)",
-                background="rgba(255, 250, 242, 0.8)",
-            ),
-            _saved_targets_list(),
-            align="start",
-            gap="var(--hub-space-5)",
-            width="100%",
-        ),
-        width="100%",
-    )
-
-
 def _profile_panel() -> rx.Component:
     return rx.box(
         rx.vstack(
@@ -689,7 +425,7 @@ def index() -> rx.Component:
                 ProfileSettingsState.is_loading,
                 page_loading_state(
                     title="Loading profile settings",
-                    body="Preparing your editable profile details and saved playground targets.",
+                    body="Preparing your editable profile details.",
                     test_id="profile-settings-loading",
                 ),
                 rx.cond(
@@ -707,8 +443,7 @@ def index() -> rx.Component:
                     page_section(
                         rx.grid(
                             _profile_panel(),
-                            _playground_targets_panel(),
-                            columns=rx.breakpoints(initial="1", xl="2"),
+                            columns="1",
                             gap="var(--hub-space-6)",
                             width="100%",
                             align_items="start",
@@ -721,8 +456,7 @@ def index() -> rx.Component:
         ),
         page_title="Profile settings",
         page_intro=(
-            "Manage your public developer identity, avatar, and saved playground targets "
-            "from one authenticated workspace."
+            "Manage your public developer identity and avatar from one authenticated workspace."
         ),
         page_kicker="Authenticated account",
         auth_state=ProfileSettingsState,

@@ -208,25 +208,10 @@ def load_public_contract_browse_snapshot(
     normalized_page = normalize_contract_browse_page(page)
 
     repository = ContractRepository(session)
-    all_records = repository.list_recently_updated_contract_highlights(limit=None)
-    filtered_records = list(all_records)
-    search_order_by_contract_id: dict[int, int] | None = None
-
-    if normalized_query:
-        search_results = search_contract_catalog(session=session, query=normalized_query)
-        search_order_by_contract_id = {
-            result.contract.id: index
-            for index, result in enumerate(search_results)
-            if result.contract.id is not None
-        }
-        filtered_records = [
-            record
-            for record in filtered_records
-            if record.contract.id is not None and record.contract.id in search_order_by_contract_id
-        ]
-        filtered_records.sort(
-            key=lambda record: search_order_by_contract_id.get(record.contract.id or -1, 10**9)
-        )
+    all_records = repository.list_contract_highlights(ordering="recently_updated")
+    filtered_records, search_order_by_contract_id = _filter_search_records(
+        session=session, records=all_records, query=normalized_query
+    )
 
     if normalized_category is not None:
         filtered_records = [
@@ -266,6 +251,28 @@ def load_public_contract_browse_snapshot(
         total_results=total_results,
         total_pages=total_pages,
     )
+
+
+def _filter_search_records(
+    *, session: Session, records: list[ContractHighlightRecord], query: str
+) -> tuple[list[ContractHighlightRecord], dict[int, int] | None]:
+    """Keep FTS ordering and matching separate from browse facets and pagination."""
+    filtered_records = list(records)
+    if not query:
+        return filtered_records, None
+    search_results = search_contract_catalog(session=session, query=query)
+    search_order = {
+        result.contract.id: index
+        for index, result in enumerate(search_results)
+        if result.contract.id is not None
+    }
+    filtered_records = [
+        record
+        for record in filtered_records
+        if record.contract.id is not None and record.contract.id in search_order
+    ]
+    filtered_records.sort(key=lambda record: search_order.get(record.contract.id or -1, 10**9))
+    return filtered_records, search_order
 
 
 def load_public_contract_browse_snapshot_safe(

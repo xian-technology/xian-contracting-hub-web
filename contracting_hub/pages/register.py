@@ -123,7 +123,7 @@ def _identity_panel() -> rx.Component:
         rx.text(
             (
                 "Each account gets a public developer profile and a private session "
-                "for contract engagement, saved playground targets, and later admin promotion."
+                "for contract engagement and profile settings."
             ),
             color="var(--hub-color-text-muted)",
             max_width="32rem",

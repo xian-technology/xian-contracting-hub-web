@@ -2,10 +2,9 @@
 
 `xian-contracting-hub-web` is the curated smart-contract hub for the Xian
 ecosystem. It is a Reflex-based web app where developers browse, search,
-inspect, rate, and deploy Xian contracts, and where admins curate the
+inspect, rate, and open Xian contract source in the browser playground, and where admins curate the
 catalog. Contracts are stored as immutable append-only versions in a
-SQLite database; full-text search uses SQLite FTS5; lint and deployment
-flows are mediated through adapter integrations. New catalog versions are linted
+SQLite database; full-text search uses SQLite FTS5; linting uses the shared compiler integration. New catalog versions are linted
 with the fresh-chain `xian_vm_v2` profile and checked by its native IR validator.
 
 ## Catalog Flow
@@ -17,8 +16,7 @@ flowchart LR
   Services --> Repositories["Repositories"]
   Repositories --> SQLite["SQLite and FTS5"]
   Services --> Linter["xian-linter adapter"]
-  Services --> Deploy["Deployment adapter"]
-  Deploy --> Node["Xian node"]
+  UI --> Playground["Browser playground share link"]
   SQLite --> Search["Search and catalog views"]
 ```
 
@@ -59,9 +57,11 @@ uv run reflex export --no-zip
 - **Search is first-class.** SQLite FTS5 indexes contract names,
   descriptions, authors, tags, and categories. The catalog UX is built
   around it.
-- **Adapters around external integrations.** The contract linter,
-  playground deploy target, and storage layer sit behind adapters under
-  `integrations/` so the UI stays stable when those integrations change.
+- **Browser playground handoff.** Open the selected immutable source version
+  in the playground editor through its `#w=` workspace link. The source stays
+  in the URL fragment and is not automatically deployed. No login is required.
+- **Adapters around external integrations.** The contract linter and storage
+  layer sit behind adapters under `integrations/`.
 - **Custom auth, no Reflex Enterprise.** Email / password sessions with
   secure cookies; no third-party identity provider.
 - **Layered code.** `pages/` and `states/` orchestrate the UI; business
@@ -74,12 +74,11 @@ uv run reflex export --no-zip
   category / tag filters, multiple sort orders)
 - inspect contracts with syntax-highlighted Python source, version
   diffs, lint reports, and related-contract navigation
-- developer engagement: star contracts, submit ratings, save playground
-  targets, deploy versions
+- developer engagement: star contracts, submit ratings, open source versions
+  in the playground
 - admin workspace: create / edit contracts, publish versions, map
   relations, curate featured content
-- track deployment history and a developer leaderboard across the
-  catalog
+- discover developers through their published contracts, stars, and ratings
 
 ## Source Ownership and Imports
 
@@ -115,7 +114,7 @@ systems:
 - `contract_package_releases` identify pinned releases, including source repo,
   commit or tag, manifest path, and manifest hash.
 - `contract_package_release_artifacts` link one package release to the immutable
-  `contract_versions` that the hub already displays and deploys.
+  `contract_versions` that the hub displays and shares.
 
 For a DEX-style repo, `contract-bundle.json` is the import contract: the hub
 verifies the manifest hash and per-contract source hashes, then stores the
@@ -148,8 +147,8 @@ database model.
 ## Production Storage
 
 SQLite is the default and is sufficient for the expected hub workload: small
-curated release data, catalog search, admin curation, ratings, and deployment
-history. Production deployments should put the SQLite database and upload
+curated release data, catalog search, admin curation, and ratings. Production
+deployments should put the SQLite database and upload
 directory on persistent storage and back them up. Move to Postgres only if the
 hub needs multi-writer operational scale, external BI access, or stronger
 managed database operations than a single-server SQLite deployment provides.
@@ -177,7 +176,7 @@ managed database operations than a single-server SQLite deployment provides.
     state machines.
   - `models/` — SQLModel schema definitions.
   - `repositories/` — data-access layer.
-  - `services/` — domain logic (auth, search, diffs, ratings, deploy).
+  - `services/` — domain logic (auth, search, diffs, ratings).
   - `integrations/` — external adapters (`xian-linter`, playground,
     storage).
   - `admin/` — admin workspace pages.
@@ -197,6 +196,11 @@ Key environment variables (full list in `.env.example`):
 - `CONTRACTING_HUB_ENV` — `development` or `production`
 - `CONTRACTING_HUB_DB_PATH` — SQLite database file path
 - `CONTRACTING_HUB_BOOTSTRAP_ADMIN_*` — optional admin seed credentials
+- `CONTRACTING_HUB_PLAYGROUND_URL` — browser playground base URL (default
+  `http://127.0.0.1:3210`, the sibling playground’s `npm run serve` port).
+  Run the playground separately or set this to your static deployment URL.
+  Oversized sources remain available through Download source for pasting into
+  the playground; the hub does not truncate or automatically deploy source.
 
 Programmatic `load_settings(environ=...)` calls use the supplied mapping over
 the dotenv file. An empty mapping uses dotenv values and defaults; omitting the
@@ -225,5 +229,5 @@ artifacts.
 ## Related Docs
 
 - [`../xian-linter/README.md`](../xian-linter/README.md) — contract linter consumed by the hub
-- [`../xian-py/README.md`](../xian-py/README.md) — Python SDK used for chain reads / deploys
-- [`../xian-playground-web/README.md`](../xian-playground-web/README.md) — playground that the hub can target for "deploy to playground"
+- [`../xian-py/README.md`](../xian-py/README.md) — Python SDK used by the Xian ecosystem
+- [`../xian-playground-web/README.md`](../xian-playground-web/README.md) — browser playground opened through source-only workspace links

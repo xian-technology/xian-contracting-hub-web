@@ -9,7 +9,6 @@ DEVELOPER_LEADERBOARD_ROUTE = "/developers"
 LOGIN_ROUTE = "/login"
 REGISTER_ROUTE = "/register"
 PROFILE_SETTINGS_ROUTE = "/settings/profile"
-DEPLOYMENT_HISTORY_ROUTE = "/settings/deployments"
 ADMIN_CONTRACTS_ROUTE = "/admin/contracts"
 ADMIN_OPERATIONS_ROUTE = "/admin/operations"
 ADMIN_CONTRACT_CREATE_ROUTE = "/admin/contracts/new"
@@ -19,7 +18,7 @@ ADMIN_CONTRACT_RELATIONS_ROUTE = "/admin/contracts/[slug]/relations"
 CONTRACT_DETAIL_ROUTE = "/contracts/[slug]"
 DEVELOPER_PROFILE_ROUTE = "/developers/[username]"
 HOME_BADGE_TEXT = "Xian Ecosystem"
-HOME_TAGLINE = "Curated smart contracts, version history, and deployment workflows."
+HOME_TAGLINE = "Curated smart contracts, version history, and browser experimentation."
 
 
 def build_contract_detail_path(
@@ -83,7 +82,6 @@ __all__ = [
     "CONTRACT_DETAIL_ROUTE",
     "DEVELOPER_PROFILE_ROUTE",
     "DEVELOPER_LEADERBOARD_ROUTE",
-    "DEPLOYMENT_HISTORY_ROUTE",
     "HOME_BADGE_TEXT",
     "HOME_ROUTE",
     "LOGIN_ROUTE",

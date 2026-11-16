@@ -9,6 +9,7 @@ from enum import StrEnum
 from sqlmodel import Session
 
 from contracting_hub.repositories import DeveloperKPIRecord, DeveloperKPIRepository
+from contracting_hub.utils.dates import coerce_utc_datetime
 
 DEFAULT_DEVELOPER_ACTIVITY_WINDOW_DAYS = 30
 MAX_DEVELOPER_ACTIVITY_WINDOW_DAYS = 365
@@ -21,7 +22,6 @@ class DeveloperLeaderboardSort(StrEnum):
     CONTRACT_COUNT = "contract_count"
     STAR_TOTAL = "star_total"
     WEIGHTED_RATING = "weighted_rating"
-    DEPLOYMENT_COUNT = "deployment_count"
     RECENT_ACTIVITY = "recent_activity"
 
 
@@ -33,36 +33,11 @@ class DeveloperLeaderboardTimeframe(StrEnum):
 
 
 @dataclass(frozen=True)
-class DeveloperKPIAggregate:
+class DeveloperKPIAggregate(DeveloperKPIRecord):
     """Public developer KPI snapshot for profile and leaderboard screens."""
 
-    user_id: int
-    username: str
-    display_name: str | None
-    avatar_path: str | None
-    published_contract_count: int
-    total_stars_received: int
-    weighted_average_rating: float | None
-    total_rating_count: int
-    total_deployment_count: int
-    recent_published_contract_count: int
-    recent_publish_count: int
-    recent_stars_received: int
-    recent_weighted_average_rating: float | None
-    recent_rating_count: int
-    recent_deployment_count: int
     activity_window_days: int
     activity_since: datetime
-
-    @property
-    def recent_activity_count(self) -> int:
-        """Return the combined recent activity total for the configured window."""
-        return (
-            self.recent_publish_count
-            + self.recent_stars_received
-            + self.recent_rating_count
-            + self.recent_deployment_count
-        )
 
 
 class DeveloperKPIServiceErrorCode(StrEnum):
@@ -203,7 +178,7 @@ def build_developer_activity_window_start(
 ) -> datetime:
     """Return the inclusive UTC cutoff timestamp for recent developer activity."""
     resolved_window_days = normalize_developer_activity_window_days(window_days)
-    return _coerce_utc_datetime(now or datetime.now(timezone.utc)) - timedelta(
+    return coerce_utc_datetime(now or datetime.now(timezone.utc)) - timedelta(
         days=resolved_window_days
     )
 
@@ -226,7 +201,7 @@ def normalize_developer_leaderboard_sort(
         DeveloperKPIServiceErrorCode.INVALID_SORT,
         (
             "Leaderboard sort must be one of: contract_count, star_total, "
-            "weighted_rating, deployment_count, recent_activity."
+            "weighted_rating, recent_activity."
         ),
         field="sort",
         details={"value": sort},
@@ -294,22 +269,14 @@ def _build_kpi_aggregate(
         total_stars_received=record.total_stars_received,
         weighted_average_rating=record.weighted_average_rating,
         total_rating_count=record.total_rating_count,
-        total_deployment_count=record.total_deployment_count,
         recent_published_contract_count=record.recent_published_contract_count,
         recent_publish_count=record.recent_publish_count,
         recent_stars_received=record.recent_stars_received,
         recent_weighted_average_rating=record.recent_weighted_average_rating,
         recent_rating_count=record.recent_rating_count,
-        recent_deployment_count=record.recent_deployment_count,
         activity_window_days=activity_window_days,
         activity_since=activity_since,
     )
-
-
-def _coerce_utc_datetime(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
 
 
 __all__ = [

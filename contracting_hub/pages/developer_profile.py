@@ -177,11 +177,6 @@ def _profile_overview() -> rx.Component:
                         ),
                         "Aggregate score across published contract ratings.",
                     ),
-                    _summary_card(
-                        "Deployments",
-                        DeveloperProfileState.deployment_count_text,
-                        "Recorded playground handoffs across published releases.",
-                    ),
                     columns=rx.breakpoints(initial="1", md="2"),
                     gap="var(--hub-space-3)",
                     width="100%",
@@ -235,7 +230,6 @@ def _authored_contract_card(card) -> rx.Component:
                     empty=card["rating_empty"],
                 ),
             ),
-            ContractCardMetric("Deploys", card["deployment_count"]),
         ),
         author_name=DeveloperProfileState.page_title,
         tags=rx.flex(

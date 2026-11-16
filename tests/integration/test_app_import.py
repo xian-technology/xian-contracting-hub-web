@@ -71,7 +71,7 @@ def test_home_page_uses_the_shared_shell(app_module: dict[str, object]) -> None:
     assert "Featured Contracts" in rendered_text
     assert "Trending Now" in rendered_text
     assert "Recently Updated" in rendered_text
-    assert "Recently Deployed" in rendered_text
+    assert "Recently Deployed" not in rendered_text
     assert APP_NAME in rendered_text
     assert "Curated Xian smart contracts" in rendered_text
     for pillar in SHELL_PILLARS:
