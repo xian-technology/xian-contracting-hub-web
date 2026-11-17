@@ -28,21 +28,21 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/xian-contracting
-          ref: main
+          ref: 1534394452451267397286f8083b220dcfbb4717
           path: xian-contracting
 
       - name: Check out xian-linter
         uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/xian-linter
-          ref: main
+          ref: 3f193379cf3c52ab2833222451cae1b804665cdb
           path: xian-linter
 
       - name: Check out xian-py
         uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/xian-py
-          ref: main
+          ref: f1b4cbc0ac5efcad400aabf0e62b05cdbf14dc57
           path: xian-py
 
       - name: Set up Python 3.14
