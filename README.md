@@ -107,6 +107,13 @@ For a live hub, adding a contract should normally start in the owner repo:
   manifest.
 
 The hub imports from those owners into SQLite as immutable release snapshots.
+For declared platform requirements, owner manifests can include
+`contracts[].metadata.platform_dependencies`. Imports preserve that declaration
+on the immutable artifact and show it in the selected version's release notes.
+Changing the declaration requires a new release identity; importing it does not
+install a service or activate a node keeper. Historical source versions and notes
+remain unchanged.
+
 Package and release metadata model both standalone contracts and product-scale
 systems:
 

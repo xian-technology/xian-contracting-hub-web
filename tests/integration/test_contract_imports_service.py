@@ -16,6 +16,7 @@ from contracting_hub.services import (
     import_contract_bundle_manifest,
     load_contract_package_release_snapshot,
 )
+from contracting_hub.services.contract_detail import load_public_contract_detail_snapshot
 
 
 def _build_engine() -> sa.Engine:
@@ -253,3 +254,59 @@ def test_import_contract_bundle_manifest_rejects_source_hash_mismatch(
     assert error.value.code is ContractImportErrorCode.SOURCE_HASH_MISMATCH
     assert error.value.field == "contracts[1].sha256"
     assert error.value.details["contract_name"] == "con_dex"
+
+
+def test_new_platform_requirement_is_visible_on_its_immutable_version(tmp_path: Path) -> None:
+    engine = _build_engine()
+    manifest_path = _write_single_contract_manifest_fixture(tmp_path)
+    requirements = [
+        {"contract": "time_checkpoints", "protocol_version": 1, "keeper_required": True}
+    ]
+    with Session(engine) as session:
+        import_contract_bundle_manifest(session=session, manifest_path=manifest_path)
+        old = load_public_contract_detail_snapshot(
+            session=session, slug="staking", semantic_version="0.1.0"
+        )
+        payload = json.loads(manifest_path.read_text())
+        payload["version"] = "0.3.0"
+        payload["contracts"][0]["metadata"] = {"platform_dependencies": requirements}
+        manifest_path.write_text(json.dumps(payload))
+        import_contract_bundle_manifest(session=session, manifest_path=manifest_path)
+        current = load_public_contract_detail_snapshot(
+            session=session, slug="staking", semantic_version="0.3.0"
+        )
+        package = load_contract_package_release_snapshot(
+            session=session, package_slug="staking", semantic_version="0.3.0"
+        )
+        assert (
+            package.artifacts[0].manifest_metadata["metadata"]["platform_dependencies"]
+            == requirements
+        )
+        assert old.selected_version_changelog == "Imported from contract-bundle.json."
+        assert "Declared platform dependencies" in current.selected_version_changelog
+        assert '"contract": "time_checkpoints"' in current.selected_version_changelog
+        assert '"protocol_version": 1' in current.selected_version_changelog
+        assert '"keeper_required": true' in current.selected_version_changelog
+        import_contract_bundle_manifest(session=session, manifest_path=manifest_path)
+        repeated = load_public_contract_detail_snapshot(
+            session=session, slug="staking", semantic_version="0.3.0"
+        )
+        historical = load_public_contract_detail_snapshot(
+            session=session, slug="staking", semantic_version="0.1.0"
+        )
+        assert repeated.selected_version_changelog == current.selected_version_changelog
+        assert historical.selected_version_changelog == old.selected_version_changelog
+
+
+@pytest.mark.parametrize("metadata", [{}, {"documentation": "legacy"}, "legacy opaque metadata"])
+def test_unrelated_artifact_metadata_does_not_change_version_notes(
+    tmp_path: Path, metadata
+) -> None:
+    manifest_path = _write_single_contract_manifest_fixture(tmp_path)
+    payload = json.loads(manifest_path.read_text())
+    payload["contracts"][0]["metadata"] = metadata
+    manifest_path.write_text(json.dumps(payload))
+    with Session(_build_engine()) as session:
+        import_contract_bundle_manifest(session=session, manifest_path=manifest_path)
+        detail = load_public_contract_detail_snapshot(session=session, slug="staking")
+        assert detail.selected_version_changelog == "Imported from contract-bundle.json."

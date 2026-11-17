@@ -225,7 +225,7 @@ def import_contract_bundle_manifest(
                     contract_slug=contract.slug,
                     semantic_version=manifest.semantic_version,
                     source_code=contract_definition.source_code,
-                    changelog=f"Imported from {manifest.path.name}.",
+                    changelog=_imported_version_changelog(manifest, contract_definition),
                     status=normalized_contract_status,
                     auto_commit=False,
                 )
@@ -281,6 +281,17 @@ def import_contract_bundle_manifest(
         artifacts_existing=artifacts_existing,
         warnings=tuple(warnings),
     )
+
+
+def _imported_version_changelog(manifest: BundleManifest, contract: BundleManifestContract) -> str:
+    notes = f"Imported from {manifest.path.name}."
+    metadata = contract.metadata.get("metadata")
+    if not isinstance(metadata, dict) or "platform_dependencies" not in metadata:
+        return notes
+    dependencies = json.dumps(
+        metadata["platform_dependencies"], ensure_ascii=True, indent=2, sort_keys=True
+    )
+    return f"{notes}\n\nDeclared platform dependencies:\n{dependencies}"
 
 
 def load_contract_bundle_manifest(manifest_path: str | Path) -> BundleManifest:
