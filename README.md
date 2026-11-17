@@ -46,6 +46,32 @@ For a production-ready static export:
 uv run reflex export --no-zip
 ```
 
+For supported production hosting, run the frontend and backend together behind
+an HTTPS reverse proxy with WebSocket forwarding:
+
+```bash
+uv run reflex run --env prod --single-port --frontend-port 8001 --backend-port 8001
+```
+
+The app's production adapter serves declared dynamic contract, developer and
+admin page documents with HTTP 200. It uses the existing page registry and
+canonical identifier rules; it does not rewrite response bodies or change
+authorization. Unknown routes/assets retain their error status, non-read methods
+retain their method handling, and JSON requests are not promoted to documents.
+HTTP 200 identifies a declared page route, not the existence of its database
+resource: an unknown contract slug or username still loads the client shell,
+which displays the application's not-found view.
+Absent or wildcard `Accept` permits HTML; a more specific HTML refusal wins.
+Responses vary on `Accept`, preserving existing cache variation.
+
+An export is a build artifact, not a complete hosting configuration. Reflex's
+plain static-file frontend server returns HTTP 404 for dynamic page paths even
+when the browser router renders them. If hosting exports separately, configure
+HTML document fallback only for the declared app routes, keep missing assets and
+unknown routes as errors, and connect the deployed backend/WebSocket endpoint.
+Use the single-port command above when that routing policy is not supplied by
+your host; a blanket fallback returning HTTP 200 for every path is unsuitable.
+
 ## Principles
 
 - **Curated, append-only catalog.** Contract versions are immutable

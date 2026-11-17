@@ -45,7 +45,8 @@ def test_anonymous_users_can_open_contract_detail_switch_versions_and_view_diffs
     page: Page,
     live_server_url: str,
 ) -> None:
-    page.goto(f"{live_server_url}/contracts/escrow")
+    response = page.goto(f"{live_server_url}/contracts/escrow")
+    assert response is not None and response.status == 200
 
     detail_header = page.locator('[data-testid="contract-detail-header"]')
     version_history = page.locator('[data-testid="contract-version-history"]')

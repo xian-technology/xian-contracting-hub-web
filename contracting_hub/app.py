@@ -1,5 +1,6 @@
 import importlib
 import sys
+from functools import partial
 from pathlib import Path
 
 import reflex as rx
@@ -133,11 +134,22 @@ def _load_theme_config() -> tuple[object, object, object]:
     return theme_module.APP_STYLE, theme_module.APP_STYLESHEETS, theme_module.APP_THEME
 
 
+def _frontend_transformer(routes: tuple[str, ...]):
+    """Load the production adapter after establishing imports for path execution."""
+    hosting_module = importlib.import_module("contracting_hub.frontend_hosting")
+    return partial(hosting_module.DynamicPageFallback, routes=routes)
+
+
 _load_data_layer()
 APP_STYLE, APP_STYLESHEETS, APP_THEME = _load_theme_config()
 PAGES = _load_pages()
 HOME_ROUTE, index, APP_NAME, _ = PAGES[0]
 
-app = rx.App(theme=APP_THEME, style=APP_STYLE, stylesheets=APP_STYLESHEETS)
+app = rx.App(
+    theme=APP_THEME,
+    style=APP_STYLE,
+    stylesheets=APP_STYLESHEETS,
+    api_transformer=_frontend_transformer(tuple(page[0] for page in PAGES)),
+)
 for route, component, title, on_load in PAGES:
     app.add_page(component, route=route, title=title, on_load=on_load)
