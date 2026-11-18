@@ -40,7 +40,8 @@ uv run reflex db migrate
 uv run reflex run
 ```
 
-For a production-ready static export:
+To generate static frontend files (routing and backend configuration are
+required separately):
 
 ```bash
 uv run reflex export --no-zip
@@ -190,13 +191,13 @@ managed database operations than a single-server SQLite deployment provides.
 
 | Layer            | Tool                  | Version            |
 | ---------------- | --------------------- | ------------------ |
-| Runtime          | Python                | 3.11+ / 3.14 venv  |
-| Framework        | Reflex                | 0.8.x              |
+| Runtime          | Python                | 3.14               |
+| Framework        | Reflex                | >=0.9.6.post1,<0.10 |
 | ORM              | SQLModel              | 0.0.x              |
 | Database         | SQLite (FTS5)         | 3.52+              |
 | Migrations       | Alembic               | 1.18+              |
-| Contract linting | `xian-linter`         | 0.2+               |
-| Xian SDK         | `xian-py`             | 0.4+               |
+| Contract linting | `xian-tech-linter`    | >=0.4.3,<1         |
+| Xian SDK         | `xian-tech-py`        | >=0.5.0,<1         |
 | Tests            | `pytest`, Playwright  | 9.x / 1.58+        |
 | Lint / format    | Ruff                  | 0.15+              |
 

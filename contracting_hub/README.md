@@ -3,7 +3,7 @@
 ## Purpose
 
 This package is the Reflex application behind the contracting hub: catalog
-pages, domain services, persistence, and the lint / deploy integrations.
+pages, domain services, persistence, linting and source-only Playground links.
 
 ## Contents
 
@@ -12,11 +12,11 @@ pages, domain services, persistence, and the lint / deploy integrations.
 - `pages/` — Reflex page components (catalog, contract detail, admin, …).
 - `components/` — reusable UI building blocks shared across pages.
 - `states/` — Reflex state classes that back the pages.
-- `services/` — domain services for catalog, ratings, deployments, and
+- `services/` — domain services for catalog, ratings, source imports, and
   curation workflows.
 - `repositories/` — SQLite/FTS5-backed persistence for the services layer.
 - `models/` — database models; schema changes go through `../migrations/`.
-- `integrations/` — adapters for `xian-linter` and chain deployment.
+- `integrations/` — adapters for `xian-linter`, storage and browser Playground links.
 - `admin/`, `utils/`, `theme.py`, `database.py` — admin workflows, helpers,
   theming, and DB session plumbing.
 
