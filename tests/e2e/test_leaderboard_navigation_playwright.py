@@ -24,6 +24,22 @@ def test_leaderboard_filter_can_be_submitted_before_a_server_round_trip(
 
     expect(page).to_have_url(f"{live_server_url}/developers?sort=weighted_rating")
     expect(form.locator('select[name="sort"]')).to_have_value("weighted_rating")
+    form.get_by_role("button", name="Reset").click()
+    expect(page).to_have_url(f"{live_server_url}/developers")
+    expect(form.locator('select[name="sort"]')).to_have_value("star_total")
+
+
+def test_reset_restores_unsubmitted_leaderboard_filters(page: Page, live_server_url: str) -> None:
+    page.goto(f"{live_server_url}/developers")
+    expect(page.locator('[data-testid="developer-leaderboard-card"]')).to_have_count(2)
+
+    filters = page.locator('[data-testid="developer-leaderboard-filters"]')
+    sort = filters.locator('select[name="sort"]')
+    sort.select_option("weighted_rating")
+    filters.get_by_role("button", name="Reset").click()
+
+    expect(page).to_have_url(f"{live_server_url}/developers")
+    expect(sort).to_have_value("star_total")
 
 
 def test_public_leaderboard_filters_link_to_developer_profiles(

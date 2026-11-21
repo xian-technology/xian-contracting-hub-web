@@ -9,6 +9,18 @@ import reflex as rx
 ACCENT_COLOR = "grass"
 MUTED_TEXT_COLOR = "sand"
 
+FILTER_SELECT_STYLE = {
+    "width": "100%",
+    "padding": "0.7rem 0.85rem",
+    "border": "1px solid var(--hub-color-line)",
+    "border_radius": "var(--hub-radius-sm)",
+    "background": "rgba(255, 253, 248, 0.98)",
+    "color": "var(--hub-color-text)",
+    "font_family": "var(--hub-font-body)",
+    "font_size": "0.92rem",
+    "outline": "none",
+}
+
 FONT_FAMILIES: dict[str, str] = {
     "display": '"Space Grotesk", "Avenir Next", "Segoe UI", sans-serif',
     "body": '"IBM Plex Sans", "Segoe UI", sans-serif',

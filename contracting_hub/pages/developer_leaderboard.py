@@ -13,6 +13,7 @@ from contracting_hub.components import (
 )
 from contracting_hub.components.catalog_metric import catalog_metric
 from contracting_hub.states import AuthState, DeveloperLeaderboardState
+from contracting_hub.theme import FILTER_SELECT_STYLE
 from contracting_hub.utils.meta import DEVELOPER_LEADERBOARD_ROUTE
 
 ROUTE = DEVELOPER_LEADERBOARD_ROUTE
@@ -71,20 +72,6 @@ def _control_field(
     )
 
 
-def _select_style() -> dict[str, str]:
-    return {
-        "width": "100%",
-        "padding": "0.7rem 0.85rem",
-        "border": "1px solid var(--hub-color-line)",
-        "border_radius": "var(--hub-radius-sm)",
-        "background": "rgba(255, 253, 248, 0.98)",
-        "color": "var(--hub-color-text)",
-        "font_family": "var(--hub-font-body)",
-        "font_size": "0.92rem",
-        "outline": "none",
-    }
-
-
 def _leaderboard_filters() -> rx.Component:
     fieldset_style = {
         "border": "none",
@@ -135,7 +122,7 @@ def _leaderboard_filters() -> rx.Component:
                                 id="leaderboard-sort",
                                 name="sort",
                                 default_value=DeveloperLeaderboardState.selected_sort,
-                                style=_select_style(),
+                                style=FILTER_SELECT_STYLE,
                             ),
                             control_id="leaderboard-sort",
                         ),
@@ -149,7 +136,7 @@ def _leaderboard_filters() -> rx.Component:
                                 id="leaderboard-timeframe",
                                 name="timeframe",
                                 default_value=DeveloperLeaderboardState.selected_timeframe,
-                                style=_select_style(),
+                                style=FILTER_SELECT_STYLE,
                             ),
                             control_id="leaderboard-timeframe",
                         ),
@@ -163,7 +150,7 @@ def _leaderboard_filters() -> rx.Component:
                                 id="leaderboard-window",
                                 name="window",
                                 default_value=DeveloperLeaderboardState.selected_window_days,
-                                style=_select_style(),
+                                style=FILTER_SELECT_STYLE,
                             ),
                             control_id="leaderboard-window",
                             helper=(
@@ -179,16 +166,12 @@ def _leaderboard_filters() -> rx.Component:
                                 variant="solid",
                                 width=rx.breakpoints(initial="100%", sm="auto"),
                             ),
-                            rx.link(
-                                rx.button(
-                                    "Reset",
-                                    type="button",
-                                    size="3",
-                                    variant="soft",
-                                    width=rx.breakpoints(initial="100%", sm="auto"),
-                                ),
-                                href=DeveloperLeaderboardState.clear_filters_href,
-                                text_decoration="none",
+                            rx.button(
+                                "Reset",
+                                type="reset",
+                                on_click=rx.redirect(DeveloperLeaderboardState.clear_filters_href),
+                                size="3",
+                                variant="soft",
                                 width=rx.breakpoints(initial="100%", sm="auto"),
                             ),
                             direction=rx.breakpoints(initial="column", sm="row"),

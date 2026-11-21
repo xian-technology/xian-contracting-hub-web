@@ -40,6 +40,11 @@ def test_anonymous_users_can_browse_search_and_filter_contracts(
         "sort": ["alphabetical"],
     }
 
+    filters.get_by_role("button", name="Clear").click()
+    expect(page).to_have_url(f"{live_server_url}/browse")
+    expect(browse_cards).to_have_count(3)
+    expect(filters.locator('select[name="sort"]')).to_have_value("featured")
+
 
 def test_browse_filter_can_be_submitted_before_a_server_round_trip(
     page: Page, live_server_url: str
@@ -61,6 +66,22 @@ def test_browse_filter_can_be_submitted_before_a_server_round_trip(
     expect(form.locator('select[name="sort"]')).to_have_value("featured")
     page.go_forward()
     expect(form.locator('select[name="sort"]')).to_have_value("alphabetical")
+
+
+def test_clear_restores_unsubmitted_browse_filters(page: Page, live_server_url: str) -> None:
+    page.goto(f"{live_server_url}/browse")
+    expect(page.locator('[data-testid="browse-result-card"]')).to_have_count(3)
+
+    filters = page.locator('[data-testid="browse-filters"]')
+    query = filters.locator('input[name="query"]')
+    sort = filters.locator('select[name="sort"]')
+    query.fill("draft search")
+    sort.select_option("alphabetical")
+    filters.get_by_role("button", name="Clear").click()
+
+    expect(page).to_have_url(f"{live_server_url}/browse")
+    expect(query).to_have_value("")
+    expect(sort).to_have_value("featured")
 
 
 def test_anonymous_users_can_open_contract_detail_switch_versions_and_view_diffs(

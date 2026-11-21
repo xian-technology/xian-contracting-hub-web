@@ -15,6 +15,7 @@ from contracting_hub.components import (
     page_section,
 )
 from contracting_hub.states import AuthState, BrowseState
+from contracting_hub.theme import FILTER_SELECT_STYLE
 from contracting_hub.utils.meta import BROWSE_ROUTE
 
 ROUTE = BROWSE_ROUTE
@@ -123,7 +124,7 @@ def _browse_filters() -> rx.Component:
                                 id="browse-category",
                                 name="category",
                                 default_value=BrowseState.selected_category,
-                                style=_select_style(),
+                                style=FILTER_SELECT_STYLE,
                             ),
                             control_id="browse-category",
                         ),
@@ -144,7 +145,7 @@ def _browse_filters() -> rx.Component:
                                 id="browse-tag",
                                 name="tag",
                                 default_value=BrowseState.selected_tag,
-                                style=_select_style(),
+                                style=FILTER_SELECT_STYLE,
                             ),
                             control_id="browse-tag",
                         ),
@@ -158,7 +159,7 @@ def _browse_filters() -> rx.Component:
                                 id="browse-sort",
                                 name="sort",
                                 default_value=BrowseState.selected_sort,
-                                style=_select_style(),
+                                style=FILTER_SELECT_STYLE,
                             ),
                             control_id="browse-sort",
                         ),
@@ -170,16 +171,12 @@ def _browse_filters() -> rx.Component:
                                 variant="solid",
                                 width=rx.breakpoints(initial="100%", sm="auto"),
                             ),
-                            rx.link(
-                                rx.button(
-                                    "Clear",
-                                    type="button",
-                                    size="3",
-                                    variant="soft",
-                                    width=rx.breakpoints(initial="100%", sm="auto"),
-                                ),
-                                href=BrowseState.clear_filters_href,
-                                text_decoration="none",
+                            rx.button(
+                                "Clear",
+                                type="reset",
+                                on_click=rx.redirect(BrowseState.clear_filters_href),
+                                size="3",
+                                variant="soft",
                                 width=rx.breakpoints(initial="100%", sm="auto"),
                             ),
                             direction=rx.breakpoints(initial="column", sm="row"),
@@ -204,20 +201,6 @@ def _browse_filters() -> rx.Component:
         position=rx.breakpoints(initial="static", lg="sticky"),
         top=rx.breakpoints(initial="0", lg="5.75rem"),
     )
-
-
-def _select_style() -> dict[str, str]:
-    return {
-        "width": "100%",
-        "padding": "0.7rem 0.85rem",
-        "border": "1px solid var(--hub-color-line)",
-        "border_radius": "var(--hub-radius-sm)",
-        "background": "rgba(255, 253, 248, 0.98)",
-        "color": "var(--hub-color-text)",
-        "font_family": "var(--hub-font-body)",
-        "font_size": "0.92rem",
-        "outline": "none",
-    }
 
 
 def _summary_chip(label: str, value) -> rx.Component:
