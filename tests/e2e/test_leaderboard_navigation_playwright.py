@@ -8,6 +8,24 @@ from playwright.sync_api import Page, expect
 pytestmark = [pytest.mark.playwright, pytest.mark.timeout(120)]
 
 
+def test_leaderboard_filter_can_be_submitted_before_a_server_round_trip(
+    page: Page, live_server_url: str
+) -> None:
+    page.goto(f"{live_server_url}/developers")
+    expect(page.locator('[data-testid="developer-leaderboard-card"]')).to_have_count(2)
+
+    form = page.locator('[data-testid="developer-leaderboard-filters"] form')
+    form.evaluate("""form => {
+        const sort = form.elements.namedItem('sort');
+        sort.value = 'weighted_rating';
+        sort.dispatchEvent(new Event('change', { bubbles: true }));
+        form.requestSubmit();
+    }""")
+
+    expect(page).to_have_url(f"{live_server_url}/developers?sort=weighted_rating")
+    expect(form.locator('select[name="sort"]')).to_have_value("weighted_rating")
+
+
 def test_public_leaderboard_filters_link_to_developer_profiles(
     page: Page,
     live_server_url: str,

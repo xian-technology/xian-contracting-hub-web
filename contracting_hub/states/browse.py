@@ -138,21 +138,16 @@ class BrowseState(rx.State):
         self._apply_snapshot(snapshot)
         self.load_state = "ready"
 
-    def set_search_query(self, value: str) -> None:
-        """Update the current search input value."""
-        self.search_query = value
-
-    def set_selected_category(self, value: str) -> None:
-        """Update the selected category filter."""
-        self.selected_category = value
-
-    def set_selected_tag(self, value: str) -> None:
-        """Update the selected tag filter."""
-        self.selected_tag = value
-
-    def set_selected_sort(self, value: str) -> None:
-        """Update the selected sort control."""
-        self.selected_sort = value
+    @rx.var
+    def filter_form_key(self) -> str:
+        """Reset browser-owned inputs when a different browse snapshot loads."""
+        return build_contract_browse_path(
+            query=self.search_query,
+            category_slug=self.selected_category,
+            tag=self.selected_tag,
+            sort=self.selected_sort,
+            page=self.current_page,
+        )
 
     def apply_filters(self, form_data: dict[str, Any]) -> rx.event.EventSpec:
         """Redirect to the canonical browse URL for the submitted filter form."""

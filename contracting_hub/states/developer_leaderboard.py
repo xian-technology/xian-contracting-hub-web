@@ -118,17 +118,14 @@ class DeveloperLeaderboardState(rx.State):
         self._apply_snapshot(snapshot)
         self.load_state = "ready"
 
-    def set_selected_sort(self, value: str) -> None:
-        """Update the current leaderboard sort control."""
-        self.selected_sort = value
-
-    def set_selected_timeframe(self, value: str) -> None:
-        """Update the current leaderboard timeframe control."""
-        self.selected_timeframe = value
-
-    def set_selected_window_days(self, value: str) -> None:
-        """Update the current activity-window control."""
-        self.selected_window_days = value
+    @rx.var
+    def filter_form_key(self) -> str:
+        """Reset browser-owned inputs when a different ranking snapshot loads."""
+        return build_public_developer_leaderboard_path(
+            sort=self.selected_sort,
+            timeframe=self.selected_timeframe,
+            activity_window_days=self.selected_window_days,
+        )
 
     def apply_filters(self, form_data: dict[str, Any]) -> rx.event.EventSpec:
         """Redirect to the canonical leaderboard URL for the submitted filters."""

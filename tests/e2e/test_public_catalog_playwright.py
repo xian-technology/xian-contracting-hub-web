@@ -41,6 +41,28 @@ def test_anonymous_users_can_browse_search_and_filter_contracts(
     }
 
 
+def test_browse_filter_can_be_submitted_before_a_server_round_trip(
+    page: Page, live_server_url: str
+) -> None:
+    page.goto(f"{live_server_url}/browse")
+    expect(page.locator('[data-testid="browse-result-card"]')).to_have_count(3)
+
+    form = page.locator('[data-testid="browse-filters"] form')
+    form.evaluate("""form => {
+        const sort = form.elements.namedItem('sort');
+        sort.value = 'alphabetical';
+        sort.dispatchEvent(new Event('change', { bubbles: true }));
+        form.requestSubmit();
+    }""")
+
+    expect(page).to_have_url(f"{live_server_url}/browse?sort=alphabetical")
+    expect(form.locator('select[name="sort"]')).to_have_value("alphabetical")
+    page.go_back()
+    expect(form.locator('select[name="sort"]')).to_have_value("featured")
+    page.go_forward()
+    expect(form.locator('select[name="sort"]')).to_have_value("alphabetical")
+
+
 def test_anonymous_users_can_open_contract_detail_switch_versions_and_view_diffs(
     page: Page,
     live_server_url: str,
