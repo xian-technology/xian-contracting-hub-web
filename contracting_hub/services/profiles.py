@@ -6,13 +6,14 @@ from enum import StrEnum
 from urllib.parse import urlparse
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from contracting_hub.config import AppSettings
 from contracting_hub.integrations.storage import LocalFileStorage, UploadValidationError
-from contracting_hub.models import Profile
+from contracting_hub.models import Contract, Profile
 from contracting_hub.repositories import AuthRepository
 from contracting_hub.services.auth import AuthServiceError, AuthServiceErrorCode, normalize_username
+from contracting_hub.services.contract_search import rebuild_contract_search_document
 from contracting_hub.services.uploads import delete_managed_upload, store_avatar_upload
 
 MAX_PROFILE_DISPLAY_NAME_LENGTH = 100
@@ -108,6 +109,9 @@ def update_profile(
     )
 
     try:
+        contract_ids = session.exec(select(Contract.id).where(Contract.author_user_id == user.id))
+        for contract_id in contract_ids:
+            rebuild_contract_search_document(session, contract_id=contract_id)
         session.commit()
     except IntegrityError as error:
         session.rollback()

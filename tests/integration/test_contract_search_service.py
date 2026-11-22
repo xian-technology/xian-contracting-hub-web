@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import sqlalchemy as sa
 from reflex.model import ModelRegistry
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from contracting_hub.models import (
     Category,
@@ -15,6 +15,7 @@ from contracting_hub.models import (
     User,
 )
 from contracting_hub.services import create_contract_version, search_contract_catalog
+from contracting_hub.services.profiles import update_profile
 
 
 def _timestamp(day: int) -> datetime:
@@ -134,6 +135,25 @@ def test_search_contract_catalog_matches_ranked_metadata_fields() -> None:
         assert [result.contract.slug for result in category_results] == ["escrow"]
         assert [result.contract.slug for result in tag_results] == ["escrow"]
         assert [result.contract.slug for result in source_results] == ["vault"]
+
+
+def test_search_catalog_uses_the_authors_current_profile_after_a_rename() -> None:
+    engine = _build_engine()
+
+    with Session(engine) as session:
+        _seed_search_catalog(session)
+        author = session.exec(select(User).where(User.email == "alice@example.com")).one()
+        update_profile(
+            session=session,
+            user_id=author.id,
+            username="carol",
+            display_name="Carol Builder",
+        )
+
+    with Session(engine) as session:
+        renamed = search_contract_catalog(session=session, query="carol")
+        assert [result.contract.slug for result in renamed] == ["escrow"]
+        assert search_contract_catalog(session=session, query="alice") == []
 
 
 def test_create_contract_version_rebuilds_index_without_leaking_draft_source() -> None:
